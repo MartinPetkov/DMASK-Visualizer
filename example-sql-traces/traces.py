@@ -14,164 +14,271 @@ Took(_sid,ofid_, grade)
 
 
 
-''' A simple SELECT-FROM-WHERE query
-SELECT sid
-FROM Student
-WHERE cgpa > 3
-'''
+''' A simple SELECT-FROM-WHERE query '''
 def generate_simple_query():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT sid'
+    ' FROM Student'
+    ' WHERE cgpa > 3'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with a cross product in it
-SELECT sid, email, cgpa
-FROM Student, Took
-'''
+''' A query with a cross product in it '''
 def generate_simple_cross_product_query():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT sid, email, cgpa'
+    ' FROM Student, Took'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with one natural JOIN in it
-SELECT sid, email, cgpa
-FROM Student NATURAL JOIN Took
-'''
+''' A query with one natural JOIN in it '''
 def generate_simple_natural_join_query():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT sid, email, cgpa'
+    ' FROM Student NATURAL JOIN Took'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with a LEFT JOIN on a condition in it
-SELECT term, instructor
-FROM Took LEFT JOIN Offering ON Took.ofID=Offering.oid
-'''
+''' A query with a LEFT JOIN on a condition in it '''
 def generate_simple_condition_join_query():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT term, instructor'
+    ' FROM Took LEFT JOIN Offering ON Took.ofID=Offering.oid'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with one subquery in the FROM
-SELECT WhyUDoThis.oid
-FROM
-    (SELECT oid, dept
-     FROM Offering
-     ) AS WhyUDoThis
-'''
+''' A query with one subquery in the FROM '''
 def generate_simple_subquery():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT WhyUDoThis.oid'
+    ' FROM'
+    '    (SELECT oid, dept'
+    '    FROM Offering'
+    '    ) AS WhyUDoThis'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with an AND in its WHERE clause
-SELECT email, cgpa
-FROM Student
-WHERE cgpa > 3
-AND firstName='Martin'
-'''
+''' A query with an AND in its WHERE clause '''
 def generate_simple_and_query():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT email, cgpa'
+    ' FROM Student'
+    ' WHERE cgpa > 3'
+    ' AND firstName=\'Martin\''
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with an OR in its WHERE clause
-SELECT email, cgpa
-FROM Student
-WHERE cgpa > 3
-OR firstName='Martin'
-'''
+''' A query with an OR in its WHERE clause '''
 def generate_simple_or_query():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT email, cgpa'
+    ' FROM Student'
+    ' WHERE cgpa > 3'
+    ' OR firstName=\'Martin\''
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with both AND and OR in its WHERE statement
-SELECT email, cgpa
-FROM Student
-WHERE (cgpa > 3)
-AND (firstName='Martin'
-    OR firstName='Kathy')
-'''
+''' A query with both AND and OR in its WHERE statement '''
 def generate_complex_and_plus_or():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT email, cgpa'
+    ' FROM Student'
+    ' WHERE (cgpa > 3)'
+    ' AND (firstName=\'Martin\''
+    '    OR firstName=\'Kathy\')'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
 
-''' A query with renaming of tables
-SELECT t.sid, t.oid
-FROM Took t
-'''
+''' A query with renaming of tables '''
 def generate_complex_renaming():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT t.sid, t.oid'
+    ' FROM Took t'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with a subquery in the WHERE that's not repeated for each row
-SELECT sid, surName
-FROM Student
-WHERE cgpa >
-    (SELECT cgpa
-     FROM Student
-     WHERE sid=999)
-'''
+''' A query with a subquery in the WHERE that's not repeated for each row '''
 def generate_complex_subquery_in_where_not_repeated():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT sid, surName'
+    ' FROM Student'
+    ' WHERE cgpa >'
+    '    (SELECT cgpa'
+    '     FROM Student'
+    '     WHERE sid=999)'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
-''' A query with a subquery in the WHERE that's repeated for each row
-SELECT instructor
-FROM Offering o1
-WHERE NOT EXISTS (
-    SELECT *
-    FROM Offering o2
-    WHERE o2.oid <> o1.oid)
-'''
+''' A query with a subquery in the WHERE that's repeated for each row '''
 def generate_complex_subquery_in_where_repeated():
-    parsed_query = ParsedQuery()
+    query_text =\
+    ' SELECT instructor'
+    ' FROM Offering o1'
+    ' WHERE NOT EXISTS ('
+    '     SELECT oid'
+    '     FROM Offering o2'
+    '     WHERE o2.oid <> o1.oid)'
 
+    steps = [
+    ]
+
+    tables = [
+    ]
+
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
     return [parsed_query]
 
 
 
-''' Multiple queries which don't reference each other
-SELECT email
-FROM Student
-
-SELECT oid
-FROM Took
-'''
+''' Multiple queries which don't reference each other '''
 def generate_multiple_queries_unrelated():
-    parsed_query1 = ParsedQuery()
-    parsed_query2 = ParsedQuery()
+    query_text1 =\
+    ' SELECT email'
+    ' FROM Student'
 
+    steps1 = [
+    ]
+
+    tables1 = [
+    ]
+
+
+    query_text2 =\
+    ' SELECT oid'
+    ' FROM Took'
+
+    steps2 = [
+    ]
+
+    tables2 = [
+    ]
+
+
+    parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
+    parsed_query2 = ParsedQuery(steps2, tables2, query_text2)
     return [parsed_query1, parsed_query2]
 
 
-''' Multiple queries which do reference each other
-CREATE VIEW pizza AS
-SELECT sid, email, cgpa
-FROM Student
-WHERE cgpa<3
-
-SELECT email
-FROM pizza
-'''
+''' Multiple queries which do reference each other '''
 def generate_multiple_queries_related():
-    parsed_query1 = ParsedQuery()
-    parsed_query2 = ParsedQuery()
+    query_text1 =\
+    ' CREATE VIEW pizza AS'
+    ' SELECT sid, email, cgpa'
+    ' FROM Student'
+    ' WHERE cgpa<3'
 
+    steps1 = [
+    ]
+
+    tables1 = [
+    ]
+
+
+    query_text2 =\
+    ' SELECT email'
+    ' FROM pizza'
+
+    steps2 = [
+    ]
+
+    tables2 = [
+    ]
+
+
+    parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
+    parsed_query2 = ParsedQuery(steps2, tables2, query_text2)
     return [parsed_query1, parsed_query2]
 
 
