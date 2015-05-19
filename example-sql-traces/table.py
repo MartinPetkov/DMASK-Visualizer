@@ -7,8 +7,8 @@ class Table:
     :param col_names: a list of the column names; the indexes match the order of values in the value tuples
     :param tuples: a list of string lists, one for each tuple of values in the table
     """
-    def __init__(self, table_id, col_names, tuples=[]):
-        self.table_id = table_id
+    def __init__(self, t_id, col_names, tuples=[]):
+        self.t_id = t_id
         self.col_names = col_names
         self.tuples = tuples
 

@@ -17,15 +17,40 @@ Took(_sid,ofid_, grade)
 ''' A simple SELECT-FROM-WHERE query '''
 def generate_simple_query():
     query_text =\
-    ' SELECT sid'
+    ' SELECT sid, cgpa'
     ' FROM Student'
     ' WHERE cgpa > 3'
 
     steps = [
+        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('2', 'WHERE cgpa > 3', ['1'], '2'),
+        QueryStep('3', 'SELECT sid', ['2'], '3'),
     ]
 
-    tables = [
-    ]
+    tables = {
+        '1': Table(t_id='1',
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
+                    tuples=[
+                            ('1', 'Martin', 'martin@mail.com', '3.4'),
+                            ('2', 'Kathy', 'kathy@mail.com', '4.0'),
+                            ('3', 'Martin', 'not_martin@mail.com', '1.7'),
+                            ('4', 'James', 'james@mail.com', '2.8')]
+                    ),
+
+        '2': Table(t_id='2',
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
+                    tuples=[
+                            ('1', 'Martin', 'martin@mail.com', '3.4'),
+                            ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                    ),
+
+        '3': Table(t_id='3',
+                    col_names=['sid', 'cgpa'],
+                    tuples=[
+                            ('1', '3.4'),
+                            ('2', '4.0')]
+                    ),
+    }
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
