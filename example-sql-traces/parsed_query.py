@@ -1,19 +1,30 @@
 from query_step import QueryStep
 from table import Table
 
+import json
+
 class ParsedQuery:
 
     """
     Create a ParsedQuery object.
 
     :param steps: a list of QueryStep objects
-    :param table_map: a map of table ids (strings) to Table objects
+    :param tables: a map of table ids (strings) to Table objects
     :param query_text: the full text of the query
     """
-    def __init__(self, steps=[], table_map={}, query_text=""):
+    def __init__(self, steps=[], tables={}, query_text=""):
         self.steps = sorted(steps, key=self.levels_compare_sort)
-        self.table_map = table_map
+        self.tables = tables
         self.query_text = query_text
+
+    def to_json(self):
+        json_dict = {
+            "query_text": self.query_text,
+            "steps": [step.to_json() for step in self.steps],
+            "tables": {t_id: table.to_json() for t_id,table in self.tables.items()}
+        }
+
+        return json.dumps(json_dict)
 
 
     ''' Sort the list of steps in table-of-contents order '''
@@ -29,7 +40,7 @@ class ParsedQuery:
         return (item, len(item[item.rfind('.')+1:]), item.count('.'))
 
     def get_table(self, table_id):
-        return self.table_map.get(table_id);
+        return self.tables.get(table_id);
 
     def add_step(self, query_step):
         self.steps.append(query_step)

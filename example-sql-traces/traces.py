@@ -49,18 +49,19 @@ Took_tuples=[
 ''' A simple SELECT-FROM-WHERE query '''
 def generate_simple_query():
     query_text =\
-    ' SELECT sid, cgpa'
-    ' FROM Student'
+    ' SELECT sid, cgpa' +\
+    ' FROM Student' +\
     ' WHERE cgpa > 3'
 
     steps = [
-        QueryStep('1', 'FROM Student', ['Student'], '1'),
+        QueryStep('1', 'FROM Student', [], '1'),
         QueryStep('2', 'WHERE cgpa > 3', ['1'], '2'),
         QueryStep('3', 'SELECT sid, cgpa', ['2'], '3'),
     ]
 
     tables = {
         '1': Table(t_id='1',
+                    step = '1',
                     col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
@@ -70,6 +71,7 @@ def generate_simple_query():
                     ),
 
         '2': Table(t_id='2',
+                    step = '2',
                     col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
@@ -77,6 +79,7 @@ def generate_simple_query():
                     ),
 
         '3': Table(t_id='3',
+                    step = '3',
                     col_names=['sid', 'cgpa'],
                     tuples=[
                             ('1', '3.4'),
@@ -92,7 +95,7 @@ def generate_simple_query():
 ''' A query with a cross product in it '''
 def generate_simple_cross_product_query():
     query_text =\
-    ' SELECT Student.sid, Student.email, Took.grade'
+    ' SELECT Student.sid, Student.email, Took.grade' +\
     ' FROM Student, Took'
 
     steps = [
@@ -102,6 +105,7 @@ def generate_simple_cross_product_query():
 
     tables = {
         '1': Table(t_id='1',
+                    step = '1',
                     col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa', 'Took.sid', 'Took.ofid', 'Took.grade'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4',   '1', '2', '87'),
@@ -131,6 +135,7 @@ def generate_simple_cross_product_query():
                     ),
 
         '2': Table(t_id='2',
+                    step = '2',
                     col_names=[],
                     tuples=[
                             ('1', 'martin@mail.com', '87'),
@@ -168,7 +173,7 @@ def generate_simple_cross_product_query():
 ''' A query with one natural JOIN in it '''
 def generate_simple_natural_join_query():
     query_text =\
-    ' SELECT sid, email, cgpa'
+    ' SELECT sid, email, cgpa' +\
     ' FROM Student NATURAL JOIN Took NATURAL JOIN Course'
 
     steps = [
@@ -180,6 +185,7 @@ def generate_simple_natural_join_query():
 
     tables = {
         '1': Table(t_id='1',
+                    step = '1',
                     col_names=['1.1.sid', 'Student.firstName', 'Student.email', 'Student.cgpa', 'Took.ofid', 'Took.grade', 'Course.dept', 'Course.cNum', 'Course.name'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '148', 'Intro to Computer Science'),
@@ -215,6 +221,7 @@ def generate_simple_natural_join_query():
                     ),
 
         '1.1': Table(t_id='1.1',
+                    step = '1.1',
                     col_names=['1.1.sid', 'Student.firstName', 'Student.email', 'Student.cgpa', 'Took.ofid', 'Took.grade'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87'),
@@ -225,6 +232,7 @@ def generate_simple_natural_join_query():
                     ),
 
         '1.2': Table(t_id='1.2',
+                    step = '1.2',
                     col_names=['1.1.sid', 'Student.firstName', 'Student.email', 'Student.cgpa', 'Took.ofid', 'Took.grade', 'Course.dept', 'Course.cNum', 'Course.name'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '148', 'Intro to Computer Science'),
@@ -260,6 +268,7 @@ def generate_simple_natural_join_query():
                     ),
 
         '2': Table(t_id='2',
+                    step = '2',
                     col_names=['1.1.sid','Student.email', 'Student.cgpa'],
                     tuples=[
                             ('1', 'martin@mail.com', '3.4'),
@@ -303,7 +312,7 @@ def generate_simple_natural_join_query():
 ''' A query with a LEFT JOIN on a condition in it '''
 def generate_simple_condition_join_query():
     query_text =\
-    ' SELECT sid, grade, instructor'
+    ' SELECT sid, grade, instructor' +\
     ' FROM Took LEFT JOIN Offering ON Took.ofID=Offering.oid'
 
     steps = [
@@ -313,6 +322,7 @@ def generate_simple_condition_join_query():
 
     tables = {
         '1': Table(t_id='1',
+                    step = '1',
                     col_names=['Took.sid', 'Took.ofid', 'Took.grade', 'Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
                     tuples=[
                             ('1', '2', '87', '1', 'csc', '209', 'K. Reid'),
@@ -323,6 +333,7 @@ def generate_simple_condition_join_query():
                     ),
 
         '2': Table(t_id='2',
+                    step = '2',
                     col_names=['Took.sid', 'Took.grade', 'Offering.instructor'],
                     tuples=[
                             ('1', '87', 'K. Reid'),
@@ -341,16 +352,55 @@ def generate_simple_condition_join_query():
 ''' A query with one subquery in the FROM '''
 def generate_simple_subquery():
     query_text =\
-    ' SELECT WhyUDoThis.oid'
-    ' FROM'
-    '    (SELECT oid, dept'
-    '    FROM Offering'
+    ' SELECT WhyUDoThis.oid' +\
+    ' FROM' +\
+    '    (SELECT oid, dept' +\
+    '     FROM Offering' +\
     '    ) AS WhyUDoThis'
 
     steps = [
+        QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS WhyUDoThis', ['Offering'], '1'),
+            QueryStep('1.1', 'FROM Offering', [], '1.1'),
+            QueryStep('1.2', 'SELECT oid, dept', ['1.1'], '1.2'),
+            QueryStep('1.3', 'AS WhyUDoThis', ['1.2'], 'WhyUDoThis', 'WhyUDoThis'),
+        QueryStep('2', 'SELECT WhyUDoThis.oid', ['1'], '2'),
     ]
 
     tables = {
+        '1': Table(t_id='1',
+                    step = '1',
+                    col_names=[],
+                    tuples=[
+                            ()]
+                    ),
+
+        '1.1': Table(t_id='1.1',
+                    step = '1.1',
+                    col_names=[],
+                    tuples=[
+                            ()]
+                    ),
+
+        '1.2': Table(t_id='1.2',
+                    step = '1.2',
+                    col_names=[],
+                    tuples=[
+                            ()]
+                    ),
+
+        'WhyUDoThis': Table(t_id='WhyUDoThis',
+                    step = '1.3',
+                    col_names=[],
+                    tuples=[
+                            ()]
+                    ),
+
+        '2': Table(t_id='2',
+                    step = '2',
+                    col_names=[],
+                    tuples=[
+                            ()]
+                    ),
     }
 
 
@@ -361,12 +411,15 @@ def generate_simple_subquery():
 ''' A query with an AND in its WHERE clause '''
 def generate_simple_and_query():
     query_text =\
-    ' SELECT email, cgpa'
-    ' FROM Student'
-    ' WHERE cgpa > 3'
+    ' SELECT email, cgpa' +\
+    ' FROM Student' +\
+    ' WHERE cgpa > 3' +\
     ' AND firstName=\'Martin\''
 
     steps = [
+        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['1'], '2'),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3')
     ]
 
     tables = {
@@ -380,12 +433,15 @@ def generate_simple_and_query():
 ''' A query with an OR in its WHERE clause '''
 def generate_simple_or_query():
     query_text =\
-    ' SELECT email, cgpa'
-    ' FROM Student'
-    ' WHERE cgpa > 3'
+    ' SELECT email, cgpa' +\
+    ' FROM Student' +\
+    ' WHERE cgpa > 3' +\
     ' OR firstName=\'Martin\''
 
     steps = [
+        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('2', 'WHERE cgpa > 3 OR firstName=\'Martin\'', ['1'], '2'),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
     tables = {
@@ -399,13 +455,16 @@ def generate_simple_or_query():
 ''' A query with both AND and OR in its WHERE statement '''
 def generate_complex_and_plus_or():
     query_text =\
-    ' SELECT email, cgpa'
-    ' FROM Student'
-    ' WHERE (cgpa > 3)'
-    ' AND (firstName=\'Martin\''
+    ' SELECT email, cgpa' +\
+    ' FROM Student' +\
+    ' WHERE (cgpa > 3)' +\
+    ' AND (firstName=\'Martin\'' +\
     '    OR firstName=\'Kathy\')'
 
     steps = [
+        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['1'], '2'),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
     tables = {
@@ -420,10 +479,15 @@ def generate_complex_and_plus_or():
 ''' A query with renaming of tables '''
 def generate_complex_renaming():
     query_text =\
-    ' SELECT t.sid, t.oid'
-    ' FROM Took t'
+    ' SELECT t.sid, o.oid' +\
+    ' FROM Took t, Offering o'
 
     steps = [
+        QueryStep('1', 'FROM Took t, Offering o', [], '1'),
+            QueryStep('1.1', 'Took t', ['Took'], 't'),
+            QueryStep('1.2', 'Offering o', ['Offering'], 'o'),
+            QueryStep('1.3', 'FROM Took t, Offering o', ['t', 'o'], '1'),
+        QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2'),
     ]
 
     tables = {
@@ -437,14 +501,22 @@ def generate_complex_renaming():
 ''' A query with a subquery in the WHERE that's not repeated for each row '''
 def generate_complex_subquery_in_where_not_repeated():
     query_text =\
-    ' SELECT sid, surName'
-    ' FROM Student'
-    ' WHERE cgpa >'
-    '    (SELECT cgpa'
-    '     FROM Student'
+    ' SELECT sid, surName' +\
+    ' FROM Student' +\
+    ' WHERE cgpa >' +\
+    '    (SELECT cgpa' +\
+    '     FROM Student' +\
     '     WHERE sid=999)'
 
     steps = [
+        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=999)', ['1'], '2'),
+            QueryStep('2.1', '(SELECT cgpa FROM Student WHERE sid=999)', [''], '2.1'),
+                QueryStep('2.1.1', 'FROM Student', [], '2.1.1'),
+                QueryStep('2.1.2', 'WHERE sid=999', ['2.1.1'], '2.1.2'),
+                QueryStep('2.1.3', 'SELECT cgpa', ['2.1.2'], '2.1'),
+            QueryStep('2.2', 'cgpa > (SELECT cgpa FROM Student WHEE sid=999)', ['1', '2.1'], '2'),
+        QueryStep('3', 'SELECT sid, surName', ['2'], '3'),
     ]
 
     tables = {
@@ -458,14 +530,19 @@ def generate_complex_subquery_in_where_not_repeated():
 ''' A query with a subquery in the WHERE that's repeated for each row '''
 def generate_complex_subquery_in_where_repeated():
     query_text =\
-    ' SELECT instructor'
-    ' FROM Offering o1'
-    ' WHERE NOT EXISTS ('
-    '     SELECT oid'
-    '     FROM Offering o2'
+    ' SELECT instructor' +\
+    ' FROM Offering o1' +\
+    ' WHERE NOT EXISTS (' +\
+    '     SELECT oid' +\
+    '     FROM Offering o2' +\
     '     WHERE o2.oid <> o1.oid)'
 
     steps = [
+        QueryStep('1', 'FROM Offering o1', [], '1'),
+            QueryStep('1', 'Offering o1', ['Offering'], 'o1'),
+            QueryStep('1', 'FROM Offering o1', ['o1'], '1'),
+        QueryStep('2', 'WHERE NOT EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)', ['1'], '2'),
+        QueryStep('3', 'SELECT instructor', ['2'], '3'),
     ]
 
     tables = {
@@ -480,10 +557,12 @@ def generate_complex_subquery_in_where_repeated():
 ''' Multiple queries which don't reference each other '''
 def generate_multiple_queries_unrelated():
     query_text1 =\
-    ' SELECT email'
+    ' SELECT email' +\
     ' FROM Student'
 
     steps1 = [
+        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('2', 'SELECT email', ['1'], '2'),
     ]
 
     tables1 = [
@@ -491,10 +570,12 @@ def generate_multiple_queries_unrelated():
 
 
     query_text2 =\
-    ' SELECT oid'
-    ' FROM Took'
+    ' SELECT oid' +\
+    ' FROM Offering'
 
     steps2 = [
+        QueryStep('1', 'FROM Offering', [], '1'),
+        QueryStep('2', 'SELECT oid', ['1'], '2'),
     ]
 
     tables2 = [
@@ -509,12 +590,16 @@ def generate_multiple_queries_unrelated():
 ''' Multiple queries which do reference each other '''
 def generate_multiple_queries_related():
     query_text1 =\
-    ' CREATE VIEW pizza AS'
-    ' SELECT sid, email, cgpa'
-    ' FROM Student'
+    ' CREATE VIEW pizza AS' +\
+    ' SELECT sid, email, cgpa' +\
+    ' FROM Student' +\
     ' WHERE cgpa<3'
 
     steps1 = [
+        QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza'),
+            QueryStep('1.1', 'FROM Student', [], '1.1'),
+            QueryStep('1.2', 'WHERE cgpa<3', ['1.1'], '1.2'),
+            QueryStep('1.3', 'SELECT sid, email, cgpad', ['1.2'], 'pizza'),
     ]
 
     tables1 = [
@@ -522,10 +607,12 @@ def generate_multiple_queries_related():
 
 
     query_text2 =\
-    ' SELECT email'
+    ' SELECT email' +\
     ' FROM pizza'
 
     steps2 = [
+        QueryStep('1', 'FROM pizza', ['pizza'], '1'),
+        QueryStep('2', 'SELECT email', ['1'], '2'),
     ]
 
     tables2 = [

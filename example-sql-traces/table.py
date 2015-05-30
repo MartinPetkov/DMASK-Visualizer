@@ -1,16 +1,30 @@
+import json
+
 class Table:
 
     """
     Create a Table object.
 
-    :param table_id: a string representing this table's id
+    :param t_id: a string representing this table's id
+    :param step: the step on which this table was created
     :param col_names: a list of the column names; the indexes match the order of values in the value tuples
     :param tuples: a list of string lists, one for each tuple of values in the table
     """
-    def __init__(self, t_id, col_names, tuples=[]):
+    def __init__(self, t_id, step, col_names, tuples=[]):
         self.t_id = t_id
+        self.step = step
         self.col_names = col_names
         self.tuples = tuples
+
+    def to_json(self):
+        json_dict = {
+            "t_id": self.t_id,
+            "step": self.step,
+            "col_names": self.col_names,
+            "tuples": self.tuples
+        }
+
+        return json.dumps(json_dict)
 
 
     def get_col_name(self, col_idx):
@@ -31,4 +45,3 @@ class Table:
     def add_tuples(self, tuples):
         for tup in tuples:
             self.add_tuple(tup)
-
