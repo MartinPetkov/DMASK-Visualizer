@@ -164,6 +164,7 @@ th {
     padding: 5px 5px 0px 25px;
     font-size:8px;
     float: right;
+    width:10px;
 }
 
 .nested {
