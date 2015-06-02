@@ -104,7 +104,7 @@ def generate_simple_query():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with a cross product in it '''
@@ -182,7 +182,7 @@ def generate_simple_cross_product_query():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with one natural JOIN in it '''
@@ -291,7 +291,7 @@ def generate_simple_natural_join_query():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with a LEFT JOIN on a condition in it '''
@@ -334,7 +334,7 @@ def generate_simple_condition_join_query():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with one subquery in the FROM '''
@@ -386,7 +386,7 @@ def generate_simple_subquery():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with an AND in its WHERE clause '''
@@ -411,7 +411,7 @@ def generate_simple_and_query():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with an OR in its WHERE clause '''
@@ -438,7 +438,7 @@ def generate_simple_or_query():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with both AND and OR in its WHERE statement '''
@@ -465,7 +465,7 @@ def generate_complex_and_plus_or():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 
@@ -488,7 +488,7 @@ def generate_complex_renaming():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with a subquery in the WHERE that's not repeated for each row '''
@@ -536,7 +536,7 @@ def generate_complex_subquery_in_where_not_repeated():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 ''' A query with a subquery in the WHERE that's repeated for each row '''
@@ -565,7 +565,7 @@ def generate_complex_subquery_in_where_repeated():
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
-    return [parsed_query]
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
 
 
@@ -599,7 +599,7 @@ def generate_multiple_queries_unrelated():
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
     parsed_query2 = ParsedQuery(steps2, tables2, query_text2)
-    return [parsed_query1, parsed_query2]
+    return {"global_tables": global_tables, "all_queries": [parsed_query1, parsed_query2]}
 
 
 ''' Multiple queries which do reference each other '''
@@ -640,7 +640,17 @@ def generate_multiple_queries_related():
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
     parsed_query2 = ParsedQuery(steps2, tables2, query_text2)
-    return [parsed_query1, parsed_query2]
+    new_global_tables = global_tables;
+    new_global_tables["pizza"] =\
+        Table(t_id='pizza',
+                step = '0',
+                col_names=['sid', 'email', 'cgpa'],
+                tuples=[
+                        ('3', 'not_martin@mail.com', '1.7'),
+                        ('4', 'james@mail.com', '2.8')]
+                )
+
+    return {"global_tables": new_global_tables, "all_queries": [parsed_query1, parsed_query2]}
 
 
 
@@ -663,7 +673,13 @@ TRACES = {
     'multiple_queries_related': generate_multiple_queries_related()
 }
 
-JSON_TRACES = {trace_name: [pq.to_json() for pq in pq_list] for trace_name,pq_list in TRACES.items()}
+JSON_TRACES = {
+    trace_name:
+        {
+            "global_tables": {t_name: t.to_json() for t_name,t in tables_and_queries["global_tables"].items()},
+            "all_queries": [pq.to_json() for pq in tables_and_queries["all_queries"]]
+        } for trace_name,tables_and_queries in TRACES.items()
+}
 
 
 def main():
