@@ -11,7 +11,7 @@ class QueryStep:
     :param result_table: a string ID of the output table
     :param namespace: a list of IDs of the tables in the namespace before executing this step
     :param res_table_name: the optional name of this resulting table
-    :param reasons: a map of row numbers to Reason objects, saying why they were kept; for WHERE queries
+    :param reasons: a map of row numbers (counting from 1) to Reason objects, saying why they were kept; for WHERE and JOIN queries, this will be the actual row number but for NATUAL JOIN queries and queries with only one condition, there will only be an entry for row 0 which is true for all rows
     """
     def __init__(self, step_number, sql_chunk, input_tables, result_table, namespace=[], res_table_name="", reasons={}):
         self.step_number = step_number
@@ -38,25 +38,25 @@ class QueryStep:
 
 class Reason:
     """
-    A Reason is a list of tuples of the string part of the WHERE clause that matched, and potentially a ParsedQuery object matching that particular part of the conditions. The idea is that if many conditions matched together, they can be highlighted separately instead of sent over as one big string.
+    A Reason is a list of conditions of the string parts of the WHERE clause that matched, and potentially a ParsedQuery object matching that particular part of the conditions. The idea is that if many conditions matched together, they can be highlighted separately instead of sent over as one big string.
     """
 
 
     """
     Create a Reason object
 
-    :param conditions_matched: a map of string conditions to their corresponding subqueries (will be empty usually)
+    :param conditions_matched: a list of strings of conditions that matched; each one has an entry in the map
+    :param subqueries: a map of string conditions to their corresponding subqueries (will be empty usually)
     """
-    def __init__(self, conditions_matched):
+    def __init__(self, conditions_matched, subqueries={}):
         self.conditions_matched = conditions_matched
+        self.subqueries = subqueries;
 
     def to_json(self):
-        json_list = [
-            {
-                "condition": condition,
-                "subquery": subquery
-            } for condition,subquery in self.conditions_matched.items()
-        ]
+        json_dict = {
+            "conditions_matched": self.conditions_matched,
+            "subqueries": {condition: subquery.to_json() for condition,subquery in self.subqueries.items()}
+        }
 
         return json.dumps(json_dict)
 

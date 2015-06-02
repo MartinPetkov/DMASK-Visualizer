@@ -1,6 +1,6 @@
-from parsed_query import ParsedQuery
-from query_step import QueryStep
-from table import Table
+from parsed_query import *
+from query_step import *
+from table import *
 
 import pprint
 
@@ -19,6 +19,7 @@ Student_tuples=[
 ('2', 'Kathy', 'kathy@mail.com', '4.0'),
 ('3', 'Sophia', 'sophia@mail.com', '1.7'),
 ('4', 'James', 'james@mail.com', '2.8')]
+Student_table = Table(t_id='Student', step = '0', col_names=Student_colnames, tuples=Student_tuples)
 
 Course_colnames = ['dept', 'cNum', 'name']
 Course_tuples=[
@@ -27,6 +28,7 @@ Course_tuples=[
 ('csc', '343', 'Intro to Databases'),
 ('mat', '137', 'Calculus'),
 ('ger', '100', 'Intro to German')]
+Course_table = Table(t_id='Course', step = '0', col_names=Course_colnames, tuples=Course_tuples)
 
 Offering_colnames = ['oid', 'dept', 'cNum', 'instructor']
 Offering_tuples=[
@@ -34,6 +36,7 @@ Offering_tuples=[
 ('2', 'csc', '343', 'D. Horton'),
 ('3', 'mat', '137', 'J. Kamnitzer'),
 ('4', 'ger', '100', 'E. Luzi'),]
+Offering_table = Table(t_id='Offering', step = '0', col_names=Offering_colnames, tuples=Offering_tuples)
 
 Took_colnames = ['sid', 'ofid', 'grade']
 Took_tuples=[
@@ -42,6 +45,15 @@ Took_tuples=[
 ('2', '2', '92'),
 ('3', '1', '80'),
 ('4', '1', '60')]
+Took_table = Table(t_id='Took', step = '0', col_names=Took_colnames, tuples=Took_tuples)
+
+
+global_tables = {
+    'Student': Student_table,
+    'Course': Course_table,
+    'Offering': Offering_table,
+    'Took': Took_table,
+    }
 
 
 
@@ -55,7 +67,10 @@ def generate_simple_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1'),
-        QueryStep('2', 'WHERE cgpa > 3', ['1'], '2'),
+        QueryStep('2', 'WHERE cgpa > 3', ['1'], '2',
+                    reasons={
+                        0: Reason(["cgpa > 3"]),
+                    }),
         QueryStep('3', 'SELECT sid, cgpa', ['2'], '3'),
     ]
 
@@ -178,8 +193,14 @@ def generate_simple_natural_join_query():
 
     steps = [
         QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', ['Student', 'Took', 'Course'], '1'),
-            QueryStep('1.1', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1'),
-            QueryStep('1.2', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.1', 'Course'], '1.2'),
+            QueryStep('1.1', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1',
+                reasons = {
+                    0: Reason(["Student.sid=Took.sid"]),
+                }),
+            QueryStep('1.2', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.1', 'Course'], '1',
+                reasons= {
+                    0: Reason([""]),
+                }),
         QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2')
     ]
 
@@ -231,42 +252,6 @@ def generate_simple_natural_join_query():
                             ('4', 'James', 'james@mail.com', '2.8',     '1', '60')]
                     ),
 
-        '1.2': Table(t_id='1.2',
-                    step = '1.2',
-                    col_names=['1.1.sid', 'Student.firstName', 'Student.email', 'Student.cgpa', 'Took.ofid', 'Took.grade', 'Course.dept', 'Course.cNum', 'Course.name'],
-                    tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '148', 'Intro to Computer Science'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'csc', '148', 'Intro to Computer Science'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'csc', '148', 'Intro to Computer Science'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'csc', '148', 'Intro to Computer Science'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'csc', '148', 'Intro to Computer Science'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '209', 'Systems Programming'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'csc', '209', 'Systems Programming'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'csc', '209', 'Systems Programming'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'csc', '209', 'Systems Programming'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'csc', '209', 'Systems Programming'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '343', 'Intro to Databases'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'csc', '343', 'Intro to Databases'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'csc', '343', 'Intro to Databases'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'csc', '343', 'Intro to Databases'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'csc', '343', 'Intro to Databases'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'mat', '137', 'Calculus'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'mat', '137', 'Calculus'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'mat', '137', 'Calculus'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'mat', '137', 'Calculus'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'mat', '137', 'Calculus'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'ger', '100', 'Intro to German'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'ger', '100', 'Intro to German'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'ger', '100', 'Intro to German'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'ger', '100', 'Intro to German'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'ger', '100', 'Intro to German'),]
-
-                    ),
-
         '2': Table(t_id='2',
                     step = '2',
                     col_names=['1.1.sid','Student.email', 'Student.cgpa'],
@@ -313,10 +298,13 @@ def generate_simple_natural_join_query():
 def generate_simple_condition_join_query():
     query_text =\
     ' SELECT sid, grade, instructor' +\
-    ' FROM Took LEFT JOIN Offering ON Took.ofID=Offering.oid'
+    ' FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid'
 
     steps = [
-        QueryStep('1', 'FROM Took LEFT JOIN Offering ON Took.ofID=Offering.oid', ['Took', 'Offering'], '1'),
+        QueryStep('1', 'FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid', ['Took', 'Offering'], '1',
+            reasons = {
+                0: Reason(["Took.ofid=Offering.oid"]),
+            }),
         QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2'),
     ]
 
@@ -359,21 +347,14 @@ def generate_simple_subquery():
     '    ) AS WhyUDoThis'
 
     steps = [
-        QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS WhyUDoThis', ['Offering'], '1'),
+        QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS WhyUDoThis', ['Offering'], 'WhyUDoThis'),
             QueryStep('1.1', 'FROM Offering', [], '1.1'),
             QueryStep('1.2', 'SELECT oid, dept', ['1.1'], '1.2'),
             QueryStep('1.3', 'AS WhyUDoThis', ['1.2'], 'WhyUDoThis', 'WhyUDoThis'),
-        QueryStep('2', 'SELECT WhyUDoThis.oid', ['1'], '2'),
+        QueryStep('2', 'SELECT WhyUDoThis.oid', ['WhyUDoThis'], '2'),
     ]
 
     tables = {
-        '1': Table(t_id='1',
-                    step = '1',
-                    col_names=[],
-                    tuples=[
-                            ()]
-                    ),
-
         '1.1': Table(t_id='1.1',
                     step = '1.1',
                     col_names=[],
@@ -418,7 +399,10 @@ def generate_simple_and_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1'),
-        QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['1'], '2'),
+        QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['1'], '2',
+            reasons= {
+                0: Reason(["cgpa > 3", "firstName='Martin'"]),
+            }),
         QueryStep('3', 'SELECT email, cgpa', ['2'], '3')
     ]
 
@@ -440,7 +424,12 @@ def generate_simple_or_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1'),
-        QueryStep('2', 'WHERE cgpa > 3 OR firstName=\'Martin\'', ['1'], '2'),
+        QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Martin\'', ['1'], '2',
+            reasons = {
+                1: Reason(["cgpa > 2", "firstName='Martin'"]),
+                2: Reason(["cgpa > 2"]),
+                3: Reason(["cgpa > 2"]),
+            }),
         QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
@@ -463,7 +452,11 @@ def generate_complex_and_plus_or():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1'),
-        QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['1'], '2'),
+        QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['1'], '2',
+            reasons = {
+                1: Reason(["cgpa > 3", "firstName='Martin'"]),
+                2: Reason(["cgpa > 3", "firstName='Kathy'"]),
+            }),
         QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
@@ -506,16 +499,35 @@ def generate_complex_subquery_in_where_not_repeated():
     ' WHERE cgpa >' +\
     '    (SELECT cgpa' +\
     '     FROM Student' +\
-    '     WHERE sid=999)'
+    '     WHERE sid=4)'
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1'),
-        QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=999)', ['1'], '2'),
-            QueryStep('2.1', '(SELECT cgpa FROM Student WHERE sid=999)', [''], '2.1'),
+        QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['1'], '2'),
+            QueryStep('2.1', '(SELECT cgpa FROM Student WHERE sid=4)', [''], '2.1'),
                 QueryStep('2.1.1', 'FROM Student', [], '2.1.1'),
-                QueryStep('2.1.2', 'WHERE sid=999', ['2.1.1'], '2.1.2'),
+                QueryStep('2.1.2', 'WHERE sid=4', ['2.1.1'], '2.1.2',
+                    reasons = {
+                        0: Reason(["sid=4"]),
+                    }),
                 QueryStep('2.1.3', 'SELECT cgpa', ['2.1.2'], '2.1'),
-            QueryStep('2.2', 'cgpa > (SELECT cgpa FROM Student WHEE sid=999)', ['1', '2.1'], '2'),
+            QueryStep('2.2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['1', '2.1'], '2',
+                reasons = {
+                    0: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4)"],
+                        {
+                            0: ParsedQuery(
+                                [
+                                    QueryStep('1', 'FROM Student', [], '1'),
+                                    QueryStep('2', 'WHERE sid=4', ['1'], '2',
+                                        reasons = {
+                                            0: Reason(["sid=4"])
+                                        }),
+                                    QueryStep('3', 'FROM Student', ['2'], '3'),
+                                ],
+                                {},
+                                "SELECT cgpa FROM Student WHERE sid=4")
+                        }),
+                }),
         QueryStep('3', 'SELECT sid, surName', ['2'], '3'),
     ]
 
@@ -539,9 +551,12 @@ def generate_complex_subquery_in_where_repeated():
 
     steps = [
         QueryStep('1', 'FROM Offering o1', [], '1'),
-            QueryStep('1', 'Offering o1', ['Offering'], 'o1'),
-            QueryStep('1', 'FROM Offering o1', ['o1'], '1'),
-        QueryStep('2', 'WHERE NOT EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)', ['1'], '2'),
+            QueryStep('1.1', 'Offering o1', ['Offering'], 'o1'),
+            QueryStep('1.2', 'FROM Offering o1', ['o1'], '1'),
+        QueryStep('2', 'WHERE NOT EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)', ['1'], '2',
+            reasons = {
+                # Not sure how many rows will be here yet
+            }),
         QueryStep('3', 'SELECT instructor', ['2'], '3'),
     ]
 
@@ -565,8 +580,8 @@ def generate_multiple_queries_unrelated():
         QueryStep('2', 'SELECT email', ['1'], '2'),
     ]
 
-    tables1 = [
-    ]
+    tables1 = {
+    }
 
 
     query_text2 =\
@@ -578,8 +593,8 @@ def generate_multiple_queries_unrelated():
         QueryStep('2', 'SELECT oid', ['1'], '2'),
     ]
 
-    tables2 = [
-    ]
+    tables2 = {
+    }
 
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
@@ -598,12 +613,15 @@ def generate_multiple_queries_related():
     steps1 = [
         QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza'),
             QueryStep('1.1', 'FROM Student', [], '1.1'),
-            QueryStep('1.2', 'WHERE cgpa<3', ['1.1'], '1.2'),
+            QueryStep('1.2', 'WHERE cgpa<3', ['1.1'], '1.2',
+                reasons = {
+                    0: Reason(["cgpa<3"]),
+                }),
             QueryStep('1.3', 'SELECT sid, email, cgpad', ['1.2'], 'pizza'),
     ]
 
-    tables1 = [
-    ]
+    tables1 = {
+    }
 
 
     query_text2 =\
@@ -615,8 +633,9 @@ def generate_multiple_queries_related():
         QueryStep('2', 'SELECT email', ['1'], '2'),
     ]
 
-    tables2 = [
-    ]
+    tables2 = {
+
+    }
 
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
@@ -643,6 +662,8 @@ TRACES = {
     'multiple_queries_unrelated': generate_multiple_queries_unrelated(),
     'multiple_queries_related': generate_multiple_queries_related()
 }
+
+JSON_TRACES = {trace_name: [pq.to_json() for pq in pq_list] for trace_name,pq_list in TRACES.items()}
 
 
 def main():
