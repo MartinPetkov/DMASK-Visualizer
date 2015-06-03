@@ -1,12 +1,13 @@
 var toggled = 0;
+var steps_dictionary;
+var tables_dictionary = [];
 
 function updateInputHeight(maxheight){
     // Return the height for the input tables (50% if there are 2, 100% otherwise)
     var numberOfTables = $('.input').length;
-    if (numberOfTables > 1){
-        return (maxheight / 2);
-    }
-    return maxheight;
+    if (numberOfTables == 0)
+        numberOfTables = 1;
+    return (maxheight / numberOfTables);
 }
 
 function updateHeight(){
@@ -52,6 +53,11 @@ function sizeContent() {
     var newheight = $("#leftbar").height() - $("#navbar").height();
     $("#toc").height(newheight);
 
+    // Update the height of the table display area
+    updateTableDisplay();
+}
+
+function updateTableDisplay(){
     // Update the height of the table display area
     $("#tablespace").height(updateHeight());
     var tableheight = $("#tablespace").height();

@@ -3,13 +3,12 @@ function loadQuery(text){
     $("#steps").append(querytext);
 }
 
-function loadSteps(steps){
-    var dict = stepsToDict(steps);
+function loadSteps(dict){
     var keys = Object.keys(dict).sort();
     var i;
     var allsteps = "";
     for (i = 0; i < keys.length; i++){
-        var step = "<tr><td id='" + toID(keys[i]) + "'>";
+        var step = "<tr id='" + toID(keys[i]) + "' class='step'><td>";
         var nested = hasNested(keys, i);
         
         if (nested)
@@ -57,7 +56,7 @@ function stepsToDict(steps){
 }
 
 function collapseHandler(collapsible){
-    var parent = collapsible.closest("td");
+    var parent = collapsible.closest("tr");
     if (jQuery(collapsible).html() == "[-]"){
         collapse(parent.id);
         jQuery(collapsible).html("[+]");
@@ -69,20 +68,44 @@ function collapseHandler(collapsible){
 }
 
 function collapse(parent){
-    collapsed[parent] = $("#"+parent).find(".nested")[0];
-    $("#"+parent).find(".nested")[0].remove();
+    jQuery($("#"+parent).find(".nested")[0]).hide();
 };
 
 function expand(parent){
-    $("#"+parent).append(collapsed[parent]);
+    jQuery($("#"+parent).find(".nested")[0]).show();
 };
+
+function collapseAll(){
+    $(".step").each(function(){collapse(this.id)});
+    $(".collapsible").html("[+]");
+}
 
 $(document).ready(parseAndLoad);
 
-function parseAndLoad(){
-    loadQuery(parsedquery.query_text);
-    loadSteps(parsedquery.steps);
-    $(document).on("click", ".collapsible", function(e){collapseHandler(e.target);});
+function loadStep(id){
+    $(".step").removeClass("selected");
+    $("#"+id).addClass("selected");
+    
+    // replace input and output tables
+    replaceInputTables(idsToHTML(steps_dictionary[id][1]));
+    replaceOutputTable(tables_dictionary[steps_dictionary[id][5]]);
 }
 
-var collapsed = [];
+function parseAndLoad(){
+    steps_dictionary = stepsToDict(parsedquery.steps);
+    parseTablesToDict(global_tables);
+    parseTablesToDict(parsedquery.tables);
+    loadQuery(parsedquery.query_text);
+    loadSteps(steps_dictionary);
+    
+    $(document).on("click", ".collapsible", function(e){collapseHandler(e.target);});
+    collapseAll();
+
+    $(document).on("click", ".step", function(e){
+        if (!jQuery(e.target).hasClass("collapsible"))
+            var step = jQuery(e.target.closest("tr"));
+            var id = step[0].id;
+            loadStep(id);
+    });
+}
+
