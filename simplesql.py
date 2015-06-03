@@ -41,7 +41,7 @@ columnNameList  = Group( delimitedList( columnName ) )
 tableName       = Upcase( delimitedList( ident, ".", combine=True ) )
 tableNameList   = Group( delimitedList( tableName ) )
 tableRename     = Upcase( delimitedList(ident, ".", combine=True ) )
-tableRenameList = Group ( delimited(tableRename))
+tableRenameList = Group ( delimitedList(tableRename))
 
 
 whereExpression = Forward()
@@ -91,9 +91,12 @@ selectStmt      <<  ( selectToken +
                     fromToken +
                     tableNameList.setResultsName( "tables" ) +
                     Optional( asToken + tableRename.setResultsName( "renamed" ) ) + 
-                    whereToken + 
-                    Optional( Group ( whereExpression ), "").setResultsName("where") )
-
+                    Optional( whereToken +  Group ( whereExpression ), "").setResultsName("where") +
+                    Optional( havingToken ) + 
+                    Optional( groupByToken ) +
+                    Optional( orderByToken ) +
+                    Optional( distinct_ )
+                    )
 simpleSQL = selectStmt
 
 # define Oracle comment format, and ignore them
@@ -113,7 +116,6 @@ test( "Select &&& frox Sys.dual" )
 test( "Select A from Sys.dual where a in ('RED','GREEN','BLUE')" )
 test( "Select A from Sys.dual where a in ('RED','GREEN','BLUE') and b in (10,20,30)" )
 test( "Select A,b from table1,table2 where table1.id eq table2.id -- test out comparison operators" )
-
 test("Select A from Sys.dual where a in (select A from Sys.dual)")
 test("Select A from Sys.dual as P where A in (select A from Sys.dual)")
 
