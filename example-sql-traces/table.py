@@ -5,20 +5,20 @@ class Table:
     """
     Create a Table object.
 
-    :param t_id: a string representing this table's id
+    :param t_name: this table's string name
     :param step: the step on which this table was created
     :param col_names: a list of the column names; the indexes match the order of values in the value tuples
     :param tuples: a list of string lists, one for each tuple of values in the table
     """
-    def __init__(self, t_id, step, col_names, tuples=[]):
-        self.t_id = t_id
+    def __init__(self, t_name, step, col_names, tuples=[]):
+        self.t_name = t_name
         self.step = step
         self.col_names = col_names
         self.tuples = tuples
 
     def to_json(self):
         json_dict = {
-            "t_id": self.t_id,
+            "t_name": self.t_name,
             "step": self.step,
             "col_names": self.col_names,
             "tuples": self.tuples
