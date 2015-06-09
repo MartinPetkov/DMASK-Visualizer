@@ -16,7 +16,9 @@ function onPageLoad(){
 
     // add event handlers
     // -- ToC Handlers (Collapsing, clicking on steps)
-    $(document).on("click", ".collapsible", function(e){collapseHandler(e.target);});
+    $(document).on("click", ".collapsible", function(e){
+        collapseHandler(e.target);
+    });
     collapseAll();
 
     $(document).on("click", ".step", function(e){
@@ -31,6 +33,14 @@ function onPageLoad(){
     $(document).on("click", "#back", stepBack);
     $(document).on("click", "#next", stepNext);
     $(document).on("click", "#stepin", stepIn);
+
+    // -- Table handlers
+    $("#inbox").on("click", ".tablecontainer", function(e){
+        var id = e.target.closest(".tablecontainer").id;
+        var stepid = getStepIDFromTable(id);
+        if (steps_dictionary[stepid])
+            loadStep(stepid);
+    });
 
     loadStep(step_keys[0]);
 }

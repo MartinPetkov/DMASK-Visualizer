@@ -6,12 +6,17 @@ function toTable(t){
     var num_columns = t.col_names.length;
     var num_rows = t.tuples.length;
     var hovertext;
-    if (step_keys.indexOf(t.t_id) > -1)
-        hovertext = t.t_id + ". " + steps_dictionary[t.t_id][0];
-    else
-        hovertext = t.t_id;
+    var id = t.t_id;
+
+    // Global tables seem to use .id while step tables use step.
+    if (!id)
+        id = t.step;
     
-    var html = "<div class='tablecontainer' onmouseover=\"hoverText('"+hovertext+"')\" onmouseout=\"hoverText('')\"><table>";
+    if (step_keys.indexOf(id) > -1)
+        hovertext = "Table " + id + ". " + steps_dictionary[id][0];
+    else
+        hovertext = id;
+    var html = "<div class='tablecontainer' id=\"table-" + toID(id) + "\" onmouseover=\"hoverText('"+hovertext+"')\" onmouseout=\"hoverText('')\"><table>";
     var i, j;
     html += "<tr>";
     for (i = 0; i < num_columns; i++){
@@ -45,6 +50,11 @@ function idsToHTML(ids){
         output.push(tables_dictionary[ids[i]]);
     }
     return output;
+}
+
+function getStepIDFromTable(id){
+    console.log(id);
+    return id.split("-").splice(1).join("-");
 }
 
 /*
