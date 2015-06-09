@@ -6,7 +6,7 @@ function toTable(t){
     var num_columns = t.col_names.length;
     var num_rows = t.tuples.length;
     var hovertext;
-    if (Object.keys(steps_dictionary).indexOf(t.t_id) > -1)
+    if (step_keys.indexOf(t.t_id) > -1)
         hovertext = t.t_id + ". " + steps_dictionary[t.t_id][0];
     else
         hovertext = t.t_id;
