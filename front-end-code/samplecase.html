@@ -1,9 +1,19 @@
 <head>
-    <link rel="stylesheet" type="text/css" media="screen" href="style.css">
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-    <script src="loader.js"></script>
-    <script src="sample_case.js"></script>
-    <script src="load_sample_case.js"></script>
+    <link rel="stylesheet" type="text/css" media="screen" href="css/base.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="css/display.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="css/tables.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="css/navigation.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="css/features.css">
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    
+    <script src="scripts/parsed_query_display.js"></script>
+    <script src="scripts/table_display.js"></script>
+    <script src="scripts/resize.js"></script>
+    <script src="scripts/collapse.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/testcases/000.js"></script>
+    <script src="scripts/loader.js"></script>
 </head>
 <body>
     <!-- Set up basic template -->
@@ -15,7 +25,10 @@
                 </table>
             </div>
             <div id="navbar">
-                << < > >>
+                <div id="stepout" class="navigation"><<</div>
+                <div id="back" class="navigation"><</div>
+                <div id="next" class="navigation">></div>
+                <div id="stepin" class="navigation">>></div>
             </div>
         </div>
         <!-- Display -->
@@ -24,36 +37,13 @@
                 <!-- Input -->
                 <div id="inbox">
                     <div class="input">
-                        <div class="tablecontainer" onmouseover="hoverText('Table 2.1. grade >= 85')" onmouseout="hoverText('')">
-                            <table>
-                                <th>sid</td><th>oid</th><th>grade</th>
-                                <tr><td>1</td><td>343</td><td>95</td></tr>
-                                <tr><td>3</td><td>301</td><td>85</td></tr>
-                            </table>
-                        </div>
                     </div>
                     
                     <div class="input">
-                        <div class="tablecontainer" onmouseover="hoverText('Table 2.2. sid IN (SELECT sid FROM Student WHERE cgpa >= 3.5)')" onmouseout="hoverText('')">
-                            <table>
-                                <th>sid</th>
-                                <tr><td>1</td></tr>
-                                <tr><td>2</td></tr>
-                                <tr><td>3</td></tr>
-                            </table>
-                        </div>
                     </div>
                 </div>
                 <!-- Output -->
                 <div id="outbox">
-                        <div class="tablecontainer" onmouseover="hoverText('Table 2.3. grade >= 85 OR sid IN (SELECT sid FROM Student WHERE cgpa >= 3.5)')" onmouseout="hoverText('')">
-                            <table>
-                                <th>sid</td><th>oid</th><th>grade</th>
-                                <tr><td>1</td><td>343</td><td>95</td></tr>
-                                <tr><td>2</td><td>236</td><td>50</td></tr>
-                                <tr><td>3</td><td>301</td><td>85</td></tr>
-                            </table>
-                        </div>
                 </div>
             </div>
             <!-- Hovered Name -->
@@ -79,7 +69,7 @@
                             <tr><td>2</td><td>Banana</td><td>Split</td><td>St. George</td><td>2@b.com</td><td>3.5</td></tr>
                             <tr><td>3</td><td>Cantaloupe</td><td>Melon</td><td>Mississauga</td><td>3@c.com</td><td>4.0</td></tr>
                             <tr><td>4</td><td>Durian</td><td>Pineapple</td><td>St. George</td><td>4@d.com</td><td>2.7</td></tr>
-                            <tr><td>5</td><td>Vegetable</td><td>Scarborough</td><td>5@e.com</td><td>3.3</td></tr>
+                            <tr><td>5</td><td>Vegetable</td><td>Onion</td><td>Scarborough</td><td>5@e.com</td><td>3.3</td></tr>
                         </table>
                     </div>
                 </div>

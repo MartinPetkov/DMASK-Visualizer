@@ -1,15 +1,20 @@
+/*
+    Given a Query string, add it to the ToC
+*/
 function loadQuery(text){
     var querytext = "<tr><td class='query'>" + text + ";</td></tr>";
     $("#steps").append(querytext);
 }
 
-function loadSteps(steps){
-    var dict = stepsToDict(steps);
+/*
+    Given a dictionary of steps, load them into the ToC
+*/
+function loadSteps(dict){
     var keys = Object.keys(dict).sort();
     var i;
     var allsteps = "";
     for (i = 0; i < keys.length; i++){
-        var step = "<tr><td id='" + toID(keys[i]) + "'>";
+        var step = "<tr id='" + toID(keys[i]) + "' class='step'><td>";
         var nested = hasNested(keys, i);
         
         if (nested)
@@ -28,25 +33,50 @@ function loadSteps(steps){
     $("#steps").append(allsteps);
 }
 
+/*
+    Convert steps (2.1.1) into ids (2-1-1)
+*/
 function toID(id){
     return id.split(".").join("-");
 }
 
+/*
+    Convert steps (2-1-1) into ids (2.1.1)
+*/
+function toKey(id){
+    return id.split("-").join(".");
+}
+
+
+/*
+    Check if the current step has nested components
+*/
 function hasNested(keys, i){
     if (i + 1 >= keys.length || keys[i+1].lastIndexOf(".") <= keys[i].lastIndexOf("."))
         return 0;
     return 1;
 }
 
+/*
+    Check if the current step is the last in a nested group
+*/
 function isLastNested(keys, i){
     if (i + 1 >= keys.length || keys[i+1].lastIndexOf(".") >= keys[i].lastIndexOf("."))
         return 0;
     return 1;
 }
 
+function differentLevels(keys, i, j){
+    if (keys[i].lastIndexOf(".") == keys[j].lastIndexOf("."))
+        return 0;
+    return 1;
+}
+
+/*
+    Given an array of steps (JSON), parse them into a dictionary in the format:
+    step_number : [sql_chunk, input_tables, reasons, namespace, res_table_name, result_table]
+*/
 function stepsToDict(steps){
-    // Parse the steps into a dictionary in the format
-    // step_number : [sql_chunk, input_tables, reasons, namespace, res_table_name, result_table]
     var dict = [];
     var i;
     for (i = 0; i < steps.length; i++){
@@ -56,33 +86,3 @@ function stepsToDict(steps){
     return dict;
 }
 
-function collapseHandler(collapsible){
-    var parent = collapsible.closest("td");
-    if (jQuery(collapsible).html() == "[-]"){
-        collapse(parent.id);
-        jQuery(collapsible).html("[+]");
-    }
-    else{
-        expand(parent.id);
-        jQuery(collapsible).html("[-]");
-    }
-}
-
-function collapse(parent){
-    collapsed[parent] = $("#"+parent).find(".nested")[0];
-    $("#"+parent).find(".nested")[0].remove();
-};
-
-function expand(parent){
-    $("#"+parent).append(collapsed[parent]);
-};
-
-$(document).ready(parseAndLoad);
-
-function parseAndLoad(){
-    loadQuery(parsedquery.query_text);
-    loadSteps(parsedquery.steps);
-    $(document).on("click", ".collapsible", function(e){collapseHandler(e.target);});
-}
-
-var collapsed = [];
