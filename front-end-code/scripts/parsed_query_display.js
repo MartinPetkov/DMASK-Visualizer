@@ -73,6 +73,16 @@ function differentLevels(keys, i, j){
 }
 
 /*
+    Check if keys[i] is nested inside keys[j]
+    Example: nestedInside("1.1.1", "1") == True
+*/
+function nestedInside(keys, i, j){
+    if (differentLevels(keys, i, j) && keys[i].slice(0, keys[j].length) == keys[j])
+        return 1;
+    return 0;
+}
+
+/*
     Given an array of steps (JSON), parse them into a dictionary in the format:
     step_number : [sql_chunk, input_tables, reasons, namespace, res_table_name, result_table]
 */
@@ -81,7 +91,8 @@ function stepsToDict(steps){
     var i;
     for (i = 0; i < steps.length; i++){
         var step = JSON.parse(steps[i]);
-        dict[step.step_number] = [step.sql_chunk, step.input_tables, step.reasons, step.namespace, step.res_table_name, step.result_table];
+        var stepnumber = step.step_number;
+        dict[stepnumber] = [step.sql_chunk, step.input_tables, step.reasons, step.namespace, step.res_table_name, step.result_table];
     }
     return dict;
 }

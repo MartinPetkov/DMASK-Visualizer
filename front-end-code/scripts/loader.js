@@ -3,6 +3,7 @@ var current_step;
 var steps_dictionary;
 var step_keys;
 var tables_dictionary = [];
+var reasons_dictionary = [];
 
 // Initial load of page
 $(document).ready(onPageLoad);
@@ -38,8 +39,14 @@ function onPageLoad(){
     $("#inbox").on("click", ".tablecontainer", function(e){
         var id = e.target.closest(".tablecontainer").id;
         var stepid = getStepIDFromTable(id);
-        if (steps_dictionary[stepid])
+        if (steps_dictionary[toKey(stepid)])
             loadStep(stepid);
+    });
+
+    // -- 'Reasons' box handler
+    $("#outbox").on("click", ".output-row", function(e){
+        var id = e.target.closest(".output-row").id;
+        console.log(id);
     });
 
     loadStep(step_keys[0]);

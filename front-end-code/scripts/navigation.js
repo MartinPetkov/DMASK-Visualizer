@@ -24,8 +24,8 @@ function loadStep(id){
     }
 
     // Load the input and output tables
-    replaceInputTables(idsToHTML(steps_dictionary[id][1]));
-    replaceOutputTable(tables_dictionary[steps_dictionary[id][5]]);
+    replaceInputTables(idsToHTML(steps_dictionary[toKey(id)][1]));
+    replaceOutputTable(tables_dictionary[steps_dictionary[toKey(id)][5]]);
 
 }
 
@@ -34,9 +34,15 @@ function stepOut(){
         return
     } else {
         var index = step_keys.indexOf(toKey(current_step));
-        while (hasNested(step_keys, index - 1)){
+        var initial = index;
+        while (index > 1 && hasNested(step_keys, index - 1)){
             index -= 1;
         }
+        
+        if (nestedInside(step_keys, initial, index) || (index == 1 && nestedInside (step_keys, initial, 0))){
+            index = initial + 1;
+        }
+        
         loadStep(toID(step_keys[index - 1]));
     }
 }
@@ -49,7 +55,7 @@ function stepBack(){
         if (hasNested(step_keys, index - 1) && differentLevels(step_keys, index, index - 1)){
             // The initial step is the first part of a nested step (ex. 2.1)
             // Step out of the nested component and go to the next one on the same level
-            while (hasNested(step_keys, index - 1)){
+            while (index > 1 && hasNested(step_keys, index - 1)){
                 index -= 1;
             }
         }
@@ -57,8 +63,12 @@ function stepBack(){
         var initial = index;
         
         // Move to the next step on the same depth
-        while (index > 0 && differentLevels(step_keys, initial, index - 1)){
+        while (index > 1 && differentLevels(step_keys, initial, index - 1)){
             index -= 1;
+        }
+
+        if (nestedInside(step_keys, initial, index) || (index == 1 && nestedInside (step_keys, initial, 0))){
+            index = initial + 1;
         }
 
         loadStep(toID(step_keys[index - 1]));
@@ -74,7 +84,7 @@ function stepNext(){
         
         if (!isLastNested(step_keys, index)) {
             // Move to the next step on the same depth
-            while (differentLevels(step_keys, initial, index + 1)){
+            while (index < step_keys.length - 1 && differentLevels(step_keys, initial, index + 1)){
                 index += 1;
             }
         }
@@ -87,7 +97,7 @@ function stepIn(){
         return
     } else {
         var index = step_keys.indexOf(toKey(current_step));
-        while (hasNested(step_keys, index + 1)){
+        while (index < step_keys.length - 1 && hasNested(step_keys, index + 1)){
             index += 1;
         }
         loadStep(toID(step_keys[index + 1]));

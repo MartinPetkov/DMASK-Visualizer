@@ -16,6 +16,8 @@ function toTable(t){
         hovertext = "Table " + id + ". " + steps_dictionary[id][0];
     else
         hovertext = id;
+    hovertext = hovertext.replace(/"/g, '\\\\\\"');
+    hovertext = hovertext.replace(/'/g, "\\\\\\'");
     var html = "<div class='tablecontainer' id=\"table-" + toID(id) + "\" onmouseover=\"hoverText('"+hovertext+"')\" onmouseout=\"hoverText('')\"><table>";
     var i, j;
     html += "<tr>";
@@ -24,9 +26,12 @@ function toTable(t){
     }
     html += "</tr>";
     for (i = 0; i < num_rows; i++){
-        html+="<tr>";
+        html+="<tr class='output-row' id='row-" + (i + 1) + "-step-" + toID(id) + "'>";
         for (j = 0; j < num_columns; j++){
-            html+="<td>"+t.tuples[i][j]+"</td>";
+            if (num_columns == 1)
+                html += "<td>" + t.tuples[i] + "</td>";
+            else
+                html += "<td>"+t.tuples[i][j]+"</td>";
         }
         html += "</tr>";
     }
@@ -35,6 +40,20 @@ function toTable(t){
     
 }
 
+/*
+    Return the row number of a clicked output row
+*/
+function extractTableRow(id){
+    var row = id.split("-");
+    var rownumber = row[1];
+    // var stepnumber = row.splice(3).join(".");
+    return rownumber;
+}
+
+/*
+    Given a set of tables (t), whose keys are names of other tables,
+    parses and adds those new tables to tables_dictionary.
+*/
 function parseTablesToDict(t){
     var keys = Object.keys(t);
     var i;
@@ -43,6 +62,9 @@ function parseTablesToDict(t){
     }
 }
 
+/*
+    Given a list of table ids, returns to corresponding html for the tables.
+*/
 function idsToHTML(ids){
     var output = [];
     var i;
@@ -52,8 +74,10 @@ function idsToHTML(ids){
     return output;
 }
 
+/*
+    Given a table's id, returns the step id.
+*/
 function getStepIDFromTable(id){
-    console.log(id);
     return id.split("-").splice(1).join("-");
 }
 
