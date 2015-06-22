@@ -66,12 +66,14 @@ def generate_simple_query():
     ' WHERE cgpa > 3'
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('1', 'FROM Student', [], '1',
+            namespace=["Student(sid, firstName, email, cgpa)"]),
         QueryStep('2', 'WHERE cgpa > 3', ['1'], '2',
                     reasons={
                         0: Reason(["cgpa > 3"]),
                     }),
-        QueryStep('3', 'SELECT sid, cgpa', ['2'], '3'),
+        QueryStep('3', 'SELECT sid, cgpa', ['2'], '3',
+            namespace=["Student(sid, cgpa)"]),
     ]
 
     tables = {
@@ -114,8 +116,12 @@ def generate_simple_cross_product_query():
     ' FROM Student, Took'
 
     steps = [
-        QueryStep('1', 'FROM Student, Took', ['Student', 'Took'], '1'),
-        QueryStep('2', 'SELECT Student.sid, Student.email, Took.grade', ['1'], '2')
+        QueryStep('1', 'FROM Student, Took', ['Student', 'Took'], '1',
+            namespace=["Student(sid, firstName, email, cgpa)",
+                        "Took(sid, ofid, grade)"]),
+        QueryStep('2', 'SELECT Student.sid, Student.email, Took.grade', ['1'], '2',
+            namespace=["Student(sid, email)",
+                        "Took(grade)"])
     ]
 
     tables = {
@@ -192,16 +198,29 @@ def generate_simple_natural_join_query():
     ' FROM Student NATURAL JOIN Took NATURAL JOIN Course'
 
     steps = [
-        QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', ['Student', 'Took', 'Course'], '1'),
+        QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', ['Student', 'Took', 'Course'], '1',
+                namespace=["Student(sid, firstName, email, cgpa)",
+                            "Took(sid, ofid, grade)",
+                            "Course(dept, cNum, name)"]),
+
             QueryStep('1.1', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1',
                 reasons = {
                     0: Reason(["Student.sid=Took.sid"]),
-                }),
+                },
+                namespace=["Student(sid, firstName, email, cgpa)",
+                                "Took(sid, ofid, grade)"]),
+
             QueryStep('1.2', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.1', 'Course'], '1',
                 reasons= {
                     0: Reason([""]),
-                }),
-        QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2')
+                },
+                namespace=["Student(sid, firstName, email, cgpa)",
+                            "Took(sid, ofid, grade)",
+                            "Course(dept, cNum, name)"]),
+
+        QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2',
+            namespace=["Student(sid, email, cgpa)",
+                        "Took(sid)"])
     ]
 
     tables = {
@@ -304,8 +323,13 @@ def generate_simple_condition_join_query():
         QueryStep('1', 'FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid', ['Took', 'Offering'], '1',
             reasons = {
                 0: Reason(["Took.ofid=Offering.oid"]),
-            }),
-        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2'),
+            },
+            namespace=["Took(sid, ofid, grade)",
+                        "Offering(oid, dept, cNum, instructor)"]),
+
+        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2',
+            namespace=["Took(sid, grade)",
+                        "Offering(instructor)"]),
     ]
 
     tables = {
@@ -340,19 +364,29 @@ def generate_simple_condition_join_query():
 ''' A query with one subquery in the FROM '''
 def generate_simple_subquery():
     query_text =\
-    ' SELECT WhyUDoThis.oid' +\
+    ' SELECT LimitedCols.oid' +\
     ' FROM' +\
     '    (SELECT oid, dept' +\
     '     FROM Offering' +\
-    '    ) AS WhyUDoThis JOIN Took'
+    '    ) AS LimitedCols'
 
     steps = [
-        QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS WhyUDoThis', ['Offering'], '1'),
-            QueryStep('1.1', '(SELECT oid, dept FROM Offering)', ['Offering'], '1.1'),
-                QueryStep('1.1.1', 'FROM Offering', [], '1.1.1'),
-                QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1'),
-            QueryStep('1.2', 'AS WhyUDoThis', ['1.1'], '1'),
-        QueryStep('2', 'SELECT WhyUDoThis.oid', ['1'], '2'),
+        QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS LimitedCols', ['Offering'], '1',
+                namespace=["LimitedCols(oid, dept)"]),
+
+            QueryStep('1.1', '(SELECT oid, dept FROM Offering)', ['Offering'], '1.1',
+                namespace=["Offering(oid, dept)"]),
+
+                QueryStep('1.1.1', 'FROM Offering', [], '1.1.1',
+                    namespace=["Offering(oid, dept, cNum, instructor)"]),
+                QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1',
+                    namespace=["Offering(oid, dept)"]),
+
+            QueryStep('1.2', 'AS LimitedCols', ['1.1'], '1',
+                namespace=["LimitedCols(oid, dept)"]),
+
+        QueryStep('2', 'SELECT LimitedCols.oid', ['1'], '2',
+            namespace=["LimitedCols(oid)"]),
     ]
 
     tables = {
@@ -376,9 +410,9 @@ def generate_simple_subquery():
                             ('4', 'ger')]
                     ),
 
-        '1': Table(t_name='WhyUDoThis',
+        '1': Table(t_name='LimitedCols',
                     step = '1',
-                    col_names=['WhyUDoThis.oid', 'WhyUDoThis.dept'],
+                    col_names=['LimitedCols.oid', 'LimitedCols.dept'],
                     tuples=[
                             ('1', 'csc'),
                             ('2', 'csc'),
@@ -388,7 +422,7 @@ def generate_simple_subquery():
 
         '2': Table(t_name='2',
                     step = '2',
-                    col_names=['WhyUDoThis.oid'],
+                    col_names=['LimitedCols.oid'],
                     tuples=[
                             ('1'),
                             ('2'),
@@ -411,12 +445,15 @@ def generate_simple_and_query():
     ' AND firstName=\'Martin\''
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('1', 'FROM Student', [], '1',
+            namespace=["Student(sid, firstName, email, cgpa)"]),
+
         QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['1'], '2',
             reasons= {
                 0: Reason(["cgpa > 3", "firstName='Martin'"]),
             }),
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3')
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
+            namespace=["Student(email, cgpa)"])
     ]
 
     tables = {
@@ -457,14 +494,17 @@ def generate_simple_or_query():
     ' OR firstName=\'Sophia\''
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('1', 'FROM Student', [], '1',
+            namespace=["Student(sid, firstName, email, cgpa)"]),
+
         QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['1'], '2',
             reasons = {
                 1: Reason(["cgpa > 2"]),
                 2: Reason(["cgpa > 2"]),
                 3: Reason(["firstName=\'Sophia\'"]),
             }),
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
+            namespace=["Student(email, cgpa)"]),
     ]
 
     tables = {
@@ -510,13 +550,17 @@ def generate_complex_and_plus_or():
     '    OR firstName=\'Kathy\')'
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('1', 'FROM Student', [], '1',
+            namespace=["Student(sid, firstName, email, cgpa)"]),
+
         QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['1'], '2',
             reasons = {
                 1: Reason(["cgpa > 3", "firstName='Martin'"]),
                 2: Reason(["cgpa > 3", "firstName='Kathy'"]),
             }),
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
+
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
+            namespace=["Student(email, cgpa)"]),
     ]
 
     tables = {
@@ -558,11 +602,22 @@ def generate_complex_renaming():
     ' FROM Took t, Offering o'
 
     steps = [
-        QueryStep('1', 'FROM Took t, Offering o', [], '1'),
-            QueryStep('1.1', 'Took t', ['Took'], '1.1'),
-            QueryStep('1.2', 'Offering o', ['Offering'], '1.2'), # t_name = 'o'
+        QueryStep('1', 'FROM Took t, Offering o', [], '1',
+            namespace=["t(sid, ofid, grade)",
+                        "o(oid, dept, cNum, instructor)"]),
+
+            QueryStep('1.1', 'Took t', ['Took'], '1.1',
+                namespace=["t(sid, ofid, grade)"]),
+
+            QueryStep('1.2', 'Offering o', ['Offering'], '1.2', # t_name = 'o'
+                namespace=["t(sid, ofid, grade)",
+                            "o(oid, dept, cNum, instructor)"]),
+
             QueryStep('1.3', 'Took t, Offering o', ['1.1', '1.2'], '1'),
-        QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2'),
+
+        QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2',
+            namespace=["t(sid)",
+                        "o(oid)"]),
     ]
 
     tables = {
@@ -659,19 +714,24 @@ def generate_complex_subquery_in_where_not_repeated():
     '     WHERE sid=4)'
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1'),
+        QueryStep('1', 'FROM Student', [], '1',
+            namespace=["Student(sid, firstName, email, cgpa)"]),
+
         QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['1'], '2',
                 reasons = {
                     0: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4)"],
                         {
                             "cgpa > (SELECT cgpa FROM Student WHERE sid=4)": ParsedQuery(
                                 [
-                                    QueryStep('1', 'FROM Student', [], '1'),
+                                    QueryStep('1', 'FROM Student', [], '1',
+                                        namespace=["Student(sid, firstName, email, cgpa)"]),
                                     QueryStep('2', 'WHERE sid=4', ['1'], '2',
                                         reasons = {
                                             0: Reason(["sid=4"])
                                         }),
-                                    QueryStep('3', 'SELECT cgpa', ['2'], '3'),
+
+                                    QueryStep('3', 'SELECT cgpa', ['2'], '3',
+                                        namespace=["Student(cgpa)"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -699,7 +759,9 @@ def generate_complex_subquery_in_where_not_repeated():
                                 "SELECT cgpa FROM Student WHERE sid=4")
                         }),
                 }),
-        QueryStep('3', 'SELECT sid, firstName', ['2'], '3'),
+
+        QueryStep('3', 'SELECT sid, firstName', ['2'], '3',
+            namespace=["Student(sid, firstName)"]),
     ]
 
     tables = {
@@ -739,12 +801,14 @@ def generate_complex_subquery_in_where_repeated():
     ' SELECT instructor' +\
     ' FROM Offering o1' +\
     ' WHERE EXISTS (' +\
-    '     SELECT oid' +\
+    '     SELECT o2.oid' +\
     '     FROM Offering o2' +\
     '     WHERE o2.oid <> o1.oid)'
 
     steps = [
-        QueryStep('1', 'FROM Offering o1', ['Offering'], '1'), # t_name = 'o1'
+        QueryStep('1', 'FROM Offering o1', ['Offering'], '1', # t_name = 'o1'
+            namespace=["o1(oid, dept, cNum, instructor)"]),
+
         QueryStep('2', 'WHERE EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)', ['1'], '2',
             reasons = {
                 1: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
@@ -752,12 +816,16 @@ def generate_complex_subquery_in_where_repeated():
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
                             ParsedQuery(
                                 [
-                                    QueryStep('1', 'FROM Offering o2', [], '1'),
+                                    QueryStep('1', 'FROM Offering o2', [], '1',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid, dpet, cNum, instructor)"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT oid', ['2'], '3'),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid)"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -794,12 +862,16 @@ def generate_complex_subquery_in_where_repeated():
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
                             ParsedQuery(
                                 [
-                                    QueryStep('1', 'FROM Offering o2', [], '1'),
+                                    QueryStep('1', 'FROM Offering o2', [], '1',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid, dpet, cNum, instructor)"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT oid', ['2'], '3'),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid)"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -836,12 +908,16 @@ def generate_complex_subquery_in_where_repeated():
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
                             ParsedQuery(
                                 [
-                                    QueryStep('1', 'FROM Offering o2', [], '1'),
+                                    QueryStep('1', 'FROM Offering o2', [], '1',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid, dpet, cNum, instructor)"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT oid', ['2'], '3'),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid)"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -878,12 +954,16 @@ def generate_complex_subquery_in_where_repeated():
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
                             ParsedQuery(
                                 [
-                                    QueryStep('1', 'FROM Offering o2', [], '1'),
+                                    QueryStep('1', 'FROM Offering o2', [], '1',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid, dpet, cNum, instructor)"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT oid', ['2'], '3'),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        namespace=["o1(oid, dept, cNum, instructor)",
+                                                    "o2(oid)"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -915,7 +995,9 @@ def generate_complex_subquery_in_where_repeated():
                                 "SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid")
                         }),
             }),
-        QueryStep('3', 'SELECT instructor', ['2'], '3'),
+
+        QueryStep('3', 'SELECT instructor', ['2'], '3',
+            namespace=["o1(instructor)"]),
     ]
 
     tables = {
@@ -961,8 +1043,10 @@ def generate_multiple_queries_unrelated():
     ' FROM Student'
 
     steps1 = [
-        QueryStep('1', 'FROM Student', [], '1'),
-        QueryStep('2', 'SELECT email', ['1'], '2'),
+        QueryStep('1', 'FROM Student', [], '1',
+            namespace=["Student(sid, firstName, email, cgpa)"]),
+        QueryStep('2', 'SELECT email', ['1'], '2',
+            namespace=["Student(email)"]),
     ]
 
     tables1 = {
@@ -992,8 +1076,10 @@ def generate_multiple_queries_unrelated():
     ' FROM Offering'
 
     steps2 = [
-        QueryStep('1', 'FROM Offering', [], '1'),
-        QueryStep('2', 'SELECT oid', ['1'], '2'),
+        QueryStep('1', 'FROM Offering', [], '1',
+            namespace=["Offering(oid, dept, cNum, instructor)"]),
+        QueryStep('2', 'SELECT oid', ['1'], '2',
+            namespace=["Offering(oid)"]),
     ]
 
     tables2 = {
@@ -1032,13 +1118,22 @@ def generate_multiple_queries_related():
     ' WHERE cgpa<3'
 
     steps1 = [
-        QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza'),
-            QueryStep('1.1', 'FROM Student', [], '1.1'),
+        QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza',
+            namespace=["pizza(sid, email, cgpa)"]),
+
+            QueryStep('1.1', 'FROM Student', [], '1.1',
+                namespace=["Student(sid, firstName, email, cgpa)"]),
+
             QueryStep('1.2', 'WHERE cgpa<3', ['1.1'], '1.2',
                 reasons = {
                     0: Reason(["cgpa<3"]),
                 }),
-            QueryStep('1.3', 'SELECT sid, email, cgpa', ['1.2'], 'pizza'),
+
+            QueryStep('1.3', 'SELECT sid, email, cgpa', ['1.2'], '1.3',
+                namespace=["Student(sid, email, cgpa)"]),
+
+            QueryStep('1.4', 'CREATE VIEW pizza', ['1.3'], 'pizza',
+                namespace=["pizza(sid, email, cgpa)"]),
     ]
 
     tables1 = {
@@ -1058,6 +1153,13 @@ def generate_multiple_queries_related():
                             ('3', 'Martin', 'not_martin@mail.com', '1.7'),
                             ('4', 'James', 'james@mail.com', '2.8')]
                     ),
+        '1.3': Table(t_name='1.3',
+                    step='1.3',
+                    col_names=['Student.sid', 'Student.email', 'Student.cgpa'],
+                    tuples=[
+                            ('3', 'not_martin@mail.com', '1.7'),
+                            ('4', 'James', 'james@mail.com', '2.8')]
+                    )
     }
 
 
@@ -1066,8 +1168,10 @@ def generate_multiple_queries_related():
     ' FROM pizza'
 
     steps2 = [
-        QueryStep('1', 'FROM pizza', ['pizza'], '1'),
-        QueryStep('2', 'SELECT email', ['1'], '2'),
+        QueryStep('1', 'FROM pizza', ['pizza'], '1',
+            namespace=["pizza(sid, email, cgpa)"]),
+        QueryStep('2', 'SELECT email', ['1'], '2',
+            namespace=["pizza(email)"]),
     ]
 
     tables2 = {
