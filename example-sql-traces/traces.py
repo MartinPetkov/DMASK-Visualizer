@@ -864,7 +864,15 @@ def generate_complex_subquery_in_where_not_repeated():
 
     DESIRED_ASTS['complex_subquery_in_where_not_repeated'] =\
         [
-            #
+            [ 'SELECT', ['sid','firstName'] ],
+            [ 'FROM', ['Student'] ],
+            [ 'WHERE', [ 'cgpa', '>',
+                            [
+                                [ 'SELECT', ['cgpa'] ],
+                                [ 'FROM', ['Student'] ],
+                                [ 'WHERE', [['sid', '=', '4']] ],
+                            ]
+                        ] ],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -1109,7 +1117,15 @@ def generate_complex_subquery_in_where_repeated():
 
     DESIRED_ASTS['complex_subquery_in_where_repeated'] =\
         [
-            #
+            [ 'SELECT', ['instructor'] ],
+            [ 'FROM', [['Offering', 'o1']] ],
+            [ 'WHERE', [ 'EXISTS',
+                            [
+                                [ 'SELECT', ['o2.oid'] ],
+                                [ 'FROM', [['Offering', 'o2']] ],
+                                [ 'WHERE', [['o2.oid', '<>', 'o1.oid']] ],
+                            ]
+                        ] ],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -1154,7 +1170,8 @@ def generate_multiple_queries_unrelated():
 
     DESIRED_ASTS['multiple_queries_unrelated_1'] =\
         [
-            #
+            [ 'SELECT', ['email'] ],
+            [ 'FROM', ['Student'] ],
         ]
 
 
@@ -1193,7 +1210,8 @@ def generate_multiple_queries_unrelated():
 
     DESIRED_ASTS['multiple_queries_unrelated_2'] =\
         [
-            #
+            [ 'SELECT', ['oid'] ],
+            [ 'FROM', ['Offering'] ],
         ]
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
@@ -1205,9 +1223,9 @@ def generate_multiple_queries_unrelated():
 def generate_multiple_queries_related():
     query_text1 =\
     ' CREATE VIEW pizza AS' +\
-    ' SELECT sid, email, cgpa' +\
-    ' FROM Student' +\
-    ' WHERE cgpa<3'
+    '   SELECT sid, email, cgpa' +\
+    '   FROM Student' +\
+    '   WHERE cgpa<3'
 
     steps1 = [
         QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza',
@@ -1257,7 +1275,12 @@ def generate_multiple_queries_related():
 
     DESIRED_ASTS['multiple_queries_related_1'] =\
         [
-            #
+            'CREATE VIEW', 'pizza',
+            [
+                [ 'SELECT', ['sid','email','cgpa'] ],
+                [ 'FROM', ['Student'] ],
+                [ 'WHERE', [['cgpa', '<', '3']] ],
+            ]
         ]
 
 
@@ -1294,7 +1317,8 @@ def generate_multiple_queries_related():
 
     DESIRED_ASTS['multiple_queries_related_2'] =\
         [
-            #
+            [ 'SELECT', ['email'] ],
+            [ 'FROM', ['pizza'] ],
         ]
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
@@ -1343,7 +1367,14 @@ JSON_TRACES = {
 
 
 def main():
+    print("TRACES =")
     pprint(TRACES)
+
+    print()
+    print("=====================================================================================================")
+    print()
+
+    print("DESIRED_ASTS =")
     pprint(DESIRED_ASTS)
 
 
