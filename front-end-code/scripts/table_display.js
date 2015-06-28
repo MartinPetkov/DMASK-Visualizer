@@ -12,8 +12,8 @@ function toTable(t){
     if (!id)
         id = t.step;
     
-    if (step_keys.indexOf(id) > -1)
-        hovertext = "Table " + id + ". " + steps_dictionary[id][0];
+    if (currentWindow.step_keys.indexOf(id) > -1)
+        hovertext = "Table " + id + ". " + currentWindow.steps_dictionary[id][0];
     else
         hovertext = id;
     hovertext = hovertext.replace(/"/g, '\\\\\\"');
@@ -60,9 +60,9 @@ function parseTablesToDict(t){
     var keys = Object.keys(t);
     var i;
     for (i = 0; i < keys.length; i++){
-        tables_dictionary[keys[i]] = toTable(JSON.parse(t[keys[i]]));
+        currentWindow.tables_dictionary[keys[i]] = toTable(JSON.parse(t[keys[i]]));
 
-        reasons_dictionary[keys[i]] = initializeTableReasons(JSON.parse(t[keys[i]]));
+        currentWindow.reasons_dictionary[keys[i]] = initializeTableReasons(JSON.parse(t[keys[i]]));
     }
 }
 
@@ -86,7 +86,7 @@ function idsToHTML(ids){
     var output = [];
     var i;
     for (i = 0; i < ids.length; i++){
-        output.push(tables_dictionary[ids[i]]);
+        output.push(currentWindow.tables_dictionary[ids[i]]);
     }
     return output;
 }
@@ -103,7 +103,7 @@ function getStepIDFromTable(id){
     replaceInputTables([toTable(took), toTable(student)])
 */
 function replaceInputTables(tableHTML){
-    var inbox = $("#inbox");
+    var inbox = $(currentWindow.inbox);
     inbox.empty();
     var html = "";
     var i;
@@ -111,14 +111,14 @@ function replaceInputTables(tableHTML){
         html += "<div class='input'>"+tableHTML[i]+"</div>";
     }
     inbox.append(html);
-    updateTableDisplay();
+    updateTableDisplay(currentWindow);
 }
 /*
     Given a list of table HTML, replace the corresponding tables
     replaceInputTables([toTable(took), toTable(student)])
 */
 function replaceOutputTable(tableHTML){
-    var outbox = $("#outbox");
+    var outbox = $(currentWindow.outbox);
     outbox.empty();
     outbox.append("<div class='output'>"+tableHTML+"</div>");
 }

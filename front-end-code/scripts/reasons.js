@@ -15,9 +15,9 @@ Reason.prototype.toDisplay = function(){
 function generateReasons(){
     var step;
     var i = 0;
-    for (i = 0; i < step_keys.length; i++){
-        step = steps_dictionary[step_keys[i]][5];   // The output of the step (since it might not be the same as the step, ex. 1.1 vs 1.1.2)
-        var reasons = steps_dictionary[step][2];
+    for (i = 0; i < currentWindow.step_keys.length; i++){
+        step = currentWindow.steps_dictionary[currentWindow.step_keys[i]][5];   // The output of the step (since it might not be the same as the step, ex. 1.1 vs 1.1.2)
+        var reasons = currentWindow.steps_dictionary[step][2];
         
         var j;
         var shared_reasons = [];
@@ -39,8 +39,8 @@ function generateReasons(){
         }
 
         // add all shared reasons to the every row
-        for (j = 1; j < reasons_dictionary[step].length; j++){
-            reasons_dictionary[step][j] = shared_reasons.slice();
+        for (j = 1; j < currentWindow.reasons_dictionary[step].length; j++){
+            currentWindow.reasons_dictionary[step][j] = shared_reasons.slice();
         }
 
         // get the remaining reasons (row != 0)
@@ -55,7 +55,7 @@ function generateReasons(){
                     if (reasons_object.subqueries[matched_conditions[k]] != undefined){
                         reason.subquery = JSON.parse(reasons_object.subqueries[matched_conditions[k]]);
                     }
-                    reasons_dictionary[step][row].push(reason);
+                    currentWindow.reasons_dictionary[step][row].push(reason);
                 }
             }
         }
@@ -68,10 +68,7 @@ function generateReasons(){
 function getReasons(row_id){
     // look up in reasons_dictionary
     // given: row and step number (later: maybe query number?)
-    var steprow = getStepRow(row_id);
-    var step = steprow.step;
-    var row = steprow.row;
-    var reasons = reasons_dictionary[step][row];
+    var reasons = getReasonsEntry(row_id);
     var i;
 
     var result = [];
@@ -85,6 +82,17 @@ function getReasons(row_id){
     return "";
     
     
+}
+
+
+/*
+    Given the id of a table row, return the reasons (lookup in the dictionary)
+*/
+function getReasonsEntry(row_id){
+    var steprow = getStepRow(row_id);
+    var step = steprow.step;
+    var row = steprow.row;
+    return currentWindow.reasons_dictionary[step][row];
 }
 
 /*

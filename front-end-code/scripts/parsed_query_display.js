@@ -3,7 +3,7 @@
 */
 function loadQuery(text){
     var querytext = "<tr><td class='query'>" + text + ";</td></tr>";
-    $("#steps").append(querytext);
+    $(currentWindow.steps).append(querytext);
 }
 
 /*
@@ -30,7 +30,7 @@ function loadSteps(dict){
             
         allsteps += step;
     }
-    $("#steps").append(allsteps);
+    $(currentWindow.steps).append(allsteps);
 }
 
 /*

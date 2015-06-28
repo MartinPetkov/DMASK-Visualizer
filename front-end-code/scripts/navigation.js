@@ -4,9 +4,9 @@
 function loadStep(id){
     $("#tooltip").hide();
 
-    current_step = id;
-    var step = $("#" + id);
-    $(".step").removeClass("selected");
+    currentWindow.current_step = id;
+    var step = $(currentWindow.toc + " #" + id);
+    $(currentWindow.toc + " .step").removeClass("selected");
     step.addClass("selected");
     
     // Expand all collapsed cells containing id
@@ -26,38 +26,38 @@ function loadStep(id){
     }
 
     // Load the input and output tables
-    replaceInputTables(idsToHTML(steps_dictionary[toKey(id)][1]));
-    replaceOutputTable(tables_dictionary[steps_dictionary[toKey(id)][5]]);
+    replaceInputTables(idsToHTML(currentWindow.steps_dictionary[toKey(id)][1]));
+    replaceOutputTable(currentWindow.tables_dictionary[currentWindow.steps_dictionary[toKey(id)][5]]);
 
 }
 
 function stepOut(){
-    if (current_step == step_keys[0]){
+    if (currentWindow.current_step == currentWindow.step_keys[0]){
         return
     } else {
-        var index = step_keys.indexOf(toKey(current_step));
+        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
         var initial = index;
-        while (index > 1 && hasNested(step_keys, index - 1)){
+        while (index > 1 && hasNested(currentWindow.step_keys, index - 1)){
             index -= 1;
         }
         
-        if (nestedInside(step_keys, initial, index) || (index == 1 && nestedInside (step_keys, initial, 0))){
+        if (nestedInside(currentWindow.step_keys, initial, index) || (index == 1 && nestedInside (currentWindow.step_keys, initial, 0))){
             index = initial + 1;
         }
         
-        loadStep(toID(step_keys[index - 1]));
+        loadStep(toID(currentWindow.step_keys[index - 1]));
     }
 }
 
 function stepBack(){
-    if (current_step == step_keys[0]){
+    if (currentWindow.current_step == currentWindow.step_keys[0]){
         return
     } else {
-        var index = step_keys.indexOf(toKey(current_step));
+        var index = currentWindow.step_keys.indexOf(toKey(current_step));
         if (hasNested(step_keys, index - 1) && differentLevels(step_keys, index, index - 1)){
             // The initial step is the first part of a nested step (ex. 2.1)
             // Step out of the nested component and go to the next one on the same level
-            while (index > 1 && hasNested(step_keys, index - 1)){
+            while (index > 1 && hasNested(currentWindow.step_keys, index - 1)){
                 index -= 1;
             }
         }
@@ -65,43 +65,43 @@ function stepBack(){
         var initial = index;
         
         // Move to the next step on the same depth
-        while (index > 1 && differentLevels(step_keys, initial, index - 1)){
+        while (index > 1 && differentLevels(currentWindow.step_keys, initial, index - 1)){
             index -= 1;
         }
 
-        if (nestedInside(step_keys, initial, index) || (index == 1 && nestedInside (step_keys, initial, 0))){
+        if (nestedInside(currentWindow.step_keys, initial, index) || (index == 1 && nestedInside (currentWindow.step_keys, initial, 0))){
             index = initial + 1;
         }
 
-        loadStep(toID(step_keys[index - 1]));
+        loadStep(toID(currentWindow.step_keys[index - 1]));
     }
 }
 
 function stepNext(){
-    if (current_step == step_keys[step_keys.length-1]){
+    if (currentWindow.current_step == currentWindow.step_keys[step_keys.length-1]){
         return
     } else {
-        var index = step_keys.indexOf(toKey(current_step));
+        var index = currentWindow.step_keys.indexOf(toKey(current_step));
         var initial = index;
         
-        if (!isLastNested(step_keys, index)) {
+        if (!isLastNested(currentWindow.step_keys, index)) {
             // Move to the next step on the same depth
-            while (index < step_keys.length - 1 && differentLevels(step_keys, initial, index + 1)){
+            while (index < currentWindow.step_keys.length - 1 && differentLevels(currentWindow.step_keys, initial, index + 1)){
                 index += 1;
             }
         }
-        loadStep(toID(step_keys[index + 1]));
+        loadStep(toID(currentWindow.step_keys[index + 1]));
     }
 }
 
 function stepIn(){
-    if (current_step == step_keys[step_keys.length - 1]){
+    if (currentWindow.current_step == currentWindow.step_keys[currentWindow.step_keys.length - 1]){
         return
     } else {
-        var index = step_keys.indexOf(toKey(current_step));
-        while (index < step_keys.length - 1 && hasNested(step_keys, index + 1)){
+        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
+        while (index < currentWindow.step_keys.length - 1 && hasNested(currentWindow.step_keys, index + 1)){
             index += 1;
         }
-        loadStep(toID(step_keys[index + 1]));
+        loadStep(toID(currentWindow.step_keys[index + 1]));
     }
 }

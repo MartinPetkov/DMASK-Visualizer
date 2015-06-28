@@ -1,10 +1,3 @@
-var toggled = 0;
-var current_step;
-var steps_dictionary;
-var step_keys;
-var tables_dictionary = [];
-var reasons_dictionary = [];
-
 // Initial load of page
 $(document).ready(onPageLoad);
 
@@ -41,7 +34,7 @@ function onPageLoad(){
     $("#inbox").on("click", ".tablecontainer", function(e){
         var id = e.target.closest(".tablecontainer").id;
         var stepid = getStepIDFromTable(id);
-        if (steps_dictionary[toKey(stepid)])
+        if (currentWindow.steps_dictionary[toKey(stepid)])
             loadStep(stepid);
     });
 
@@ -65,17 +58,19 @@ function onPageLoad(){
     // -- Subquery onclick handler
     $(document).on("click", ".subquery", function(e){
         var tooltip = $("#tooltip");
-        console.log(tooltip.val());
+        var id = tooltip.val();
+        var reason = getReasonsEntry(id)[0];
+        openModalWindow(reason.subquery);
     });
 
-    loadStep(step_keys[0]);
+    loadStep(currentWindow.step_keys[0]);
 }
 
 /*
     Adjusts the hovertext display
 */
 function hoverText(newtext){
-    $('#namebox').text(newtext);
+    $(currentWindow.hovertext).text(newtext);
 }
 
 /*
@@ -83,11 +78,22 @@ function hoverText(newtext){
 */
 function parseAndLoad(){
     // Parse the JSON content and load them into the ToC
-    steps_dictionary = stepsToDict(parsedquery.steps);
-    step_keys = Object.keys(steps_dictionary).sort();
+    currentWindow.steps_dictionary = stepsToDict(parsedquery.steps);
+    currentWindow.step_keys = Object.keys(currentWindow.steps_dictionary).sort();
     parseTablesToDict(global_tables);
     parseTablesToDict(parsedquery.tables);
     generateReasons();
     loadQuery(parsedquery.query_text);
-    loadSteps(steps_dictionary);
+    loadSteps(currentWindow.steps_dictionary);
+}
+
+/*
+    MOVE THIS SOMEWHERE ELSE
+*/
+function openModalWindow(query){
+    parsedquery = query;
+    currentWindow = ModalWindow;
+    $("#modalcontainer").show();
+    parseAndLoad();
+    sizeContent();
 }
