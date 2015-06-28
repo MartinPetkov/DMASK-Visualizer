@@ -25,8 +25,10 @@ function onPageLoad(){
     $(document).on("click", ".step", function(e){
         if (!jQuery(e.target).hasClass("collapsible"))
             var step = jQuery(e.target.closest("tr"));
-            var id = step[0].id;
-            loadStep(id);
+            if (step != undefined){
+                var id = step[0].id;
+                loadStep(id);
+            }
     });
 
     // -- Navigation handlers (stepping through)
@@ -46,7 +48,24 @@ function onPageLoad(){
     // -- 'Reasons' box handler
     $("#outbox").on("click", ".output-row", function(e){
         var id = e.target.closest(".output-row").id;
-        console.log(id);
+        var reasons = getReasons(id);
+        var tooltip = $("#tooltip");
+        // ---
+        if (reasons != ""){
+            tooltip.css( {position:"absolute", top:e.pageY, left: e.pageX});
+            tooltip.html("<p class='tooltipheader'>Reasons</p>" + getReasons(id));
+            tooltip.show();
+            tooltip.val(id);
+            
+        } else{
+            tooltip.hide();
+        }
+    });
+
+    // -- Subquery onclick handler
+    $(document).on("click", ".subquery", function(e){
+        var tooltip = $("#tooltip");
+        console.log(tooltip.val());
     });
 
     loadStep(step_keys[0]);
@@ -68,6 +87,7 @@ function parseAndLoad(){
     step_keys = Object.keys(steps_dictionary).sort();
     parseTablesToDict(global_tables);
     parseTablesToDict(parsedquery.tables);
+    generateReasons();
     loadQuery(parsedquery.query_text);
     loadSteps(steps_dictionary);
 }

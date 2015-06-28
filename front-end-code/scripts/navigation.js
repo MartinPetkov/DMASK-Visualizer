@@ -2,6 +2,8 @@
     Given a step's id, load the step into display
 */
 function loadStep(id){
+    $("#tooltip").hide();
+
     current_step = id;
     var step = $("#" + id);
     $(".step").removeClass("selected");

@@ -9,6 +9,8 @@ function sizeContent() {
 
     // Update the height of the table display area
     updateTableDisplay();
+
+    $("#tooltip").hide();
 }
 
 // Update the height of the table display area
@@ -43,5 +45,6 @@ function toggleInventory(){
     var newheight = updateHeight();
     $("#tablespace").animate({height: newheight});
     $('.input').animate({height: updateInputHeight(newheight)});
+    $("#tooltip").hide();
 }
 

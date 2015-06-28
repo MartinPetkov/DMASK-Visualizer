@@ -53,13 +53,30 @@ function extractTableRow(id){
 /*
     Given a set of tables (t), whose keys are names of other tables,
     parses and adds those new tables to tables_dictionary.
+
+    Also calls on initializeTableReasons
 */
 function parseTablesToDict(t){
     var keys = Object.keys(t);
     var i;
     for (i = 0; i < keys.length; i++){
         tables_dictionary[keys[i]] = toTable(JSON.parse(t[keys[i]]));
+
+        reasons_dictionary[keys[i]] = initializeTableReasons(JSON.parse(t[keys[i]]));
     }
+}
+
+/*
+    Set the reasons for every step's rows to [].
+*/
+function initializeTableReasons(t){
+    var num_rows = t.tuples.length;
+    var i;
+    var result_dict = [];
+    for (i = 1; i <= num_rows; i++){
+        result_dict[i] = [];
+    }
+    return result_dict;
 }
 
 /*
