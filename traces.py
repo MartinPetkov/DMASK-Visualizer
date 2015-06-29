@@ -109,8 +109,8 @@ def generate_simple_query():
     DESIRED_ASTS['simple_query'] =\
         [
             [ 'SELECT', ['sid','cgpa'] ],
-            [ 'FROM', ['Student'] ],
-            [ 'WHERE', [ ['cgpa', '>', '3'] ] ],
+            [ 'FROM',   [ ['Student'] ] ],
+            [ 'WHERE',  [ ['cgpa', '>', '3'] ] ],
         ]
 
 
@@ -199,8 +199,7 @@ def generate_simple_cross_product_query():
     DESIRED_ASTS['simple_cross_product_query'] =\
         [
             [ 'SELECT', ['Student.sid','Student.email','Took.grade'] ],
-            [ 'FROM', ['Student',
-                        ',', 'Took'] ],
+            [ 'FROM', [ ['Student'], ',', ['Took'] ] ],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -328,9 +327,8 @@ def generate_simple_natural_join_query():
     DESIRED_ASTS['simple_natural_join_query'] =\
         [
             [ 'SELECT', ['sid','email','cgpa'] ],
-            [ 'FROM', ['Student',
-                        'NATURAL JOIN', 'Took',
-                        'NATURAL JOIN', 'Course'] ],
+            [ 'FROM',   [ [ ['Student'], 'NATURAL JOIN', ['Took']],
+                            'NATURAL JOIN', ['Course']] ],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -384,9 +382,8 @@ def generate_simple_condition_join_query():
     DESIRED_ASTS['simple_condition_join_query'] =\
         [
             [ 'SELECT', ['sid','grade','instructor'] ],
-            [ 'FROM', ['Took',
-                        'LEFT JOIN', ['Offering',
-                                        [ ['Took.ofid','=','Offering.ofid'] ]]] ],
+            [ 'FROM', [['Took'],
+                        'LEFT JOIN', ['Offering'], 'ON', ['Took.ofid','=','Offering.ofid'] ]],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -470,7 +467,7 @@ def generate_simple_subquery():
             [ 'FROM', [[
                 [
                     [ 'SELECT', ['oid','dept'] ],
-                    [ 'FROM', ['Offering'] ]
+                    [ 'FROM', [['Offering']] ]
                 ]
 
                 , 'LimitedCols']] ],
@@ -767,7 +764,7 @@ def generate_complex_renaming():
     DESIRED_ASTS['complex_renaming'] =\
         [
             [ 'SELECT', ['t.sid','o.oid'] ],
-            [ 'FROM', [['Took', 't'], ['Offering', 'o']] ],
+            [ 'FROM', [['Took', 'AS', 't'], 'JOIN', ['Offering', 'AS', 'o']] ],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -869,7 +866,7 @@ def generate_complex_subquery_in_where_not_repeated():
             [ 'WHERE', [ 'cgpa', '>',
                             [
                                 [ 'SELECT', ['cgpa'] ],
-                                [ 'FROM', ['Student'] ],
+                                [ 'FROM', [['Student']] ],
                                 [ 'WHERE', [['sid', '=', '4']] ],
                             ]
                         ] ],
@@ -1211,7 +1208,7 @@ def generate_multiple_queries_unrelated():
     DESIRED_ASTS['multiple_queries_unrelated_2'] =\
         [
             [ 'SELECT', ['oid'] ],
-            [ 'FROM', ['Offering'] ],
+            [ 'FROM', [['Offering']] ],
         ]
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
