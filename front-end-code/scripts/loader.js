@@ -6,7 +6,7 @@ $(window).resize(sizeContent);
 
 function onPageLoad(){
     sizeContent();
-    parseAndLoad();
+    parseAndLoad(parsedquery);
 
     // add event handlers
     // -- ToC Handlers (Collapsing, clicking on steps)
@@ -31,7 +31,7 @@ function onPageLoad(){
     $(document).on("click", "#stepin", stepIn);
 
     // -- Table handlers
-    $("#inbox").on("click", ".tablecontainer", function(e){
+    $("#inbox, #modal-inbox").on("click", ".tablecontainer", function(e){
         var id = e.target.closest(".tablecontainer").id;
         var stepid = getStepIDFromTable(id);
         if (currentWindow.steps_dictionary[toKey(stepid)])
@@ -39,7 +39,7 @@ function onPageLoad(){
     });
 
     // -- 'Reasons' box handler
-    $("#outbox").on("click", ".output-row", function(e){
+    $("#outbox, #modal-outbox").on("click", ".output-row", function(e){
         var id = e.target.closest(".output-row").id;
         var reasons = getReasons(id);
         var tooltip = $("#tooltip");
@@ -63,37 +63,37 @@ function onPageLoad(){
         openModalWindow(reason.subquery);
     });
 
-    loadStep(currentWindow.step_keys[0]);
+    $(document).on("click", "#modalcontainer", function(e){
+        if (e.target.id == "modalcontainer"){
+            $("#modalcontainer").hide();
+            currentWindow = MainWindow;
+            $("#tooltip").hide();
+        }
+    });
+
 }
 
 /*
     Adjusts the hovertext display
 */
 function hoverText(newtext){
-    $(currentWindow.hovertext).text(newtext);
+    $(currentWindow.namebox).text(newtext);
 }
 
 /*
-    Temporary function to load a single parsed query
+    Input: An array of parsedqueries
 */
-function parseAndLoad(){
+function parseAndLoad(parsedquery){
     // Parse the JSON content and load them into the ToC
-    currentWindow.steps_dictionary = stepsToDict(parsedquery.steps);
-    currentWindow.step_keys = Object.keys(currentWindow.steps_dictionary).sort();
-    parseTablesToDict(global_tables);
-    parseTablesToDict(parsedquery.tables);
-    generateReasons();
-    loadQuery(parsedquery.query_text);
-    loadSteps(currentWindow.steps_dictionary);
+    var i = 0;
+    for (i = 0; i < parsedquery.length; i++){
+        currentWindow.steps_dictionary = stepsToDict(parsedquery[i].steps);
+        currentWindow.step_keys = Object.keys(currentWindow.steps_dictionary).sort();
+        parseTablesToDict(global_tables);
+        parseTablesToDict(parsedquery[i].tables);
+        generateReasons();
+        loadQuery(parsedquery[i].query_text);
+        loadSteps(currentWindow.steps_dictionary);
+    }
 }
 
-/*
-    MOVE THIS SOMEWHERE ELSE
-*/
-function openModalWindow(query){
-    parsedquery = query;
-    currentWindow = ModalWindow;
-    $("#modalcontainer").show();
-    parseAndLoad();
-    sizeContent();
-}

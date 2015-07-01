@@ -6,7 +6,7 @@
 
 #tablespace {
     width: 100%;
-    height: 100%;
+    height: 70%;
 }
 
 #inbox {
@@ -42,4 +42,11 @@
     height:20px;
     bottom: 0;
     padding-left:20px;
+}
+
+
+#tablefooter {
+    width: 100%;
+    height: 30%;
+    position:relative;
 }

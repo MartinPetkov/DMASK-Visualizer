@@ -32,6 +32,9 @@ function loadStep(id){
 }
 
 function stepOut(){
+    if (currentWindow.current_step == 0){
+        return;
+    }
     if (currentWindow.current_step == currentWindow.step_keys[0]){
         return
     } else {
@@ -50,11 +53,14 @@ function stepOut(){
 }
 
 function stepBack(){
+    if (currentWindow.current_step == 0){
+        return;
+    }
     if (currentWindow.current_step == currentWindow.step_keys[0]){
         return
     } else {
-        var index = currentWindow.step_keys.indexOf(toKey(current_step));
-        if (hasNested(step_keys, index - 1) && differentLevels(step_keys, index, index - 1)){
+        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
+        if (hasNested(currentWindow.step_keys, index - 1) && differentLevels(currentWindow.step_keys, index, index - 1)){
             // The initial step is the first part of a nested step (ex. 2.1)
             // Step out of the nested component and go to the next one on the same level
             while (index > 1 && hasNested(currentWindow.step_keys, index - 1)){
@@ -78,10 +84,14 @@ function stepBack(){
 }
 
 function stepNext(){
-    if (currentWindow.current_step == currentWindow.step_keys[step_keys.length-1]){
+    if (currentWindow.current_step == 0){
+        loadStep(toID(currentWindow.step_keys[0]));
+        return;
+    }
+    if (currentWindow.current_step == currentWindow.step_keys[currentWindow.step_keys.length-1]){
         return
     } else {
-        var index = currentWindow.step_keys.indexOf(toKey(current_step));
+        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
         var initial = index;
         
         if (!isLastNested(currentWindow.step_keys, index)) {
@@ -95,6 +105,10 @@ function stepNext(){
 }
 
 function stepIn(){
+    if (currentWindow.current_step == 0){
+        loadStep(toID(currentWindow.step_keys[0]));
+        return;
+    }
     if (currentWindow.current_step == currentWindow.step_keys[currentWindow.step_keys.length - 1]){
         return
     } else {
