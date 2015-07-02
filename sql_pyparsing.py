@@ -1,8 +1,3 @@
-# simpleSQL.py
-# simple demo of using the parsing library to do simple-minded SQL parsing
-# could be extended to include where clauses etc
-# Copyright (c) 2003, Paul McGuire
-
 from pyparsing import Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional, \
     Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, \
     ZeroOrMore, restOfLine, Keyword as KEYWORD
@@ -20,20 +15,6 @@ VIEW        = KEYWORD("VIEW", caseless=True)
 AS          = KEYWORD("AS", caseless=True)
 DISTINCT    = KEYWORD("DISTINCT", caseless=True)
 ON          = KEYWORD("ON", caseless=True)
-
-# Define SQL CLAUSES
-# Grammar for clauses will be defined below
-selectClause    = Forward()
-whereClause     = Forward()
-
-# Define attribute (column) and table names
-ident           = Word(alphas, alphanums + "_$").setName("identifier")
-columnName      = delimitedList(ident, ".", combine=True)
-columnNameList  = Group(delimitedList(columnName))
-tableName       = delimitedList(ident, ".", combine=True)
-tableNameList   = Group(delimitedList(tableName))
-tableRename     = delimitedList(ident, ".", combine=True)
-tableRenameList = Group(delimitedList(tableRename))
 
 # Define OPERATORS
 AND_        = KEYWORD("AND", caseless=True)
@@ -57,22 +38,24 @@ RIGHT_      = KEYWORD("RIGHT", caseless=True)
 FULL_       = KEYWORD("FULL", caseless=True)
 COMMA_      = KEYWORD(",", caseless=True)
 
+# Define SQL CLAUSES
+# Grammar for clauses will be defined below
+sqlStmt         = Forward()
+whereClause     = Forward()
+simpleSQL       = Forward()
+
+# Define attribute (column), table names, table renames
+ident           = Word(alphas, alphanums + "_$").setName("identifier")
+columnName      = delimitedList(ident, ".", combine=True)
+columnNameList  = Group(delimitedList(columnName))
+tableName       = delimitedList(ident, ".", combine=True)
+tableNameList   = Group(delimitedList(tableName))
+tableRename     = delimitedList(ident, ".", combine=True)
+tableRenameList = Group(delimitedList(tableRename))
+
 BINOP      = oneOf("= != < > >= <= eq ne lt le gt ge LIKE", caseless=True)
 arithSign   = Word("-=",exact=1)
 
-
-def test( string ):
-    print (string,"->")
-    try:
-        tokens = simpleSQL.parseString( string )
-        print( "tokens = ",        tokens)
-/bin/bash: q: command not found
-        print ("tokens.tables =",  tokens.tables)
-        print ("tokens.where =", tokens.where) 
-    except ParseException:
-        print (" "*err.loc + "^\n" + err.msg)
-        print (err)
-    print('================\n')
 
 
 E = CaselessLiteral("E")
@@ -87,18 +70,18 @@ columnRval = realNum | intNum | quotedString | columnName # need to add support 
 # ========== FROM CLAUSE =========== 
 
 # Grammar for JOINS
-joins = COMMA_ | (Optional(NATURAL_) + Optional(INNER_ | CROSS_ | LEFT_ + OUTER_ | LEFT_ | OUTER_ )) + JOIN_
+joins = (COMMA_ | (Optional(NATURAL_) + Optional(INNER_ | CROSS_ | LEFT_ + OUTER_ | LEFT_ | OUTER_ )) + JOIN_)
 
 # Table block, nested list within join Block
 tableBlock = Group(tableName + Optional(AS + tableRename))
-joinBlock = joins + tableBlock + Optional(ON + Group(columnName + BINOP + columnRval))
+joinBlock = Combine(joins, " ") + tableBlock + Optional(ON + Group(columnName + BINOP + columnRval))
 fromClause = Group(tableBlock +  ZeroOrMore(joinBlock))
 
 # ========= WHERE CLAUSE ===========
 whereCondition = Group(
     ( columnName + BINOP + columnRval ) |
     ( columnName + IN_ + "(" + delimitedList( columnRval ) + ")" ) |
-    ( columnName + IN_ + Group(selectClause)) |
+    ( columnName + IN_ + Group(sqlStmt)) |
     ( "(" + whereClause + ")" )
     )
 
@@ -108,19 +91,22 @@ whereClause << Group(whereCompound + ZeroOrMore( (AND_ | OR_) + whereCompound))
 
 
 # Define the grammar for SQL query.
-selectClause    <<  ( Group(    SELECT + 
+sqlStmt         <<  ( Group(    SELECT + 
                                 ('*' | columnNameList).setResultsName( "columns" ))
 
-                    + Group(    FROM +
-                                fromClause) 
+                    + Group(    FROM + fromClause) 
                     + Optional( Group( WHERE + ( whereClause ).setResultsName("where")))
-                    
                     + Optional( Group( HAVING )) 
                     + Optional( Group( GROUP + BY ))
                     + Optional( Group( ORDER + BY ))
                     )
-simpleSQL = selectClause
 
+simpleSQL <<     Optional(CREATE + VIEW + AS) + Group(Optional("(") + sqlStmt + Optional(")"))
+'''
+simpleSQL =     (Optional(CREATE + VIEW + AS) + 
+                + Group(sqlStmt) 
+                + Optional( (UNION_ | INTERSECT_ | EXCEPT_) + (sqlStmt)))
+'''
 # define Oracle comment format, and ignore them
 oracleSqlComment = "--" + restOfLine
 simpleSQL.ignore( oracleSqlComment )
@@ -128,6 +114,20 @@ simpleSQL.ignore( oracleSqlComment )
 
 # ============= TESTING TRACES ===============
 
+def test( string ):
+    print (string,"->")
+    try:
+        tokens = simpleSQL.parseString( string )
+        print( "tokens = ",        tokens)
+        print( "tokens.columns =", tokens.columns)
+        print ("tokens.tables =",  tokens.tables)
+        print ("tokens.where =", tokens.where) 
+    except ParseException:
+        print (" "*err.loc + "^\n" + err.msg)
+        print (err)
+    print('================\n')
+
+# ============= TEST CASES ===================
 ''' TEST 1:
     A simple select-from-where query.
     Expected output:
@@ -289,7 +289,17 @@ print('TEST 12: ')
 print('A query with two ANDS and an OR in its WHERE statement. Multiple compounded conditions.')
 test('select email, cgpa from Student where cgpa < 1.5 and cgpa > 3 or firstName like \'%Kat%\' and sid != 0')
 
-
+''' TEST 13:
+    A query with CREATE VIEW.
+    Expected output:
+        ['CREATE', 'VIEW', 'AS', 
+            [ 'SELECT', ['email']],
+            [ 'FROM',   [['Student']] ]
+        ]
+'''
+print('TEST 13: ')
+print('A query with CREATE VIEW.')
+test('create view as select email from Student')
 
 
 
@@ -311,7 +321,19 @@ print('TEST 8: ')
 print('A query with one subquery in the FROM')
 #test('select LimitedCols.oid from (select oid, dept from Offering as LimitedCols)')
 
-''' Test for having clause
-test("select A, B from T join T2 order by B")
+''' TEST
+    A UNION of two SQL queries.
+    Expected Output:
+        [
+            [   [ 'SELECT', ['sid']],
+                [ 'FROM,    [['Student']] ]
+            ], 
+            'UNION',
+            [   [ 'SELECT', ['sid'] ],
+                [ 'FROM',   [['Took']] ]
+            ]
+        ]
 '''
-
+print('TEST :')
+print('A union of two SQL queries.')
+test('(select sid from student) union (select sid from took)')
