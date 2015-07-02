@@ -11,6 +11,11 @@ function sizeContent() {
     
     adjustHeight(MainWindow);
     adjustHeight(ModalWindow);
+    adjustNamespace();
+}
+
+function adjustNamespace(){
+    $(currentWindow.namespacebody).height($(currentWindow.namespace).height() - $(currentWindow.namespaceheader).outerHeight());
 }
 
 function adjustHeight(window){

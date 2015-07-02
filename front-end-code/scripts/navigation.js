@@ -28,7 +28,19 @@ function loadStep(id){
     // Load the input and output tables
     replaceInputTables(idsToHTML(currentWindow.steps_dictionary[toKey(id)][1]));
     replaceOutputTable(currentWindow.tables_dictionary[currentWindow.steps_dictionary[toKey(id)][5]]);
+    updateNamespace(currentWindow.steps_dictionary[toKey(id)][3]);
 
+}
+
+function updateNamespace(namespace){
+    if (namespace.length < 1){
+        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
+        while (index > 0 && namespace.length < 1){
+            index -= 1;
+            namespace = currentWindow.steps_dictionary[currentWindow.step_keys[index]][3];
+        }
+    }
+    $(currentWindow.namespacebody).html(namespace.join("<br>"));
 }
 
 function stepOut(){
