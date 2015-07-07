@@ -107,11 +107,11 @@ def generate_simple_query():
 
     # Strings if it is a simple column or table, list if it's a subquery or expression (i.e. "SELECT (a+b) AS col1")
     DESIRED_ASTS['simple_query'] =\
-        [
+        [[
             [ 'SELECT', ['sid','cgpa'] ],
             [ 'FROM',   [ ['Student'] ] ],
             [ 'WHERE',  [ ['cgpa', '>', '3'] ] ],
-        ]
+        ]]
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -197,10 +197,10 @@ def generate_simple_cross_product_query():
 
 
     DESIRED_ASTS['simple_cross_product_query'] =\
-        [
+        [[
             [ 'SELECT', ['Student.sid','Student.email','Took.grade'] ],
-            [ 'FROM', [ ['Student'], ',', ['Took'] ] ],
-        ]
+            [ 'FROM',   [ ['Student'], ',', ['Took'] ] ],
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -325,11 +325,11 @@ def generate_simple_natural_join_query():
 
 
     DESIRED_ASTS['simple_natural_join_query'] =\
-        [
+        [[
             [ 'SELECT', ['sid','email','cgpa'] ],
             [ 'FROM',   [ [ ['Student'], 'NATURAL JOIN', ['Took']],
                             'NATURAL JOIN', ['Course']] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -380,11 +380,12 @@ def generate_simple_condition_join_query():
 
 
     DESIRED_ASTS['simple_condition_join_query'] =\
-        [
+        [[
+
             [ 'SELECT', ['sid','grade','instructor'] ],
             [ 'FROM', [['Took'],
                         'LEFT JOIN', ['Offering'], 'ON', ['Took.ofid','=','Offering.ofid'] ]],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -462,7 +463,7 @@ def generate_simple_subquery():
 
 
     DESIRED_ASTS['simple_subquery'] =\
-        [
+        [[
             [ 'SELECT', ['LimitedCols.oid'] ],
             [ 'FROM', [[
                 [
@@ -471,7 +472,7 @@ def generate_simple_subquery():
                 ]
 
                 , 'LimitedCols']] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -523,11 +524,11 @@ def generate_simple_and_query():
 
 
     DESIRED_ASTS['simple_and_query'] =\
-        [
+        [[
             [ 'SELECT', ['email','cgpa'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [ ['cgpa', '>', '3'], 'AND', ['firstName', '=', '\'Martin\''] ] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -585,11 +586,11 @@ def generate_simple_or_query():
 
 
     DESIRED_ASTS['simple_or_query'] =\
-        [
+        [[
             [ 'SELECT', ['email','cgpa'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [ ['cgpa', '>', '3'], 'OR', ['firstName', '=', '\'Sophia\''] ] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -646,11 +647,11 @@ def generate_complex_and_plus_or():
 
 
     DESIRED_ASTS['complex_and_plus_or'] =\
-        [
+        [[
             [ 'SELECT', ['email','cgpa'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [['cgpa', '>', '3'], 'AND', [ ['firstName', '=', '\'Martin\''], 'OR', ['firstName', '=', '\'Kathy\''] ] ] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -762,10 +763,10 @@ def generate_complex_renaming():
 
 
     DESIRED_ASTS['complex_renaming'] =\
-        [
+        [[
             [ 'SELECT', ['t.sid','o.oid'] ],
             [ 'FROM', [['Took', 'AS', 't'], 'JOIN', ['Offering', 'AS', 'o']] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -860,7 +861,7 @@ def generate_complex_subquery_in_where_not_repeated():
 
 
     DESIRED_ASTS['complex_subquery_in_where_not_repeated'] =\
-        [
+        [[
             [ 'SELECT', ['sid','firstName'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [ 'cgpa', '>',
@@ -870,7 +871,7 @@ def generate_complex_subquery_in_where_not_repeated():
                                 [ 'WHERE', [['sid', '=', '4']] ],
                             ]
                         ] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -1113,7 +1114,7 @@ def generate_complex_subquery_in_where_repeated():
 
 
     DESIRED_ASTS['complex_subquery_in_where_repeated'] =\
-        [
+        [[
             [ 'SELECT', ['instructor'] ],
             [ 'FROM', [['Offering', 'o1']] ],
             [ 'WHERE', [ 'EXISTS',
@@ -1123,7 +1124,7 @@ def generate_complex_subquery_in_where_repeated():
                                 [ 'WHERE', [['o2.oid', '<>', 'o1.oid']] ],
                             ]
                         ] ],
-        ]
+        ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -1166,10 +1167,10 @@ def generate_multiple_queries_unrelated():
 
 
     DESIRED_ASTS['multiple_queries_unrelated_1'] =\
-        [
+        [[
             [ 'SELECT', ['email'] ],
-            [ 'FROM', ['Student'] ],
-        ]
+            [ 'FROM', [['Student']] ],
+        ]]
 
 
     query_text2 =\
@@ -1206,10 +1207,10 @@ def generate_multiple_queries_unrelated():
 
 
     DESIRED_ASTS['multiple_queries_unrelated_2'] =\
-        [
+        [[
             [ 'SELECT', ['oid'] ],
             [ 'FROM', [['Offering']] ],
-        ]
+        ]]
 
     parsed_query1 = ParsedQuery(steps1, tables1, query_text1)
     parsed_query2 = ParsedQuery(steps2, tables2, query_text2)
@@ -1275,7 +1276,7 @@ def generate_multiple_queries_related():
             'CREATE VIEW', 'pizza',
             [
                 [ 'SELECT', ['sid','email','cgpa'] ],
-                [ 'FROM', ['Student'] ],
+                [ 'FROM', [['Student']] ],
                 [ 'WHERE', [['cgpa', '<', '3']] ],
             ]
         ]
