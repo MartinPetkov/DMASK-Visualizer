@@ -1,6 +1,6 @@
-from pyparsing import Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional, \
-    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, \
-    ZeroOrMore, restOfLine, Keyword as KEYWORD
+from pyparsing import (Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
+    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString,
+    ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress)
 
 # Define SQL KEYWORDS
 SELECT      = KEYWORD("SELECT", caseless=True)
@@ -42,7 +42,9 @@ COMMA_      = KEYWORD(",", caseless=True)
 # Grammar for clauses will be defined below
 sqlStmt         = Forward()
 whereClause     = Forward()
-simpleSQL       = Forward()
+query           = Forward()
+createView      = Forward()
+
 
 # Define attribute (column), table names, table renames
 ident           = Word(alphas, alphanums + "_$").setName("identifier")
@@ -59,6 +61,7 @@ BINOP      = oneOf("= != < > <> >= <= eq ne lt le gt ge LIKE", caseless=True)
 arithSign   = Word("-=",exact=1)
 
 E = CaselessLiteral("E")
+
 realNum = Combine( Optional(arithSign) + ( Word( nums ) + "." + Optional( Word(nums) )  |
                                                          ( "." + Word(nums) ) ) + 
             Optional( E + Optional(arithSign) + Word(nums) ) )
@@ -69,29 +72,32 @@ columnRval = realNum | intNum | quotedString | columnName # need to add support 
 
 #========= SELECT CLAUSE ===========
 
-selectClause = ('*' | columnNameList | columnRval | "(" + Group(sqlStmt) + ")" ).setResultsName("columns")
+selectClause = ('*' | columnNameList | columnRval | Suppress("(") + Group(sqlStmt) + Suppress(")") ).setResultsName("columns")
 
 # ========== FROM CLAUSE =========== 
 
 # Grammar for JOINS
-joins = (COMMA_ | (Optional(NATURAL_) + Optional(INNER_ | CROSS_ | LEFT_ + OUTER_ | LEFT_ | OUTER_ )) + JOIN_)
+joins = (Literal(',') | (Optional(NATURAL_) + Optional(INNER_ | CROSS_ | LEFT_ + OUTER_ | LEFT_ | OUTER_ )) + JOIN_)
 
 # tableBlock nested within joinBlock, includes renames
-tableBlock = Group(tableName + Optional (AS + tableRename))
+tableBlock = Group(tableName + Optional (Suppress(AS) + tableRename))
 
 # <tableBlock> {JOIN} <tableBlock>
-joinBlock = Combine(joins, " ") + tableBlock + Optional(ON + Group(columnName + BINOP + columnRval))
+joinBlock = joins + tableBlock + Optional(ON + Group(columnName + BINOP + columnRval))
+
+# subquery
+fromSub     = Suppress("(") + Group(sqlStmt) + Suppress(")")
 
 # FROM CLAUSE
-fromClause = (Group(tableBlock) +  ZeroOrMore(joinBlock)) | "(" + Group(sqlStmt) + ")"
+fromClause = ((tableBlock +  ZeroOrMore(joinBlock)) | fromSub + Optional(Suppress(AS) + tableRename))
 
 
 # ========= WHERE CLAUSE ===========
 whereCondition = Group(
     ( columnName + BINOP + columnRval ) |
-    ( columnName + IN_ + "(" + delimitedList( columnRval ) + ")" ) |
-    ( columnName + IN_ + "(" + Group(sqlStmt) + ")" ) |
-    ( "(" + whereClause + ")" )
+    ( columnName + IN_ + Suppress("(") + delimitedList( columnRval ) + Suppress(")") ) |
+    ( columnName + IN_ + Suppress("(") + Group(sqlStmt) + Suppress(")") ) |
+    ( Suppress("(") + whereClause + Suppress(")") )
     )
 
 whereCompound = whereCondition + ZeroOrMore( (AND_ | OR_) + whereCondition)
@@ -100,26 +106,43 @@ whereClause << Group(whereCompound + ZeroOrMore( (AND_ | OR_) + whereCompound))
 
 
 # Define the grammar for SQL query.
-sqlStmt         <<  ( Group(    SELECT + selectClause)
-                    + Group(    FROM + fromClause ) 
+sqlStmt <<          ( Group(    SELECT + selectClause)
+                    + Group(    FROM + Group(fromClause) ) 
                     + Optional( Group( WHERE + ( whereClause ).setResultsName("where")))
                     + Optional( Group( HAVING )) 
                     + Optional( Group( GROUP + BY ))
-                    + Optional( Group( ORDER + BY ))
+                    + Optional( Group( ORDER + BY  + columnNameList))
+                    + Optional(Suppress(";"))
                     )
 
-simpleSQL <<     Optional(CREATE + VIEW + AS) + Group(Optional("(") + sqlStmt + Optional(")"))
+createView <<       (CREATE + VIEW + AS 
+                    + Group(Optional(Suppress("(")) 
+                    + sqlStmt 
+                    + Optional(Suppress(")")))
+                    )
 
+
+query <<    (sqlStmt | createView) 
 
 
 '''
-simpleSQL =     (Optional(CREATE + VIEW + AS) + 
-                + Group(sqlStmt) 
-                + Optional( (UNION_ | INTERSECT_ | EXCEPT_) + (sqlStmt)))
+query <<    (Optional(Literal("(")) + sqlStmt + Optional(Literal(")"))
+            + Optional  (   (UNION_ | INTERSECT_ | EXCEPT_)
+                            (Literal("(") + sqlStmt + Literal(")"))
+                        )
+            )
 '''
+'''
+query <<        (Optional(CREATE + VIEW + AS) 
+                + Group(Optional("(") 
+                + sqlStmt + Optional(")")) 
+                )
+'''
+
+
 # define Oracle comment format, and ignore them
 oracleSqlComment = "--" + restOfLine
-simpleSQL.ignore( oracleSqlComment )
+query.ignore( oracleSqlComment )
 
 
 # ============= TESTING TRACES ===============
@@ -127,7 +150,7 @@ simpleSQL.ignore( oracleSqlComment )
 def test( string ):
     print (string,"->")
     try:
-        tokens = simpleSQL.parseString( string )
+        tokens = query.parseString( string )
         print( "tokens = ",        tokens)
         print( "tokens.columns =", tokens.columns)
         print ("tokens.tables =",  tokens.tables)
@@ -137,4 +160,5 @@ def test( string ):
         print (err)
     print('================\n')
 
-    
+def ast(string):
+    return query.parseString(string)
