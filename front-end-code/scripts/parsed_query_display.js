@@ -1,3 +1,7 @@
+// deprecated
+
+
+
 /*
     Given a Query string, add it to the ToC
 */
@@ -86,13 +90,13 @@ function nestedInside(keys, i, j){
     Given an array of steps (JSON), parse them into a dictionary in the format:
     step_number : [sql_chunk, input_tables, reasons, namespace, res_table_name, result_table]
 */
-function stepsToDict(steps){
+function stepsToDict(steps){ // replace with stepsToDict(steps, query)
     var dict = [];
     var i;
     for (i = 0; i < steps.length; i++){
         var step = JSON.parse(steps[i]);
         var stepnumber = step.step_number;
-        dict[stepnumber] = [step.sql_chunk, step.input_tables, step.reasons, step.namespace, step.res_table_name, step.result_table];
+        dict[stepnumber] = [step.sql_chunk, step.input_tables, step.reasons, step.namespace, step.res_table_name, step.result_table]; // replace with = Step(step, query);
     }
     return dict;
 }

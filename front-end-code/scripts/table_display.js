@@ -1,3 +1,5 @@
+//deprecated
+
 /*
     Given a Table (in JSON format) and a hovertext, returns a string with the 
     table in formatted HTML
