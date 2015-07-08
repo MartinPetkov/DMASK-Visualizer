@@ -49,10 +49,10 @@ class DMASK:
 
         json_queries = []
 
-        queries = split_sql_queries(sql_queries)
+        queries = sql_parser.split_sql_queries(sql_queries)
         for query in queries:
             ast = sql_parser.sql_to_ast(query)
-            steps = sql_parser.sql_ast_to_steps(ast)
+            steps = sql_parser.sql_ast_to_steps(ast, base_tables)
             tables = self.steps_to_tables(steps)
 
             parsed_query = ParsedQuery(steps, tables, query)

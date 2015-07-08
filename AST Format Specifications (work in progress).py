@@ -6,11 +6,15 @@ LEGEND:
 [<arg>]     = a list containing one example of <arg>
 [<arg> ...] = a list containing any number of <arg>s
 (<elem>?)   = optional element
+(<elem>)+   = 1 or more of this element
+(<elem>)*   = 0 or more of this element
 
 """
 
 
-<AST>               = <sql_query> | <create_view>
+<AST>               = <sql_query> | <create_view> | [ <sql_query> (<set_operation> <sql_query>)+ ]
+
+<set_operation>     = "UNION" | "INTERSECT" | "EXCEPT"
 
 <sql_query>         = [ <sql_statement> ... ]
 
@@ -24,14 +28,14 @@ LEGEND:
 <select_arg>        = 'col_name'
                         |   [ ('col_name' | <col_equation>), 'new_name' ]
 
-<col_equation>      = 'col_name' <operator> 'col_name'
-<oprator>           = "+" | "-" | "*" | "/"
+<col_equation>      = ['col_name', (<operator>, 'col_name')+]
+<oprator>           = "+" | "-" | "*" | "/" | "||"
 
 
 # For FROM
 <from_arg>          = 'table_name'
                         |   [ ('table_name' | <sql_query>), 'new_name' ]
-                        |   [ 'table_name', <reason> ]
+                        |   [ 'table_name', 'ON', <reason> ]
 <from_connector>    = ",", "NATURAL JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN"
 
 
@@ -41,5 +45,5 @@ LEGEND:
 <where_connector>   = "AND" | "OR"
 <reason>            = [("NOT",?) "EXISTS", <sql_query>]
                         |   [("NOT",?) 'col_name', "IN", <sql_query>]
-                        |   [("NOT",?) 'col1_name', <comparator>, ('col2_name' | <sql_query>)]
+                        |   [("NOT",?) 'col1_name', <comparator>, ('col2_name' | ("ANY" | "ALL"), <sql_query>)]
 <comparator>        = "=" | "<>" | "!=" | ">" | ">=" | "<" | "<="

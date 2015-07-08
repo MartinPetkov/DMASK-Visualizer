@@ -67,13 +67,12 @@ def generate_simple_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student(sid, firstName, email, cgpa)"]),
+            namespace=["Student: sid, firstName, email, cgpa "]),
         QueryStep('2', 'WHERE cgpa > 3', ['1'], '2',
                     reasons={
-                        0: Reason(["cgpa > 3"]),
+                        0: Reason(["cgpa > 3"])
                     }),
-        QueryStep('3', 'SELECT sid, cgpa', ['2'], '3',
-            namespace=["Student(sid, cgpa)"]),
+        QueryStep('3', 'SELECT sid, cgpa', ['2'], '3'),
     ]
 
     tables = {
@@ -107,11 +106,11 @@ def generate_simple_query():
 
     # Strings if it is a simple column or table, list if it's a subquery or expression (i.e. "SELECT (a+b) AS col1")
     DESIRED_ASTS['simple_query'] =\
-        [[
+        [
             [ 'SELECT', ['sid','cgpa'] ],
             [ 'FROM',   [ ['Student'] ] ],
             [ 'WHERE',  [ ['cgpa', '>', '3'] ] ],
-        ]]
+        ]
 
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -126,11 +125,9 @@ def generate_simple_cross_product_query():
 
     steps = [
         QueryStep('1', 'FROM Student, Took', ['Student', 'Took'], '1',
-            namespace=["Student(sid, firstName, email, cgpa)",
-                        "Took(sid, ofid, grade)"]),
-        QueryStep('2', 'SELECT Student.sid, Student.email, Took.grade', ['1'], '2',
-            namespace=["Student(sid, email)",
-                        "Took(grade)"])
+            namespace=["Student: sid, firstName, email, cgpa",
+                        "Took: sid, ofid, grade"]),
+        QueryStep('2', 'SELECT Student.sid, Student.email, Took.grade', ['1'], '2')
     ]
 
     tables = {
@@ -197,10 +194,10 @@ def generate_simple_cross_product_query():
 
 
     DESIRED_ASTS['simple_cross_product_query'] =\
-        [[
+        [
             [ 'SELECT', ['Student.sid','Student.email','Took.grade'] ],
             [ 'FROM',   [ ['Student'], ',', ['Took'] ] ],
-        ]]
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -214,28 +211,26 @@ def generate_simple_natural_join_query():
 
     steps = [
         QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', ['Student', 'Took', 'Course'], '1',
-                namespace=["Student(sid, firstName, email, cgpa)",
-                            "Took(sid, ofid, grade)",
-                            "Course(dept, cNum, name)"]),
+                namespace=["Student: sid, firstName, email, cgpa",
+                            "Took: sid, ofid, grade",
+                            "Course: dept, cNum, name"]),
 
             QueryStep('1.1', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1',
                 reasons = {
                     0: Reason(["Student.sid=Took.sid"]),
                 },
-                namespace=["Student(sid, firstName, email, cgpa)",
-                                "Took(sid, ofid, grade)"]),
+                namespace=["Student: sid, firstName, email, cgpa",
+                                "Took: sid, ofid, grade"]),
 
             QueryStep('1.2', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.1', 'Course'], '1',
                 reasons= {
                     0: Reason([""]),
                 },
-                namespace=["Student(sid, firstName, email, cgpa)",
-                            "Took(sid, ofid, grade)",
-                            "Course(dept, cNum, name)"]),
+                namespace=["Student: sid, firstName, email, cgpa",
+                            "Took: sid, ofid, grade",
+                            "Course: dept, cNum, name"]),
 
-        QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2',
-            namespace=["Student(sid, email, cgpa)",
-                        "Took(sid)"])
+        QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2')
     ]
 
     tables = {
@@ -325,11 +320,11 @@ def generate_simple_natural_join_query():
 
 
     DESIRED_ASTS['simple_natural_join_query'] =\
-        [[
+        [
             [ 'SELECT', ['sid','email','cgpa'] ],
             [ 'FROM',   [ [ ['Student'], 'NATURAL JOIN', ['Took']],
                             'NATURAL JOIN', ['Course']] ],
-        ]]
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -346,12 +341,10 @@ def generate_simple_condition_join_query():
             reasons = {
                 0: Reason(["Took.ofid=Offering.oid"]),
             },
-            namespace=["Took(sid, ofid, grade)",
-                        "Offering(oid, dept, cNum, instructor)"]),
+            namespace=["Took: sid, ofid, grade",
+                        "Offering: oid, dept, cNum, instructor"]),
 
-        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2',
-            namespace=["Took(sid, grade)",
-                        "Offering(instructor)"]),
+        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2'),
     ]
 
     tables = {
@@ -380,12 +373,11 @@ def generate_simple_condition_join_query():
 
 
     DESIRED_ASTS['simple_condition_join_query'] =\
-        [[
-
+        [
             [ 'SELECT', ['sid','grade','instructor'] ],
             [ 'FROM', [['Took'],
-                        'LEFT JOIN', ['Offering'], 'ON', ['Took.ofid','=','Offering.ofid'] ]],
-        ]]
+                        'LEFT JOIN', ['Offering'], 'ON', [['Took.ofid','=','Offering.ofid']] ]],
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -402,21 +394,19 @@ def generate_simple_subquery():
 
     steps = [
         QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS LimitedCols', ['Offering'], '1',
-                namespace=["LimitedCols(oid, dept)"]),
+                namespace=["LimitedCols: oid, dept"]),
 
             QueryStep('1.1', '(SELECT oid, dept FROM Offering)', ['Offering'], '1.1',
-                namespace=["Offering(oid, dept)"]),
+                namespace=["Offering: oid, dept"]),
 
                 QueryStep('1.1.1', 'FROM Offering', [], '1.1.1',
-                    namespace=["Offering(oid, dept, cNum, instructor)"]),
-                QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1',
-                    namespace=["Offering(oid, dept)"]),
+                    namespace=["Offering: oid, dept, cNum, instructor"]),
+                QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1'),
 
             QueryStep('1.2', 'AS LimitedCols', ['1.1'], '1',
-                namespace=["LimitedCols(oid, dept)"]),
+                namespace=["LimitedCols: oid, dept"]),
 
-        QueryStep('2', 'SELECT LimitedCols.oid', ['1'], '2',
-            namespace=["LimitedCols(oid)"]),
+        QueryStep('2', 'SELECT LimitedCols.oid', ['1'], '2'),
     ]
 
     tables = {
@@ -488,14 +478,13 @@ def generate_simple_and_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student(sid, firstName, email, cgpa)"]),
+            namespace=["Student: sid, firstName, email, cgpa"]),
 
         QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['1'], '2',
             reasons= {
                 0: Reason(["cgpa > 3", "firstName='Martin'"]),
             }),
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
-            namespace=["Student(email, cgpa)"])
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3')
     ]
 
     tables = {
@@ -524,11 +513,11 @@ def generate_simple_and_query():
 
 
     DESIRED_ASTS['simple_and_query'] =\
-        [[
+        [
             [ 'SELECT', ['email','cgpa'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [ ['cgpa', '>', '3'], 'AND', ['firstName', '=', '\'Martin\''] ] ],
-        ]]
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -544,7 +533,7 @@ def generate_simple_or_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student(sid, firstName, email, cgpa)"]),
+            namespace=["Student: sid, firstName, email, cgpa"]),
 
         QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['1'], '2',
             reasons = {
@@ -552,8 +541,7 @@ def generate_simple_or_query():
                 2: Reason(["cgpa > 2"]),
                 3: Reason(["firstName=\'Sophia\'"]),
             }),
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
-            namespace=["Student(email, cgpa)"]),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
     tables = {
@@ -586,11 +574,11 @@ def generate_simple_or_query():
 
 
     DESIRED_ASTS['simple_or_query'] =\
-        [[
+        [
             [ 'SELECT', ['email','cgpa'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [ ['cgpa', '>', '3'], 'OR', ['firstName', '=', '\'Sophia\''] ] ],
-        ]]
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -607,7 +595,7 @@ def generate_complex_and_plus_or():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student(sid, firstName, email, cgpa)"]),
+            namespace=["Student: sid, firstName, email, cgpa"]),
 
         QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['1'], '2',
             reasons = {
@@ -615,8 +603,7 @@ def generate_complex_and_plus_or():
                 2: Reason(["cgpa > 3", "firstName='Kathy'"]),
             }),
 
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
-            namespace=["Student(email, cgpa)"]),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
     tables = {
@@ -647,11 +634,11 @@ def generate_complex_and_plus_or():
 
 
     DESIRED_ASTS['complex_and_plus_or'] =\
-        [[
+        [
             [ 'SELECT', ['email','cgpa'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [['cgpa', '>', '3'], 'AND', [ ['firstName', '=', '\'Martin\''], 'OR', ['firstName', '=', '\'Kathy\''] ] ] ],
-        ]]
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -666,21 +653,19 @@ def generate_complex_renaming():
 
     steps = [
         QueryStep('1', 'FROM Took t, Offering o', [], '1',
-            namespace=["t(sid, ofid, grade)",
-                        "o(oid, dept, cNum, instructor)"]),
+            namespace=["t: sid, ofid, grade",
+                        "o: oid, dept, cNum, instructor"]),
 
             QueryStep('1.1', 'Took t', ['Took'], '1.1',
-                namespace=["t(sid, ofid, grade)"]),
+                namespace=["t: sid, ofid, grade"]),
 
             QueryStep('1.2', 'Offering o', ['Offering'], '1.2', # t_name = 'o'
-                namespace=["t(sid, ofid, grade)",
-                            "o(oid, dept, cNum, instructor)"]),
+                namespace=["t: sid, ofid, grade",
+                            "o: oid, dept, cNum, instructor"]),
 
             QueryStep('1.3', 'Took t, Offering o', ['1.1', '1.2'], '1'),
 
-        QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2',
-            namespace=["t(sid)",
-                        "o(oid)"]),
+        QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2'),
     ]
 
     tables = {
@@ -784,7 +769,7 @@ def generate_complex_subquery_in_where_not_repeated():
 
     steps = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student(sid, firstName, email, cgpa)"]),
+            namespace=["Student: sid, firstName, email, cgpa"]),
 
         QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['1'], '2',
                 reasons = {
@@ -793,14 +778,13 @@ def generate_complex_subquery_in_where_not_repeated():
                             "cgpa > (SELECT cgpa FROM Student WHERE sid=4)": ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Student', [], '1',
-                                        namespace=["Student(sid, firstName, email, cgpa)"]),
+                                        namespace=["Student: sid, firstName, email, cgpa"]),
                                     QueryStep('2', 'WHERE sid=4', ['1'], '2',
                                         reasons = {
                                             0: Reason(["sid=4"])
                                         }),
 
-                                    QueryStep('3', 'SELECT cgpa', ['2'], '3',
-                                        namespace=["Student(cgpa)"]),
+                                    QueryStep('3', 'SELECT cgpa', ['2'], '3'),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -829,8 +813,7 @@ def generate_complex_subquery_in_where_not_repeated():
                         }),
                 }),
 
-        QueryStep('3', 'SELECT sid, firstName', ['2'], '3',
-            namespace=["Student(sid, firstName)"]),
+        QueryStep('3', 'SELECT sid, firstName', ['2'], '3'),
     ]
 
     tables = {
@@ -861,7 +844,7 @@ def generate_complex_subquery_in_where_not_repeated():
 
 
     DESIRED_ASTS['complex_subquery_in_where_not_repeated'] =\
-        [[
+        [
             [ 'SELECT', ['sid','firstName'] ],
             [ 'FROM', ['Student'] ],
             [ 'WHERE', [ 'cgpa', '>',
@@ -871,7 +854,7 @@ def generate_complex_subquery_in_where_not_repeated():
                                 [ 'WHERE', [['sid', '=', '4']] ],
                             ]
                         ] ],
-        ]]
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -889,7 +872,7 @@ def generate_complex_subquery_in_where_repeated():
 
     steps = [
         QueryStep('1', 'FROM Offering o1', ['Offering'], '1', # t_name = 'o1'
-            namespace=["o1(oid, dept, cNum, instructor)"]),
+            namespace=["o1: oid, dept, cNum, instructor"]),
 
         QueryStep('2', 'WHERE EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)', ['1'], '2',
             reasons = {
@@ -899,15 +882,13 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid, dpet, cNum, instructor)"]),
+                                        namespace=["o1: oid, dept, cNum, instructor",
+                                                    "o2: oid, dpet, cNum, instructor"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid)"]),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -945,15 +926,13 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid, dpet, cNum, instructor)"]),
+                                        namespace=["o1: oid, dept, cNum, instructor",
+                                                    "o2: oid, dpet, cNum, instructor"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid)"]),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -991,15 +970,13 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid, dpet, cNum, instructor)"]),
+                                        namespace=["o1: oid, dept, cNum, instructor",
+                                                    "o2: oid, dpet, cNum, instructor"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid)"]),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -1037,15 +1014,13 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid, dpet, cNum, instructor)"]),
+                                        namespace=["o1: oid, dept, cNum, instructor",
+                                                    "o2: oid, dpet, cNum, instructor"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
                                         }),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
-                                        namespace=["o1(oid, dept, cNum, instructor)",
-                                                    "o2(oid)"]),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -1078,8 +1053,7 @@ def generate_complex_subquery_in_where_repeated():
                         }),
             }),
 
-        QueryStep('3', 'SELECT instructor', ['2'], '3',
-            namespace=["o1(instructor)"]),
+        QueryStep('3', 'SELECT instructor', ['2'], '3'),
     ]
 
     tables = {
@@ -1114,7 +1088,7 @@ def generate_complex_subquery_in_where_repeated():
 
 
     DESIRED_ASTS['complex_subquery_in_where_repeated'] =\
-        [[
+        [
             [ 'SELECT', ['instructor'] ],
             [ 'FROM', [['Offering', 'o1']] ],
             [ 'WHERE', [ 'EXISTS',
@@ -1123,8 +1097,9 @@ def generate_complex_subquery_in_where_repeated():
                                 [ 'FROM', [['Offering', 'o2']] ],
                                 [ 'WHERE', [['o2.oid', '<>', 'o1.oid']] ],
                             ]
-                        ] ],
-        ]]
+                        ]
+            ],
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -1139,9 +1114,8 @@ def generate_multiple_queries_unrelated():
 
     steps1 = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student(sid, firstName, email, cgpa)"]),
-        QueryStep('2', 'SELECT email', ['1'], '2',
-            namespace=["Student(email)"]),
+            namespace=["Student: sid, firstName, email, cgpa"]),
+        QueryStep('2', 'SELECT email', ['1'], '2'),
     ]
 
     tables1 = {
@@ -1167,10 +1141,10 @@ def generate_multiple_queries_unrelated():
 
 
     DESIRED_ASTS['multiple_queries_unrelated_1'] =\
-        [[
+        [
             [ 'SELECT', ['email'] ],
             [ 'FROM', [['Student']] ],
-        ]]
+        ]
 
 
     query_text2 =\
@@ -1179,9 +1153,8 @@ def generate_multiple_queries_unrelated():
 
     steps2 = [
         QueryStep('1', 'FROM Offering', [], '1',
-            namespace=["Offering(oid, dept, cNum, instructor)"]),
-        QueryStep('2', 'SELECT oid', ['1'], '2',
-            namespace=["Offering(oid)"]),
+            namespace=["Offering: oid, dept, cNum, instructor"]),
+        QueryStep('2', 'SELECT oid', ['1'], '2'),
     ]
 
     tables2 = {
@@ -1227,21 +1200,20 @@ def generate_multiple_queries_related():
 
     steps1 = [
         QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza',
-            namespace=["pizza(sid, email, cgpa)"]),
+            namespace=["pizza: sid, email, cgpa"]),
 
             QueryStep('1.1', 'FROM Student', [], '1.1',
-                namespace=["Student(sid, firstName, email, cgpa)"]),
+                namespace=["Student: sid, firstName, email, cgpa"]),
 
             QueryStep('1.2', 'WHERE cgpa<3', ['1.1'], '1.2',
                 reasons = {
                     0: Reason(["cgpa<3"]),
                 }),
 
-            QueryStep('1.3', 'SELECT sid, email, cgpa', ['1.2'], '1.3',
-                namespace=["Student(sid, email, cgpa)"]),
+            QueryStep('1.3', 'SELECT sid, email, cgpa', ['1.2'], '1.3'),
 
             QueryStep('1.4', 'CREATE VIEW pizza', ['1.3'], 'pizza',
-                namespace=["pizza(sid, email, cgpa)"]),
+                namespace=["pizza: sid, email, cgpa"]),
     ]
 
     tables1 = {
@@ -1273,11 +1245,12 @@ def generate_multiple_queries_related():
 
     DESIRED_ASTS['multiple_queries_related_1'] =\
         [
-            'CREATE VIEW', 'pizza',
-            [
-                [ 'SELECT', ['sid','email','cgpa'] ],
-                [ 'FROM', [['Student']] ],
-                [ 'WHERE', [['cgpa', '<', '3']] ],
+            ['CREATE VIEW', 'pizza',
+                [
+                    [ 'SELECT', ['sid','email','cgpa'] ],
+                    [ 'FROM', [['Student']] ],
+                    [ 'WHERE', [['cgpa', '<', '3']] ],
+                ]
             ]
         ]
 
@@ -1288,9 +1261,8 @@ def generate_multiple_queries_related():
 
     steps2 = [
         QueryStep('1', 'FROM pizza', ['pizza'], '1',
-            namespace=["pizza(sid, email, cgpa)"]),
-        QueryStep('2', 'SELECT email', ['1'], '2',
-            namespace=["pizza(email)"]),
+            namespace=["pizza: sid, email, cgpa"]),
+        QueryStep('2', 'SELECT email', ['1'], '2'),
     ]
 
     tables2 = {
@@ -1335,7 +1307,227 @@ def generate_multiple_queries_related():
     return {"global_tables": global_tables, "global_views": global_views, "all_queries": [parsed_query1, parsed_query2]}
 
 
+""" Diane's test cases """
+''' A query with a subquery in the WHERE that's repeated for each row '''
+def generate_diane_subquery_in_from():
+    query_text =\
+    ' SELECT sid, dept||cnum as course, grade' +\
+    ' FROM Took,' +\
+    '   (SELECT *' +\
+    '   FROM Offering' +\
+    '   WHERE instructor="Horton") H' +\
+    ' WHERE Took.oid = H.oid;'
 
+    steps = [
+        QueryStep('1', 'FROM Took, (SELECT * FROM Offering WHERE instructor="Horton") H', ['Took'], '1', namespace=["Took: oid, dept, cNum, instructor", "H: oid, dept, cNum, instructor"]),
+
+            QueryStep('1.1', 'Took', ['Took'], '1.1', namespace=["Took: oid, dept, cNum, instructor"]),
+            QueryStep('1.2', '(SELECT * FROM Offering WHERE instructor="Horton") H', [], '1.2', namespace=["Took: oid, dept, cNum, instructor", "H: oid, dept, cNum, instructor"]),
+                QueryStep('1.2.1', 'FROM Offering', ['Offering'], '1.2.1', namespace=["Took: oid, dept, cNum, instructor", "Offering: 'oid', 'dept', 'cNum', 'instructor'"]),
+                QueryStep('1.2.2', 'WHERE instructor="Horton"', ['1.2.1'], '1.2.2',
+                    reasons={
+                        0: Reason(['instructor="Horton"'])
+                    }),
+                QueryStep('1.2.3', 'SELECT *', ['1.2.2'], '1.2'),
+            QueryStep('1.3', 'Took, (SELECT * FROM Offering WHERE instructor="Horton") H', ['1.1','1.2'], '1'),
+
+
+        QueryStep('2', 'WHERE Took.oid = H.oid', ['1'], '2',
+            reasons={
+                0: Reason(["Took.oid = H.oid"])
+            }),
+
+        QueryStep('3', 'SELECT sid, dept||cnum as course, grade', ['2'], '3'),
+    ]
+
+    tables = {
+        '1': Table(t_name='1',
+                    step='1',
+                    col_names=[],
+                    tuples=[]
+                    ),
+
+        '1.1': Table(t_name='1.1',
+                    step='1.1',
+                    col_names=[],
+                    tuples=[]
+                    ),
+
+        '1.2': Table(t_name='H',
+                    step='1.2',
+                    col_names=[],
+                    tuples=[]
+                    ),
+
+        '1.2.1': Table(t_name='1.2.1',
+                    step='1.2.1',
+                    col_names=[],
+                    tuples=[]
+                    ),
+
+        '1.2.2': Table(t_name='1.2.2',
+                    step='1.2.2',
+                    col_names=[],
+                    tuples=[]
+                    ),
+
+        '2': Table(t_name='2',
+                    step='2',
+                    col_names=[],
+                    tuples=[]
+                    ),
+
+        '3': Table(t_name='3',
+                    step='3',
+                    col_names=[],
+                    tuples=[]
+                    ),
+
+    }
+
+
+    DESIRED_ASTS['diane_subquery_in_from'] =\
+        [
+            [ 'SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade'] ],
+            [ 'FROM', ['Took', ',',
+                [[
+
+                    [ 'SELECT', ['*'] ],
+                    [ 'FROM', ['Offering'] ],
+                    [ 'WHERE', [['instructor','=','Horton']] ],
+
+                ], 'H']
+            ] ],
+            [ 'WHERE', [['Took.oid','=','H.oid']] ],
+        ]
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
+
+def generate_diane_where_any():
+    query_text =\
+    ' SELECT sid' +\
+    ' FROM Student' +\
+    ' WHERE gpa > ANY' +\
+    '   (SELECT gpa' +\
+    '    FROM Student NATURAL JOIN Took' +\
+    '    WHERE grade > 100);'
+
+    steps = [
+        QueryStep('1', '', [''], '', namespace=[]),
+    ]
+
+    tables = {
+        '1': Table(t_name='1',
+                    step='1',
+                    col_names=[],
+                    tuples=[]
+                    ),
+    }
+
+
+    DESIRED_ASTS['diane_where_any'] =\
+        [
+            [ 'SELECT', ['sid'] ],
+            [ 'FROM', ['Student'] ],
+            [ 'WHERE', [['gpa', '>', 'ANY',
+                [
+                    [ 'SELECT', ['gpa'] ],
+                    [ 'FROM', ['Student', 'NATURAL JOIN', 'Took'] ],
+                    [ 'WHERE', [['grade', '>', '100']] ],
+                ]
+            ]] ],
+        ]
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
+
+def generate_diane_where_in():
+    query_text =\
+    ' SELECT sid, dept||cnum AS course, grade' +\
+    ' FROM Took NATURAL JOIN Offering' +\
+    ' WHERE' +\
+    '  grade >= 80 AND' +\
+    '  (cnum, dept) IN (' +\
+    '      SELECT cnum, dept' +\
+    '      FROM Took NATURAL JOIN Offering' +\
+    '                NATURAL JOIN Student' +\
+    '      WHERE surname = "Lakemeyer");'
+
+    steps = [
+        QueryStep('1', '', [''], '', namespace=[]),
+    ]
+
+    tables = {
+        '1': Table(t_name='1',
+                    step='1',
+                    col_names=[],
+                    tuples=[]
+                    ),
+    }
+
+
+    DESIRED_ASTS['diane_where_in'] =\
+        [
+            [ 'SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade'] ],
+            [ 'FROM', ['Took', 'NATURAL JOIN', 'Offering'] ],
+            [ 'WHERE', [['grade', '>=', '80'],
+                            'AND', ['(cnum, dept)', 'IN',
+                            [
+                                [ 'SELECT', ['cnum', 'dept'] ],
+                                [ 'FROM', ['Took', 'NATURAL JOIN', 'Offering', 'NATURAL JOIN', 'Student'] ],
+                                [ 'WHERE', [['surname', '=', '"Lakemeyer"']] ],
+                            ]]
+                        ]
+            ],
+        ]
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
+
+def generate_diane_where_exists():
+    query_text =\
+    ' SELECT instructor' +\
+    ' FROM Offering Off1' +\
+    ' WHERE NOT EXISTS (' +\
+    '  SELECT *' +\
+    '  FROM Offering' +\
+    '  WHERE' +\
+    '      oid <> Off1.oid AND' +\
+    '      instructor = Off1.instructor );'
+
+    steps = [
+        QueryStep('1', '', [''], '', namespace=[]),
+    ]
+
+    tables = {
+        '1': Table(t_name='1',
+                    step='1',
+                    col_names=[],
+                    tuples=[]
+                    ),
+    }
+
+
+    DESIRED_ASTS['diane_where_exists'] =\
+        [
+            [ 'SELECT', ['instructor'] ],
+            [ 'FROM', [['Offering', 'Off1']] ],
+            [ 'WHERE', [['NOT', 'EXISTS',
+                [
+                    [ 'SELECT', ['*'] ],
+                    [ 'FROM', ['Offering'] ],
+                    [ 'WHERE', [['oid', '<>', 'Off1.oid'], 'AND', ['instructor', '=', 'Off1.instructor']] ],
+                ]]]
+            ],
+        ]
+
+    parsed_query = ParsedQuery(steps, tables, query_text)
+    return {"global_tables": global_tables, "all_queries": [parsed_query]}
+
+
+
+#=====================================================================================================================
 TRACES = {
     'simple_query': generate_simple_query(),
     'simple_cross_product_query': generate_simple_cross_product_query(),
@@ -1352,7 +1544,12 @@ TRACES = {
     'complex_subquery_in_where_repeated': generate_complex_subquery_in_where_repeated(),
 
     'multiple_queries_unrelated': generate_multiple_queries_unrelated(),
-    'multiple_queries_related': generate_multiple_queries_related()
+    'multiple_queries_related': generate_multiple_queries_related(),
+
+    'diane_subquery_in_from': generate_diane_subquery_in_from(),
+    'diane_where_any': generate_diane_where_any(),
+    'diane_where_in': generate_diane_where_in(),
+    'diane_where_exists': generate_diane_where_exists(),
 }
 
 JSON_TRACES = {
