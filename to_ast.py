@@ -47,6 +47,7 @@ COMMA_          =   KEYWORD(",", caseless=True)
 # Grammar for clauses will be defined below
 sqlStmt         =   Forward()
 selectColumn    =   Forward()
+selectClause    =   Forward()
 whereClause     =   Forward()
 query           =   Forward()
 createView      =   Forward()
@@ -54,6 +55,7 @@ setOp           =   Forward()
 
 # Define column names, column renames, table names, table renames
 ident           =   Word(alphas, alphanums + "_$").setName("identifier")
+viewName        =   delimitedList(ident, ".", combine=True)
 columnName      =   delimitedList(ident, ".", combine=True)
 columnRename    =   delimitedList(ident, ".", combine=True)
 tableName       =   delimitedList(ident, ".", combine=True)
@@ -77,24 +79,36 @@ intNum          =   Combine( Optional(arithSign)
                     + Optional( E + Optional("+") + Word(nums) ) 
                     )
 
+aggregatefns    =   Combine(Word(alphas) + ("(") + columnName + (")"))
+
 columnRval      =   (realNum | intNum | quotedString | columnName) # need to add support for alg expressions
+
+subquery        =   Suppress("(") + Group(sqlStmt) + Suppress(")")
 
 #========= SELECT CLAUSE ===========
 
-selectColumn    <<  ('*' | columnNameList | columnRval)
+selectColumn    <<  ('*' | aggregatefns | columnNameList | columnRval)
 
 
-
-selectClause    =   ( Group(selectColumn) | Suppress("(") + Group(sqlStmt) + Suppress(")"))
+selectClause    <<  ( Group(selectColumn) | subquery)
 
 
 # ========== FROM CLAUSE =========== 
 
 # Grammar for JOINS
-joins           =   (Literal(',') 
-                    | Optional(NATURAL_ | INNER_ | CROSS_ | LEFT_ + OUTER_ | 
-                        RIGHT_ + OUTER_ | FULL_ + OUTER_ | FULL_ | RIGHT_ | LEFT_ | OUTER_ ) 
-                    + JOIN_
+joins           =   (Literal(',')
+                    | JOIN_
+                    | Combine(Optional( NATURAL_ 
+                        | INNER_ 
+                        | CROSS_ 
+                        | Combine(LEFT_ + " " + OUTER_) 
+                        | Combine(RIGHT_ + " " + OUTER_)
+                        | Combine(FULL_ + " " + OUTER_)
+                        | FULL_ 
+                        | RIGHT_ 
+                        | LEFT_ 
+                        | OUTER_ ) + " "
+                    + JOIN_)
                     )
 
 # tableBlock nested within joinBlock, includes renames
@@ -106,20 +120,17 @@ joinBlock       =   (joins
                     + (Optional(ON + Group(columnName + BINOP + columnRval))
                         | Optional(USING + Group(columnName)))
                     )
-# subquery
-fromSub         =   Suppress("(") + Group(sqlStmt) + Suppress(")")
-
 # FROM CLAUSE
 fromClause      =   ((tableBlock +  ZeroOrMore(joinBlock)) 
-                    | fromSub + Optional(tableRename | Suppress(AS) + tableRename)
+                    | subquery + Optional(tableRename | Suppress(AS) + tableRename)
                     )
 
 # ========= WHERE CLAUSE ===========
 whereCondition  =   Group(
                     ( columnName + BINOP + Optional(ANY_ | ALL_) + columnRval ) |
                     ( columnName + IN_ + Suppress("(") + delimitedList( columnRval ) + Suppress(")") ) |
-                    ( columnName + IN_ + Suppress("(") + Group(sqlStmt) + Suppress(")") ) |
-                    ( NOT_ + EXISTS_ + Suppress("(") + Group(sqlStmt) + Suppress(")")) | 
+                    ( columnName + (IN_ | BINOP + (ANY_ | ALL_))  + subquery ) |
+                    ( NOT_ + EXISTS_ + subquery) | 
                     ( Suppress("(") + whereClause + Suppress(")") )
                     )
 
@@ -127,28 +138,31 @@ whereCompound   =   whereCondition + ZeroOrMore( (AND_ | OR_) + whereCondition)
 
 whereClause     <<  Group(whereCompound + ZeroOrMore( (AND_ | OR_) + whereCompound))
 
+#==========HAVING CLAUSE ===========
+havingClause    =   Group(aggregatefns + BINOP + columnRval)
+
 #=========== SQL STATEMENT =========
 # Define the grammar for SQL query.
 sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Group(    FROM + Group(fromClause) ) 
                     + Optional( Group( WHERE + ( whereClause ).setResultsName("where")))
-                    + Optional( Group( HAVING)) 
-                    + Optional( Group( GROUP + BY ))
-                    + Optional( Group( ORDER + BY  + columnNameList))
+                    + Optional( Group( Combine( GROUP + " " + BY) + Group(columnNameList)))
+                    + Optional( Group( HAVING + havingClause))
+                    + Optional( Group( Combine(ORDER + " " + BY) + Group(columnNameList)))
                     + Optional( Group(LIMIT + Group(columnRval)))
                     + Optional( Group(OFFSET + Group(columnRval)))
                     + Optional( Suppress(";"))
                     )
 
-createView      <<  (CREATE + VIEW + AS 
-                    + Group(Optional(Suppress("(")) 
-                    + sqlStmt 
-                    + Optional(Suppress(")")))
+createView      <<  (Combine( CREATE + " " + VIEW) 
+                    + viewName 
+                    + Suppress(AS) 
+                    + subquery
                     )
 
-setOp           <<  ((Suppress("(") + Group(sqlStmt) + Suppress(")")) 
+setOp           <<  ((subquery) 
                     + (UNION_ | INTERSECT_ | EXCEPT_) 
-                    + (Suppress("(") + Group(sqlStmt) + Suppress(")"))
+                    + (subquery)
                     )
 
 query           <<  (sqlStmt | setOp | createView)

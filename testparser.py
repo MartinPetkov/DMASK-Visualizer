@@ -6,7 +6,7 @@ class TestSQL(unittest.TestCase):
     def tearDown(self):
         print("============================\n")
 
-    def test_simple(self):
+    def test_00_simple(self):
 
         ''' TEST SIMPLE SELECT-FROM-WHERE:
             A simple select-from-where query.
@@ -24,7 +24,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_simple_dotcol(self):
+    def test_01_simple_dotcol(self):
         ''' TEST SIMPLE SELECT-FROM USING TABLE.COL FORMAT:
             A simple SELECT-FROM query using table.col format.
             Expected output:
@@ -41,7 +41,7 @@ class TestSQL(unittest.TestCase):
         print(output)
 
 
-    def test_select_constant(self):
+    def test_02_select_constant(self):
 
         ''' TEST SELECT STRING CONSTANT:
             A query selecting a string constant.
@@ -58,7 +58,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_rename_column_without_as(self):
+    def test_03_rename_column_without_as(self):
 
         ''' TEST RENAMING A COLUMN:
             A query with a renamed column without keyword AS.
@@ -75,7 +75,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
     
-    def test_rename_column_with_as(self):
+    def test_04_rename_column_with_as(self):
         ''' TEST RENAMING A COLUMN WITH AS:
             A query with a renamed column using keyword AS.
             Expected output:
@@ -91,7 +91,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_rename_table_without_as(self):
+    def test_05_rename_table_without_as(self):
         ''' TEST RENAME TABLE WITHOUT AS:
             A query with a table rename without keyword AS.
             Expected output:
@@ -107,7 +107,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_rename_table_with_as(self):
+    def test_06_rename_table_with_as(self):
 
         ''' TEST RENAME TABLE WITH AS:
             A query with a table rename using keyword AS.
@@ -124,7 +124,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_crossproduct_comma(self):
+    def test_07_crossproduct_comma(self):
         #************************************************
         ''' TEST CROSS PRODUCT ",":
             A query with a cross product in it, comma formatted.
@@ -142,7 +142,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_crossproduct_join(self):
+    def test_08_crossproduct_join(self):
 
         ''' TEST JOIN:
             A query with a cross product in it, using keyword JOIN.
@@ -159,23 +159,23 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_natural_join_1(self):
+    def test_09_natural_join_1(self):
         ''' TEST NATURAL JOIN:
             A query with one NATURAL JOIN.
             Expected output:
                 [
                     [ 'SELECT', ['sid', 'email', 'cgpa'] ],
-                    [ 'FROM',   [ ['Student'], 'NATURAL', ' JOIN', ['Took'] ] ]
+                    [ 'FROM',   [ ['Student'], 'NATURAL JOIN', ['Took'] ] ]
                 ]
         '''
         print('TEST NATURAL JOIN')
         print('A query with one NATURAL JOIN.')
-        expected = "[['SELECT', ['sid', 'email', 'cgpa']], ['FROM', [['Student'], 'NATURAL', 'JOIN', ['Took']]]]"
+        expected = "[['SELECT', ['sid', 'email', 'cgpa']], ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]]]"
         output = ast('select sid, email, cgpa from Student natural join Took')
         print(expected)
         print(output)
 
-    def test_natural_join_2(self):
+    def test_10_natural_join_2(self):
 
         #*************************************************
         ''' TEST TWO NATURAL JOINS:
@@ -183,35 +183,35 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', ['sid', 'email', 'cgpa' ] ],
-                    [ 'FROM',   [[ ['Student'], 'NATURAL', 'JOIN', ['Took'] ], 
-                                                'NATURAL', 'JOIN', ['Offering']] ]
+                    [ 'FROM',   [[ ['Student'], 'NATURAL JOIN', ['Took'] ], 
+                                                'NATURAL JOIN', ['Offering']] ]
                 ]
         '''
         print('TEST TWO NATURAL JOINS')
         print('A query with two NATURAL JOINS.')
-        expected = "[['SELECT', ['sid', 'email', 'cgpa']], ['FROM', [[['Student'], 'NATURAL', 'JOIN', ['Took']], 'NATURAL', 'JOIN', ['Offering']]]]"
+        expected = "[['SELECT', ['sid', 'email', 'cgpa']], ['FROM', [[['Student'], 'NATURAL JOIN', ['Took']], 'NATURAL JOIN', ['Offering']]]]"
         output = ast('select sid, email, cgpa from Student natural join Took natural join Offering')
         print(expected)
         print(output)
 
-    def test_left_join(self):
+    def test_11_left_join(self):
     
         ''' TEST LEFT JOIN ON <condition>: 
             A query with a LEFT JOIN on a condition.
             Expected output:
                 [
                     [ 'SELECT', ['sid', 'grade', 'instructor'] ],
-                    [ 'FROM',   [['Took'], 'LEFT, 'JOIN', ['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid'] ] ]
+                    [ 'FROM',   [['Took'], 'LEFT JOIN', ['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid'] ] ]
                 ]
         '''
         print('TEST LEFT JOIN ON <condition>')
         print('A query with a LEFT JOIN on a condition.')
-        expected = "[['SELECT', ['sid', 'grade', 'instructor']], ['FROM', [['Took'], 'LEFT', 'JOIN', ['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid']]]]"
+        expected = "[['SELECT', ['sid', 'grade', 'instructor']], ['FROM', [['Took'], 'LEFT JOIN', ['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid']]]]"
         output = ast('select sid, grade, instructor from Took left join Offering on Took.oid=Offering.oid')
         print(expected)
         print(output)
 
-    def test_full_outer_join(self):
+    def test_12_full_outer_join(self):
 
 
         ''' TEST FULL OUTER JOIN
@@ -219,24 +219,24 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', ['sid', 'grade'] ],
-                    [ 'FROM',   [['Took'], 'FULL', 'OUTER', 'JOIN', ['Offering']] ],
+                    [ 'FROM',   [['Took'], 'FULL OUTER JOIN', ['Offering']] ],
                 ]
         '''
         print('TEST FULL OUTER JOIN')
         print('A query with a FULL OUTER JOIN.')
-        expected = "[['SELECT', ['sid', 'grade']], ['FROM', [['Took'], 'FULL', 'OUTER', 'JOIN', ['Offering']]]]"
+        expected = "[['SELECT', ['sid', 'grade']], ['FROM', [['Took'], 'FULL OUTER JOIN', ['Offering']]]]"
         output = ast('select sid, grade from Took full outer join Offering')
         print(expected)
         print(output)
 
 
-    def test_create_view(self):
+    def test_13_create_view(self):
 
         
         ''' TEST CREATE VIEW AS:
             A query with CREATE VIEW.
             Expected output:
-                ['CREATE', 'VIEW', 'AS', 
+                ['CREATE VIEW', 'students', 
                         [[ 'SELECT', ['email']],
                         [ 'FROM',   [['Student']] ]
                         ]
@@ -244,12 +244,12 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST CREATE VIEW AS')
         print('A query with CREATE VIEW.')
-        expected = "['CREATE', 'VIEW', 'AS', [['SELECT', ['email']], ['FROM', [['Student']]]]]"
-        output = ast('create view as select email from Student')
+        expected = "['CREATE VIEW', 'students', [['SELECT', ['email']], ['FROM', [['Student']]]]]"
+        output = ast('create view students as (select email from Student)')
         print(expected)
         print(output)
 
-    def test_compound_cond_and(self):
+    def test_14_compound_cond_and(self):
 
         ''' TEST COMPOUND CONDITION: AND
             A query with an AND in its WHERE clause
@@ -268,7 +268,7 @@ class TestSQL(unittest.TestCase):
         print(output)
 
 
-    def test_compound_cond_or(self):
+    def test_15_compound_cond_or(self):
 
         ''' TEST COMPOUND CONDITION: OR:
             A query with a OR condition in its WHERE clause, also using bin op LIKE.
@@ -286,7 +286,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_compound_cond_andor_nobrackets(self):
+    def test_16_compound_cond_andor_nobrackets(self):
 
         #*****************************************
         ''' TEST COMPOUND CONDITION: AND + OR, NO BRACKETS
@@ -306,7 +306,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_compound_condition_andor_withbrackets(self):
+    def test_17_compound_condition_andor_withbrackets(self):
 
         #***************************************
         ''' TEST COMPOUND CONDITION: AND + OR, WITH BRACKETS
@@ -329,7 +329,7 @@ class TestSQL(unittest.TestCase):
         print(output)
 
 
-    def test_compound_condition_2and_1or(self):
+    def test_18_compound_condition_2and_1or(self):
 
         #*****************************************
         ''' TEST COMPOUND CONDITION: 2 AND + 1 OR 
@@ -353,7 +353,7 @@ class TestSQL(unittest.TestCase):
         print(output)
 
 
-#    def test_subquery_from(self):
+#    def test_19_subquery_from(self):
                 
         ''' TEST SUBQUERY IN FROM CLAUSE: 
             A query with one subquery in the FROM clause
@@ -379,7 +379,7 @@ class TestSQL(unittest.TestCase):
         print(output)
 '''
 
-    def test_subquery_where(self):
+    def test_20_subquery_where(self):
 
         ''' TEST SUBQUERY IN WHERE CONDITION:
             A query with one subquery in the WHERE clause
@@ -401,7 +401,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_subquery_select(self):
+    def test_21_subquery_select(self):
             
         ''' TEST SUBQUERY IN SELECT CLAUSE:
             A query with one subquery in the SELECT clause
@@ -420,7 +420,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_union(self):
+    def test_22_union(self):
 
         ''' TEST UNION
             A UNION of two SQL queries.
@@ -443,7 +443,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_any_subquery(self):
+    def test_23_any_subquery(self):
         ''' TEST ANY
             A query containing a subquery using keyword ANY in WHERE condition.
             Expected output:
@@ -452,7 +452,7 @@ class TestSQL(unittest.TestCase):
                     [ 'FROM'    [['Student']]],
                     [ 'WHERE',  [['gpa', '>', 'ANY', [
                                                 ['SELECT', ['gpa']], 
-                                                ['FROM', [['Student'], 'NATURAL', 'JOIN', ['Took']]], 
+                                                ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], 
                                                 ['WHERE', [['grade', '>', '100']]]
                                             ]]]
                     ]
@@ -460,19 +460,22 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST ANY')
         print('A query using keyword ANY in WHERE condition.')
-        expected = "[['SELECT', ['sid']], ['FROM', [['Student']]], ['WHERE', [['gpa', '>', 'ANY', [['SELECT', ['gpa']], ['FROM', [['Student'], 'NATURAL', 'JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]]"
+        expected = "[['SELECT', ['sid']], ['FROM', [['Student']]], ['WHERE', [['gpa', '>', 'ANY', [['SELECT', ['gpa']], ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]]"
         output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100);')
+        print(expected)
+        print(output)
 
-    def test_in_subquery(self):
+
+    def test_24_in_subquery(self):
         ''' TEST IN
             A query containing a subquery using keyword IN.
             Expected output:
                 [
                     [ 'SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']],
-                    [ 'FROM',   [['Took'], 'NATURAL', 'JOIN', ['Offering']]],
+                    [ 'FROM',   [['Took'], 'NATURAL JOIN', ['Offering']]],
                     [ 'WHERE',  [['grade', '>=', '80'], 'AND', ['(cnum, dept)', 'IN', 
                                 [   ['SELECT',  ['cnum', 'dept']], 
-                                    ['FROM',    [[['Took'], 'NATURAL', 'JOIN', ['Offering']], 'NATURAL', 'JOIN', ['Offering']]],
+                                    ['FROM',    [[['Took'], 'NATURAL JOIN', ['Offering']], 'NATURAL JOIN', ['Offering']]],
                                     ['WHERE',   [['surname', '=', "'Lakemeyer'"]]]
                                 ]]]
                     ]
@@ -480,12 +483,12 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST IN')
         print('A query containing a subquery using keyword IN.')
-        expected = "[['SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']], ['FROM', [['Took'], 'NATURAL', 'JOIN', ['Offering']]], ['WHERE', [['grade', '>=', '80']. 'AND', ['(cnum, dept)', 'IN', [['SELECT', ['cnum', 'dept']], ['FROM', [[['Took'], 'NATURAL', 'JOIN', ['Offering']], 'NATURAL', 'JOIN', ['Offering']]], ['WHERE', [['surname', '=', "'Lakemeyer'"]]]]]]]]"
+        expected = "[['SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering']]], ['WHERE', [['grade', '>=', '80']. 'AND', ['(cnum, dept)', 'IN', [['SELECT', ['cnum', 'dept']], ['FROM', [[['Took'], 'NATURAL JOIN', ['Offering']], 'NATURAL JOIN', ['Offering']]], ['WHERE', [['surname', '=', "'Lakemeyer'"]]]]]]]]"
         output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and (cnum, dept) in (select cnum, dept from Took natural join offering natural join Student where surname = \'Lakemeyer\');')
         print(expected)
         print(output)
 
-    def test_exists_subquery(self):
+    def test_25_exists_subquery(self):
         ''' TEST EXISTS
             A query containing a subquery using keyword EXISTS.
             Expected output:
@@ -507,7 +510,7 @@ class TestSQL(unittest.TestCase):
         print(output)
 
 
-    def test_distinct(self):
+    def test_26_distinct(self):
         ''' TEST DISTINCT
             A query selecting distinct entries for a column.
             Expected output:
@@ -523,7 +526,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_limit(self):
+    def test_27_limit(self):
         ''' TEST LIMIT
             A query limiting the number of entries in the query result.
             Expected output:
@@ -540,7 +543,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_limit_offset(self):
+    def test_28_limit_offset(self):
         ''' TEST LIMIT AND OFFSET
             A query limiting the number of entries in the query result and offset by a value.
             Expected output:
@@ -558,7 +561,90 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
+    def test_29_aggregate_function_only(self):
+        ''' TEST AGGREGATE FUNCTION ONLY
+            A query selecting over one aggregated column. 
+            Expected output:
+                [
+                    [ 'SELECT', ['max(sid)']],
+                    [ 'FROM',   [['Student']]],
+                ]
+        '''
+        print('TEST AGGREGATE FUNCTION ONLY')
+        print('A query selecting over one aggregated column. ')
+        expected = "[['SELECT', ['max(sid)']], ['FROM', [['Student']]]]"
+        output = ast('select max(sid) from Student')
+        print(expected)
+        print(output)
 
+    def test_30_group_by(self):
+        ''' TEST GROUP BY
+            A query selecting over one aggregated column and one unaggregated column
+            Expected output:
+                [
+                    [ 'SELECT', ['max(cgpa)', 'sid']],
+                    [ 'FROM',   [['Student']]],
+                    [ 'GROUP BY', ['sid']]
+                ]
+        '''
+        print('TEST GROUP BY')
+        print('A  query selecting over one aggregated column and one unaggregated column')
+        expected = "[['SELECT', ['max(cgpa)', 'sid']], ['FROM', [['Student']]], ['GROUP BY', ['sid']]]"
+        output = ast('select max(cgpa), sid from Student group by sid')
+        print(expected)
+        print(output)
+
+    def test_31_having(self):
+        ''' TEST HAVING
+            A query HAVING a condition.
+            Expected output:
+                [
+                    [ 'SELECT', ['max(cgpa)']],
+                    [ 'FROM',   [['Student']]],
+                    [ 'HAVING', ['max(cgpa)', '>=', '3.5']]
+                ]
+        '''
+        print('TEST HAVING')
+        print('A query HAVING a condition.')
+        expected = "[['SELECT', ['max(cgpa)']], ['FROM', [['Student']]], ['HAVING', ['max(cgpa)', '>=', '3.5']]]"
+        output = ast('select max(cgpa) from Student having max(cgpa) >= 3.5')
+        print(expected)
+        print(output)
+
+    def test_32_having_notinselect(self):
+        ''' TEST HAVING CONDITION NOT IN SELECT CLAUSE
+            A query containing a HAVING condition over aggregate function not in select clause.
+            Expected output:
+                [
+                    [ 'SELECT', ['sum(salary)']], 
+                    [ 'FROM',   [['Department'], 'JOIN', ['Employee'], 'ON', ['dept', '=', 'did']]],
+                    [ 'GROUP BY', ['dept']],
+                    [ 'HAVING', ['min(salary)', '>=', '100']]
+                ]
+        '''
+        print('TEST HAVING CONDITION NOT IN SELECT CLAUSE')
+        print('A query containing a HAVING condition over aggregate function not in select clause.')
+        expected = "[['SELECT', ['sum(salary)']], ['FROM', [['Department'], 'JOIN', ['Employee'], 'ON', ['dept', '=', 'did']]], ['GROUP BY', ['dept']], ['HAVING', ['min(salary)', '>=', '100']]]"
+        output = ast('select sum(salary) from Department join Employee on dept = did group by dept having min(salary) >= 100')
+        print(expected)
+        print(output)
+
+    def test_33_order_by(self):
+        ''' TEST ORDER BY
+            A query which orders by a certain column.
+            Expected output:
+                [
+                    [ 'SELECT', ['country', 'population']],
+                    [ 'FROM',   [['Countries', 'C']]],
+                    [ 'ORDER BY', ['country']]
+                ]
+        '''
+        print('TEST ORDER BY')
+        print('A query which orders by a certain column.')
+        expected = "[['SELECT', ['country', 'population']], ['FROM', [['Countries', 'C']]], ['ORDER BY', ['country']]]"
+        output = ast('select country, population from Countries as C order by country')
+        print(expected)
+        print(output)
 
 if __name__ == "__main__":
     unittest.main()
