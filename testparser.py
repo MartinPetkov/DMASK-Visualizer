@@ -58,6 +58,71 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
+    def test_rename_column_without_as(self):
+
+        ''' TEST RENAMING A COLUMN:
+            A query with a renamed column without keyword AS.
+            Expected output:
+                [
+                    ['SELECT',  ['cnum', 'course']],
+                    ['FROM',    [['Courses']]],
+                ]
+        '''
+        print('TEST RENAMING A COLUMN:')
+        print('A query with a renamed column without keyword AS')
+        expected = "[['SELECT', ['cnum', 'course']], ['FROM', [['Courses']]]]"
+        output = ast('select cnum course from Courses')
+        print(expected)
+        print(output)
+    
+    def test_rename_column_with_as(self):
+        ''' TEST RENAMING A COLUMN WITH AS:
+            A query with a renamed column using keyword AS.
+            Expected output:
+                [
+                    ['SELECT',  ['cnum', 'course']],
+                    ['FROM',    [['Courses']]],
+                ]
+        '''
+        print('TEST RENAMING A COLUMN:')
+        print('A query with a renamed column using keyword AS')
+        expected = "[['SELECT', ['cnum', 'course']], ['FROM', [['Courses']]]]"
+        output = ast('select cnum as course from Courses')
+        print(expected)
+        print(output)
+
+    def test_rename_table_without_as(self):
+        ''' TEST RENAME TABLE WITHOUT AS:
+            A query with a table rename without keyword AS.
+            Expected output:
+                [
+                    [ 'SELECT', ['sid', 'grade']],
+                    [ 'FROM',   [['Took', 'T'], 'JOIN', ['Offering']]]
+                ]
+        '''
+        print('TEST RENAME TABLE WITHOUT AS')
+        print('A query with a table rename without keyword AS')
+        expected = "[['SELECT', ['sid', 'grade']], ['FROM', [['Took', 'T'], 'JOIN', ['Offering']]]]"
+        output = ast('select sid, grade from Took T JOIN Offering')
+        print(expected)
+        print(output)
+
+    def test_rename_table_with_as(self):
+
+        ''' TEST RENAME TABLE WITH AS:
+            A query with a table rename using keyword AS.
+            Expected output:
+                [
+                    [ 'SELECT', ['sid', 'grade'] ],
+                    [ 'FROM',   [['Took', 'T'], 'JOIN', ['Offering'] ] ]
+                ]
+        '''
+        print('TEST RENAME TABLE WITH AS')
+        print('A query with a table rename with keyword AS')
+        expected = "[['SELECT', ['sid', 'grade']], ['FROM', [['Took', 'T'], 'JOIN', ['Offering']]]]"
+        output = ast('select sid, grade from Took as T JOIN Offering')
+        print(expected)
+        print(output)
 
     def test_crossproduct_comma(self):
         #************************************************
@@ -184,24 +249,6 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_rename_and_join(self):
-
-
-        ''' TEST RENAME AND JOIN:
-            A query with a rename and a JOIN.
-            Expected output:
-                [
-                    [ 'SELECT', ['sid', 'grade'] ],
-                    [ 'FROM',   [['Took', 'AS', 'T'], 'JOIN', ['Offering'] ] ]
-                ]
-        '''
-        print('TEST RENAME AND JOIN')
-        print('A query with a rename and a JOIN')
-        expected = "[['SELECT', ['sid', 'grade']], ['FROM', [['Took', 'T'], 'JOIN', ['Offering']]]]"
-        output = ast('select sid, grade from Took as T JOIN Offering')
-        print(expected)
-        print(output)
-
     def test_compound_cond_and(self):
 
         ''' TEST COMPOUND CONDITION: AND
@@ -306,27 +353,31 @@ class TestSQL(unittest.TestCase):
         print(output)
 
 
-    def test_subquery_from(self):
+#    def test_subquery_from(self):
                 
         ''' TEST SUBQUERY IN FROM CLAUSE: 
             A query with one subquery in the FROM clause
             Expected output: 
                 [
-                    [ 'SELECT', ['LimitedCols.oid'] ],
-                    [ 'FROM',   [
-                                    ['SELECT',  ['oid', 'dept'] ],
-                                    ['FROM',    ['Offering'] ]
-                                ]
-                                , 'AS', 'LimitedCols']
+                    [ 'SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']],
+                    [ 'FROM',   [[
+                                    ['SELECT',  ['*'] ],
+                                    ['FROM',    [['Offering']] ],
+                                    ['WHERE',   [['instructor', '=', \'Horton\']]]
+                                    ]
+                                , 'H']], 
+                    ['WHERE', [['Took.oid', '=', 'H.oid']]]
                 ]
 
         '''
+    '''
         print('TEST SUBQUERY IN FROM CLAUSE: ')
         print('A query with one subquery in the FROM')
-        expected = "[['SELECT', ['LimitedCols.oid']], ['FROM', [[['SELECT', ['oid', 'dept']], ['FROM', [['Offering']]]], 'LimitedCols']]]"
-        output = ast('select LimitedCols.oid from (select oid, dept from Offering) as LimitedCols')
+        expected = "[['SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']], ['FROM', [[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
+        output = ast('select sid, dept || cnum as course, grade from Took, (select * from Offering where instructor=\'Horton\') H where Took.oid = H.oid;')
         print(expected)
         print(output)
+'''
 
     def test_subquery_where(self):
 
@@ -368,8 +419,8 @@ class TestSQL(unittest.TestCase):
         output = ast('select (select only from Took) from Offering')
         print(expected)
         print(output)
-        
-#    def test_union(self):
+
+    def test_union(self):
 
         ''' TEST UNION
             A UNION of two SQL queries.
@@ -385,14 +436,129 @@ class TestSQL(unittest.TestCase):
                 ]
         '''
 
-        '''
         print('TEST UNION:')
         print('A union of two SQL queries.')
-        expected = "[["
-        output = ast('(select sid from student) union (select sid from took)')
+        expected = "[[['SELECT', ['sid']], ['FROM', [['Student']]]], 'UNION', [['SELECT', ['sid']], ['FROM', [['Took']]]]]"
+        output = ast('(select sid from student) union (select sid from Took)')
         print(expected)
         print(output)
-'''
+
+    def test_any_subquery(self):
+        ''' TEST ANY
+            A query containing a subquery using keyword ANY in WHERE condition.
+            Expected output:
+                [
+                    [ 'SELECT', ['sid']],
+                    [ 'FROM'    [['Student']]],
+                    [ 'WHERE',  [['gpa', '>', 'ANY', [
+                                                ['SELECT', ['gpa']], 
+                                                ['FROM', [['Student'], 'NATURAL', 'JOIN', ['Took']]], 
+                                                ['WHERE', [['grade', '>', '100']]]
+                                            ]]]
+                    ]
+                ]
+        '''
+        print('TEST ANY')
+        print('A query using keyword ANY in WHERE condition.')
+        expected = "[['SELECT', ['sid']], ['FROM', [['Student']]], ['WHERE', [['gpa', '>', 'ANY', [['SELECT', ['gpa']], ['FROM', [['Student'], 'NATURAL', 'JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]]"
+        output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100);')
+
+    def test_in_subquery(self):
+        ''' TEST IN
+            A query containing a subquery using keyword IN.
+            Expected output:
+                [
+                    [ 'SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']],
+                    [ 'FROM',   [['Took'], 'NATURAL', 'JOIN', ['Offering']]],
+                    [ 'WHERE',  [['grade', '>=', '80'], 'AND', ['(cnum, dept)', 'IN', 
+                                [   ['SELECT',  ['cnum', 'dept']], 
+                                    ['FROM',    [[['Took'], 'NATURAL', 'JOIN', ['Offering']], 'NATURAL', 'JOIN', ['Offering']]],
+                                    ['WHERE',   [['surname', '=', "'Lakemeyer'"]]]
+                                ]]]
+                    ]
+                ]
+        '''
+        print('TEST IN')
+        print('A query containing a subquery using keyword IN.')
+        expected = "[['SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']], ['FROM', [['Took'], 'NATURAL', 'JOIN', ['Offering']]], ['WHERE', [['grade', '>=', '80']. 'AND', ['(cnum, dept)', 'IN', [['SELECT', ['cnum', 'dept']], ['FROM', [[['Took'], 'NATURAL', 'JOIN', ['Offering']], 'NATURAL', 'JOIN', ['Offering']]], ['WHERE', [['surname', '=', "'Lakemeyer'"]]]]]]]]"
+        output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and (cnum, dept) in (select cnum, dept from Took natural join offering natural join Student where surname = \'Lakemeyer\');')
+        print(expected)
+        print(output)
+
+    def test_exists_subquery(self):
+        ''' TEST EXISTS
+            A query containing a subquery using keyword EXISTS.
+            Expected output:
+                [
+                    [ 'SELECT', ['instructor']],
+                    [ 'FROM',   [['Offering', 'Offl']],
+                    [ 'WHERE',  [['NOT', 'EXISTS', 
+                                    [['SELECT', ['*']],
+                                    ['FROM',    [['Offering']]],
+                                    ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]
+                ]]
+        '''
+
+        print('TEST EXISTS')
+        print('A query containing a subquery using keyword EXISTS.')
+        expected = "[['SELECT', ['instructor']], ['FROM', [['Offering', 'Offl']]], ['WHERE', [['NOT', 'EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]"
+        output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
+        print(expected)
+        print(output)
+
+
+    def test_distinct(self):
+        ''' TEST DISTINCT
+            A query selecting distinct entries for a column.
+            Expected output:
+                [
+                    [ 'SELECT', 'DISTINCT', ['*']],
+                    [ 'FROM',   [['Took']]]
+                ]
+        '''
+        print('TEST DISTINCT')
+        print('A query selecting distinct entries for a column.')
+        expected = "[['SELECT', 'DISTINCT', ['*']], ['FROM', [['Took']]]]"
+        output = ast('select distinct * from Took')
+        print(expected)
+        print(output)
+
+    def test_limit(self):
+        ''' TEST LIMIT
+            A query limiting the number of entries in the query result.
+            Expected output:
+                [
+                    [ 'SELECT', ['sid']],
+                    [ 'FROM",   [['Took']]],
+                    [ 'LIMIT', ['10']]
+                ]
+        '''
+        print('TEST LIMIT')
+        print('A query limiting the number of entries in the query result.')
+        expected = "[['SELECT', ['sid']], ['FROM', [['Took']]], ['LIMIT', ['10']]]"
+        output = ast('select sid from Took limit 10')
+        print(expected)
+        print(output)
+
+    def test_limit_offset(self):
+        ''' TEST LIMIT AND OFFSET
+            A query limiting the number of entries in the query result and offset by a value.
+            Expected output:
+                [
+                    [ 'SELECT', ['sid']],
+                    [ 'FROM",   [['Took']]],
+                    [ 'LIMIT',  ['10']],
+                    [ 'OFFSET', ['4']]
+                ]
+        '''
+        print('TEST LIMIT AND OFFSET')
+        print('A query limiting number of entries in the query result and offset by a value')
+        expected = "[['SELECT', ['sid']], ['FROM', [['Took']]], ['LIMIT', ['10']], ['OFFSET', ['4']]]"
+        output = ast('select sid from Took limit 10 offset 4')
+        print(expected)
+        print(output)
+
+
 
 if __name__ == "__main__":
     unittest.main()
