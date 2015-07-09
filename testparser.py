@@ -41,7 +41,7 @@ class TestSQL(unittest.TestCase):
         print(output)
 
 
-    def test_02_select_constant(self):
+    def test_02a_select_constant(self):
 
         ''' TEST SELECT STRING CONSTANT:
             A query selecting a string constant.
@@ -58,19 +58,35 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
+    def test_02b_select_concatenatedcolumns(self):
+        ''' TEST CONCATENATED COLUMNS
+            A query selecting two columns concatenated.
+            Expected output:
+                [
+                    [ 'SELECT', [['dept', '||' ,'cnum']]],
+                    [ 'FROM',   [['Student']]]
+                ]
+        '''
+        print('TEST CONCATENATED COLUMNS')
+        print('A query selecting two columns concatenated.')
+        expected = "[['SELECT', [['dept', '||', 'cnum']]], ['FROM', [['Student']]]]"
+        output = ast('select dept || cnum from Student')
+        print(expected)
+        print(output)
+
     def test_03_rename_column_without_as(self):
 
         ''' TEST RENAMING A COLUMN:
             A query with a renamed column without keyword AS.
             Expected output:
                 [
-                    ['SELECT',  ['cnum', 'course']],
+                    ['SELECT',  [['cnum', 'course']]],
                     ['FROM',    [['Courses']]],
                 ]
         '''
         print('TEST RENAMING A COLUMN:')
         print('A query with a renamed column without keyword AS')
-        expected = "[['SELECT', ['cnum', 'course']], ['FROM', [['Courses']]]]"
+        expected = "[['SELECT', [['cnum', 'course']]], ['FROM', [['Courses']]]]"
         output = ast('select cnum course from Courses')
         print(expected)
         print(output)
@@ -80,13 +96,13 @@ class TestSQL(unittest.TestCase):
             A query with a renamed column using keyword AS.
             Expected output:
                 [
-                    ['SELECT',  ['cnum', 'course']],
+                    ['SELECT',  [['cnum', 'course']]],
                     ['FROM',    [['Courses']]],
                 ]
         '''
         print('TEST RENAMING A COLUMN:')
         print('A query with a renamed column using keyword AS')
-        expected = "[['SELECT', ['cnum', 'course']], ['FROM', [['Courses']]]]"
+        expected = "[['SELECT', [['cnum', 'course']]], ['FROM', [['Courses']]]]"
         output = ast('select cnum as course from Courses')
         print(expected)
         print(output)
@@ -576,7 +592,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select max(sid) from Student')
         print(expected)
         print(output)
-
+ 
     def test_30_group_by(self):
         ''' TEST GROUP BY
             A query selecting over one aggregated column and one unaggregated column
@@ -593,6 +609,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select max(cgpa), sid from Student group by sid')
         print(expected)
         print(output)
+
 
     def test_31_having(self):
         ''' TEST HAVING

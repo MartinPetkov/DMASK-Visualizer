@@ -1,6 +1,6 @@
 from pyparsing import (Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
     Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString,
-    ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress)
+    operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress)
 
 # Define SQL KEYWORDS
 SELECT          =   KEYWORD("SELECT", caseless=True)
@@ -24,6 +24,7 @@ OFFSET          =   KEYWORD("OFFSET", caseless=True)
 # Define OPERATORS
 AND_            =   KEYWORD("AND", caseless=True)
 OR_             =   KEYWORD("OR", caseless=True)
+IS_             =   KEYWORD("IS", caseless=True)
 IN_             =   KEYWORD("IN", caseless=True)
 EXISTS_         =   KEYWORD("EXISTS", caseless=True)
 NOT_            =   KEYWORD("NOT", caseless=True)
@@ -41,7 +42,16 @@ OUTER_          =   KEYWORD("OUTER", caseless=True)
 LEFT_           =   KEYWORD("LEFT", caseless=True)
 RIGHT_          =   KEYWORD("RIGHT", caseless=True)
 FULL_           =   KEYWORD("FULL", caseless=True)
-COMMA_          =   KEYWORD(",", caseless=True)
+NULL_           =   KEYWORD("NULL", caseless=True)
+ISNULL_         =   KEYWORD("ISNULL", caseless=True)
+NOTNULL_        =   KEYWORD("NOTNULL", caseless=True)
+
+KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
+                    CREATE | VIEW | AS | DISTINCT | ON | ASC | DESC | USING | 
+                    LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
+                    ANY_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
+                    JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
+                    NULL_ | ISNULL_ | NOTNULL_ )
 
 # Define SQL CLAUSES
 # Grammar for clauses will be defined below
@@ -53,22 +63,25 @@ query           =   Forward()
 createView      =   Forward()
 setOp           =   Forward()
 
-# Define column names, column renames, table names, table renames
-ident           =   Word(alphas, alphanums + "_$").setName("identifier")
+# Define view names, column names, column renames, table names, table renames
+ident           =   ~KEYWORDS + Word(alphas, alphanums + "_$")
 viewName        =   delimitedList(ident, ".", combine=True)
 columnName      =   delimitedList(ident, ".", combine=True)
 columnRename    =   delimitedList(ident, ".", combine=True)
 tableName       =   delimitedList(ident, ".", combine=True)
 tableRename     =   delimitedList(ident, ".", combine=True)
-columnNameList  =   (delimitedList(columnName) + Optional(Suppress(AS) + columnRename))
+columnNameList  =   (delimitedList(columnName) 
+                    + Optional((Suppress(AS) + columnRename) |('||' + columnRename) | columnRename)
+                    )
 columnRenameList=   Group(delimitedList(columnRename))
 tableNameList   =   Group(delimitedList(tableName, ", ", combine=True))
 tableRenameList =   Group(delimitedList(tableRename))
 
+# Define column values/operations
 BINOP           =   oneOf("= != < > <> >= <= || eq ne lt le gt ge LIKE", caseless=True)
 arithSign       =   Word("-=",exact=1)
-
 E = CaselessLiteral("E")
+
 realNum         =   Combine( Optional(arithSign) 
                     + ( Word( nums ) + "." + Optional( Word(nums) ) | ( "." + Word(nums) ) ) 
                     + Optional( E + Optional(arithSign) + Word(nums) ) 
@@ -79,17 +92,37 @@ intNum          =   Combine( Optional(arithSign)
                     + Optional( E + Optional("+") + Word(nums) ) 
                     )
 
-aggregatefns    =   Combine(Word(alphas) + ("(") + columnName + (")"))
-
-columnRval      =   (realNum | intNum | quotedString | columnName) # need to add support for alg expressions
-
 subquery        =   Suppress("(") + Group(sqlStmt) + Suppress(")")
-
+'''
+UNARY, BINARY, TERNARY = 1, 2, 3
+operators       =   operatorPrecedence(
+                    [
+                    (oneOf ('+ -'), UNARY, opAssoc.RIGHT), 
+                    (oneOf('^ ||'), opAssoc.LEFT), 
+                    (oneOf('* / %'), BINARY, opAssoc.LEFT), 
+                    (oneOf('+ -'), BINARY, opAssoc.LEFT),
+                    (oneOf('<< >> & |'), BINARY, opAssoc.LEFT),
+                    (oneOf('< <= > >= lt le gt ge'), BINARY, opAssoc.LEFT),
+                    (oneOf('= == != <> eq ne') | IS_ | IN_ | LIKE_, BINARY, opAssoc.LEFT),
+                    ('||', BINARY, opAssoc.LEFT),
+                    ((BETWEEN, AND), TERNARY, opAssoc.LEFT),   
+                    ]) 
+'''
 #========= SELECT CLAUSE ===========
 
-selectColumn    <<  ('*' | aggregatefns | columnNameList | columnRval)
+# Aggregate functions
+aggregatefns    =   Combine(Word(alphas) + ("(") + columnName + (")"))
 
+# Concatenated columns
+concatcolumn    =   Group (columnName + '||' + columnName)
 
+# Possible column values
+columnRval      =   (realNum | intNum | quotedString | columnName)
+
+# Possible attributes to SELECT over
+selectColumn    <<  ('*' | aggregatefns |  columnNameList | columnRval)
+
+# SELECT CLAUSE
 selectClause    <<  ( Group(selectColumn) | subquery)
 
 
@@ -112,7 +145,9 @@ joins           =   (Literal(',')
                     )
 
 # tableBlock nested within joinBlock, includes renames
-tableBlock      =   Group(tableName + Optional (Suppress(AS) + tableRename))
+tableBlock      =   Group(tableName 
+                    + Optional ((Suppress(AS) + tableRename) | tableRename)
+                    )
 
 # <tableBlock> {JOIN} <tableBlock>
 joinBlock       =   (joins 
