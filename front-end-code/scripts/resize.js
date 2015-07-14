@@ -15,7 +15,7 @@ function sizeContent() {
 }
 
 function adjustNamespace(){
-    $(currentWindow.namespacebody).height($(currentWindow.namespace).height() - $(currentWindow.namespaceheader).outerHeight());
+    $("#" + current_window.generateElemID("namespacebody")).height($("#" + current_window.generateElemID("namespace")).height() - $("#" + current_window.generateElemID("namespaceheader")).outerHeight());
 }
 
 function adjustHeight(window){
@@ -51,7 +51,7 @@ function updateInputHeight(maxheight, window){
 // Return the new height of the table display area (accounting for inventory toggle)
 function updateHeight(window){
     var newheight;
-    if (!currentWindow.toggled){
+    if (!current_window.toggled){
         newheight = $(window.workspace).height() - $(window.namebox).height() - $(window.inventoryheader).height();
     } else {
         newheight = $(window.workspace).height() - $(window.namebox).height() - $(window.inventory).height();
@@ -62,13 +62,13 @@ function updateHeight(window){
 // Toggle the inventory's appearance
 function toggleInventory(window){
     var newheight;
-    if (currentWindow.toggled == 1){
-        newheight = $(window.inventoryheader).height();
+    if (current_window.toggled == 1){
+        newheight = $("#" + current_window.generateElemID("inventoryheader")).height();
     } else {
-        newheight = $(window.tablefooter).height();
+        newheight = $("#" + current_window.generateElemID("tablefooter")).height();
     }
-    $(window.inventory).animate({height: newheight});
+    $("#" + current_window.generateElemID("inventory")).animate({height: newheight});
     $("#tooltip").hide();
-    currentWindow.toggled = 1 - currentWindow.toggled;
+    current_window.toggled = 1 - current_window.toggled;
 }
 

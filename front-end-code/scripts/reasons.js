@@ -92,7 +92,7 @@ function getReasonsEntry(row_id){
     var steprow = getStepRow(row_id);
     var step = steprow.step;
     var row = steprow.row;
-    return currentWindow.reasons_dictionary[step][row];
+    return current_window.current_step.query.reasons_dictionary[step][row];
 }
 
 /*
