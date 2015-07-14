@@ -1,0 +1,25 @@
+.subquery {
+    text-decoration:underline;
+}
+
+#tooltip {
+    border: 1px solid black;
+    border-radius: 5px;
+    background: #FFFFFF;
+    
+    width: 250px;
+    
+    padding: 5px 5px 5px 25px;
+    
+    display:none;
+}
+
+.tooltipheader{
+    font-weight: bold;
+}
+
+p {
+    text-indent: -15px;
+    padding: 0px;
+    margin:0px;
+}

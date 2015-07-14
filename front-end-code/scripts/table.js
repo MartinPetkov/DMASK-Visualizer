@@ -9,12 +9,12 @@ function Table(t, query){
     this.hovertext = this.generateHovertext(query);
 }
 
-Table.prototype.generateHovertext(query){
+Table.prototype.generateHovertext = function(query){
     var hovertext;
     if (query.step_keys.indexOf(this.id) > -1)
         hovertext = "Table " + this.id + ". " + query.steps_dictionary[this.id].sql;
     else
-        hovertext = id;
+        hovertext = this.id;
 
     // Temporary quotation mark escape; leaves a trailing \, however.
     hovertext = hovertext.replace(/"/g, '\\\\\\"');

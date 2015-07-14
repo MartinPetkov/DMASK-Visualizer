@@ -1,0 +1,61 @@
+.inventory {
+    width: 70%;
+    height: 287px;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    padding-left:2px;
+    padding-right:2px;
+    
+    background: #d8e1f0;
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+}
+
+.inventoryheader {
+    height: 30px;
+    padding-top:5px;
+    text-align: center;
+    font-weight:bold;
+}
+
+.inventoryspace {
+    height:100%;
+    background: #ffffff;
+    padding-left: 20px;
+    padding-right: 20px;
+    overflow-y: auto;
+}
+
+.storedtable{
+    float: left;
+    margin-right:40px;
+    margin-bottom:20px;
+}
+
+.namespace {
+    width:29%;
+    height:100%;
+    padding-left:2px;
+    padding-right:2px;
+    background: #d8e1f0;
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+    
+    float: left;
+    overflow-y: auto;
+}
+
+.namespaceheader{
+    height: 30px;
+    padding-top:5px;
+    text-align: center;
+    font-weight:bold;
+}
+
+.namespacebody{
+    background: #ffffff;
+    padding-left: 20px;
+    padding-right: 20px;
+    overflow-y: auto;
+}

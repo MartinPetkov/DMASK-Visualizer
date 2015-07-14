@@ -1,9 +1,31 @@
+var main;
+var base;
+
 function Window(prefix){
     this.prefix = prefix;
-    
+    this.toggled = 1;
+    this.queries = [];
+    this.current_step_id = "";
+    this.current_step = undefined;
 }
 
-Window.prototype.generateBase = function(){
+Window.prototype.generateBase = function() {
+    var prefix = this.prefix;
+    var copy = base.clone();
+    function prefixID(element){
+        var id = element.attr("id");
+        if (id){
+            element.attr("id", prefix + "-" + id);
+        }
+    }
+
+    copy.find("*").each(function(i, elem){
+        prefixID($(elem));
+    });
+    return copy;
+}
+
+Window.prototype.gzzz = function(){
     var html = "";
     
     // Set up basic template
@@ -30,12 +52,24 @@ Window.prototype.generateBase = function(){
             
             // Output
             html += "<div id='" + this.generateID('outbox') + "' class='outbox'></div>";
-    html += "<div id='" + this.generateID('') + "' class=''>";
-    html += "<div id='" + this.generateID('') + "' class=''>";
-    html += "<div id='" + this.generateID('') + "' class=''>";
+        html += "</div>";
+        // Hovered Name
+        html += "<div id='" + this.generateID('namebox') + "' class='namebox'></div>";
+        html += "<div id='" + this.generateID('tablefooter') + "' class='tablefooter'>";
+            //Toggle-able Temporary Tables
+            html += "<div id='" + this.generateID('namespace') + "' class='namespace'>";
+                html += "<div id='" + this.generateID('namespaceheader') + "' class='namespaceheader'>Namespace</div>";
+                html += "<div id='" + this.generateID('namespacebody') + "' class='namespacebody'></div>";
+            html += "</div>";
+            html += "<div id='" + this.generateID('inventory') + "' class='inventory'>";
+            html += "<div id='" + this.generateID('inventoryheader') + "' class='inventoryheader'>Tables and Views";
+            html += "<div id='" + this.generateID('inventoryspace') + "' class=''>";
+            html += "<div id='" + this.generateID('') + "' class=''>";
     html += "<div id='" + this.generateID('') + "' class=''>";
 }
 
-Window.prototype.generateID = function(elem_class){
+Window.prototype.generateElemID = function(elem_class){
+    if (this.prefix === "")
+        return elem_class;
     return this.prefix + "-" + elem_class
 }

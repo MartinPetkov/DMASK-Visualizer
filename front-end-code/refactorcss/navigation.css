@@ -1,0 +1,32 @@
+.toc td{
+    text-align: left;
+    padding-right: 0px;
+    padding-left: 30px;
+    text-indent: -20px;
+}
+
+.collapsible {
+    padding: 5px 5px 0px 25px;
+    font-size:8px;
+    float: right;
+    width:10px;
+}
+
+.nested {
+    margin-top: 10px;
+    width: 100%;
+    border: 1px solid #91a3d9;
+    border-right: none;
+}
+
+.selected {
+    font-weight: bold;
+}
+
+.highlighted {
+    background: #ffd8b7;
+}
+
+.navigation {
+    display:inline-block;
+}
