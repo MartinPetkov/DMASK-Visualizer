@@ -10,13 +10,15 @@ class QueryStep:
     :param input_tables: a list of the string IDs of all input tables
     :param result_table: a string ID of the output table
     :param namespace: a list of strings of the tables in the namespace before executing this step
+    :param executable_sql: the string of executable SQL that will execute this step
     :param res_table_name: the optional name of this resulting table
     """
-    def __init__(self, step_number, sql_chunk, input_tables, result_table, namespace=[]):
+    def __init__(self, step_number, sql_chunk, input_tables, result_table, executable_sql, namespace=[]):
         self.step_number = step_number
         self.sql_chunk = sql_chunk
         self.input_tables = input_tables
         self.result_table = result_table
+        self.executable_sql = executable_sql
         self.namespace = namespace
 
     def to_json(self):
@@ -25,6 +27,7 @@ class QueryStep:
             "sql_chunk": self.sql_chunk,
             "input_tables": self.input_tables,
             "result_table": self.result_table,
+            "executable_sql": self.executable,
             "namespace": self.namespace
         }
 
