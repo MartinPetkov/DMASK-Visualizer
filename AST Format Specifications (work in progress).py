@@ -33,14 +33,12 @@ LEGEND:
                         |   [ ('col_name' 
                             | <col_equation> 
                             | <aggregate_fn> 
-                            | <col_val> ), <as>, 'new_name']
+                            | <val> ), <as>, 'new_name']
                             
 
 <col_equation>      = ['col_name', (<operator>, 'col_name')+ ]
 
 <aggregate_fn>      = function('col_name')
-
-<col_val>           = <val>
 
 <operator>          = "+" | "-" | "*" | "/" | "||"
 
@@ -64,16 +62,17 @@ LEGEND:
                     
 
 # For WHERE
-<where_arg>         = ("NOT", ?) <reason> | [<where_arg>]
+<where_arg>         = [("NOT", ?) <reason> ] | [<where_arg>]
 
 <where_connector>   = "AND" | "OR"
 
-<reason>            = ['col_name', <comparator>, <val>]
-                        | ['col_name', 
+<reason>            = 'col_name', <comparator>, <val>
+                        | 'col_name', "IN", <val>
+                        | 'col_name', ("IN" | (<comparator>, ("ANY" | "ALL"))), <sql_query>
+                        | "EXISTS", <sql_query>
+                        | 'col_name', (("IS", ("NULL" | "NOTNULL")) | "ISNULL")
+                        | 'col_name', ("NOT"),? "BETWEEN", <val>, "AND", <val>
 
-<reason>            = ["EXISTS", <sql_query>] 
-                        |   ['col_name', "IN", <sql_query>]
-                        |   ['col1_name', <comparator>, ('col2_name' | ("ANY" | "ALL"), <sql_query>)]
 
 <as>                = " " | "AS" 
 
