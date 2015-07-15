@@ -1,6 +1,6 @@
 from pyparsing import (Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
     Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString,
-    operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress)
+    opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress)
 
 # Define SQL KEYWORDS
 SELECT          =   KEYWORD("SELECT", caseless=True)
@@ -45,19 +45,19 @@ FULL_           =   KEYWORD("FULL", caseless=True)
 NULL_           =   KEYWORD("NULL", caseless=True)
 ISNULL_         =   KEYWORD("ISNULL", caseless=True)
 NOTNULL_        =   KEYWORD("NOTNULL", caseless=True)
+BETWEEN_        =   KEYWORD("BETWEEN", caseless=True)
 
 KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
                     CREATE | VIEW | AS | DISTINCT | ON | ASC | DESC | USING | 
                     LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
                     ANY_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
                     JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
-                    NULL_ | ISNULL_ | NOTNULL_ )
+                    NULL_ | ISNULL_ | NOTNULL_ | BETWEEN_)
 
 # Define SQL CLAUSES
 # Grammar for clauses will be defined below
 sqlStmt         =   Forward()
-selectColumn    =   Forward()
-selectClause    =   Forward()
+whereCompound   =   Forward()
 whereClause     =   Forward()
 query           =   Forward()
 createView      =   Forward()
@@ -120,10 +120,10 @@ concatcolumn    =   Group (columnName + '||' + columnName)
 columnRval      =   (realNum | intNum | quotedString | columnName)
 
 # Possible attributes to SELECT over
-selectColumn    <<  ('*' | aggregatefns |  columnNameList | columnRval)
+selectColumn    =   ('*' | aggregatefns |  columnNameList | columnRval)
 
 # SELECT CLAUSE
-selectClause    <<  ( Group(selectColumn) | subquery)
+selectClause    =   ( Group(selectColumn) | subquery)
 
 
 # ========== FROM CLAUSE =========== 
@@ -162,16 +162,32 @@ fromClause      =   ((tableBlock +  ZeroOrMore(joinBlock))
 
 # ========= WHERE CLAUSE ===========
 whereCondition  =   Group(
-                    ( columnName + BINOP + Optional(ANY_ | ALL_) + columnRval ) |
-                    ( columnName + IN_ + Suppress("(") + delimitedList( columnRval ) + Suppress(")") ) |
-                    ( columnName + (IN_ | BINOP + (ANY_ | ALL_))  + subquery ) |
-                    ( NOT_ + EXISTS_ + subquery) | 
-                    ( Suppress("(") + whereClause + Suppress(")") )
+                    Optional(Suppress("(")) 
+                    + (
+                        (columnName + BINOP + Optional(ANY_ | ALL_) + columnRval)
+                        | (columnName + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
+                        | (columnName + (IN_ | BINOP + (ANY_ | ALL_)) + subquery )
+                        | ( EXISTS_ + subquery)
+                        | (columnName + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_))) 
+                        | (columnName + (ISNULL_ | NOTNULL_))
+                        | (columnName + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
+                    ) 
+                    + Optional(Suppress(")"))
                     )
 
-whereCompound   =   whereCondition + ZeroOrMore( (AND_ | OR_) + whereCondition)
 
-whereClause     <<  Group(whereCompound + ZeroOrMore( (AND_ | OR_) + whereCompound))
+whereClause     <<  (operatorPrecedence(
+                        Group(whereCondition),
+                        [   ( (AND_ | OR_), 2, opAssoc.LEFT), 
+                            ( (NOT_, 1, opAssoc.LEFT))
+                        ]
+                    ))
+
+
+
+#whereCompound   =   whereCondition + ZeroOrMore( (AND_ | OR_) + whereCondition)
+
+#whereClause     <<  Group(whereCompound + ZeroOrMore( (AND_ | OR_) + whereCompound))
 
 #==========HAVING CLAUSE ===========
 havingClause    =   Group(aggregatefns + BINOP + columnRval)
@@ -180,7 +196,7 @@ havingClause    =   Group(aggregatefns + BINOP + columnRval)
 # Define the grammar for SQL query.
 sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Group(    FROM + Group(fromClause) ) 
-                    + Optional( Group( WHERE + ( whereClause ).setResultsName("where")))
+                    + Optional( Group( WHERE + ( whereClause )))
                     + Optional( Group( Combine( GROUP + " " + BY) + Group(columnNameList)))
                     + Optional( Group( HAVING + havingClause))
                     + Optional( Group( Combine(ORDER + " " + BY) + Group(columnNameList)))
@@ -203,19 +219,6 @@ setOp           <<  ((subquery)
 query           <<  (sqlStmt | setOp | createView)
 
 # ============= TESTING TRACES ===============
-
-def test( string ):
-    print (string,"->")
-    try:
-        tokens = query.parseString( string )
-        print( "tokens = ",        tokens)
-        print( "tokens.columns =", tokens.columns)
-        print ("tokens.tables =",  tokens.tables)
-        print ("tokens.where =", tokens.where) 
-    except ParseException:
-        print (" "*err.loc + "^\n" + err.msg)
-        print (err)
-    print('================\n')
 
 def ast(string):
     return query.parseString(string)

@@ -1,4 +1,4 @@
-from to_ast import test, ast
+from to_ast import ast
 import unittest
 
 class TestSQL(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestSQL(unittest.TestCase):
         expected = "[['SELECT', ['sid', 'cgpa']], ['FROM', [['Student']]], ['WHERE', [['cgpa', '>', '3']]]]"
         output = ast("select sid, cgpa from Student where cgpa > 3;")
         print(expected)
-        print(output)
+        print(output[0])
 
     def test_01_simple_dotcol(self):
         ''' TEST SIMPLE SELECT-FROM USING TABLE.COL FORMAT:
@@ -141,7 +141,6 @@ class TestSQL(unittest.TestCase):
         print(output)
 
     def test_07_crossproduct_comma(self):
-        #************************************************
         ''' TEST CROSS PRODUCT ",":
             A query with a cross product in it, comma formatted.
             Expected output:
@@ -302,7 +301,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_16_compound_cond_andor_nobrackets(self):
+    def test_16a_compound_cond_andor_nobrackets(self):
 
         #*****************************************
         ''' TEST COMPOUND CONDITION: AND + OR, NO BRACKETS
@@ -322,7 +321,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
-    def test_17_compound_condition_andor_withbrackets(self):
+    def test_16b_compound_condition_andor_withbrackets(self):
 
         #***************************************
         ''' TEST COMPOUND CONDITION: AND + OR, WITH BRACKETS
@@ -344,6 +343,22 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
 
+    def test_17_compound_condition_not_and(self):
+        ''' TEST COMPOUND CONDITION: NOT (cond AND cond)
+            A query with NOT (cond AND cond).
+            Expected output:
+                [
+                    [ 'SELECT', ['sid', 'cgpa']],
+                    [ 'FROM',   [['Student']]],
+                    [ 'WHERE',  ['NOT', [['sid', '>', '0'], 'AND', ['cgpa', '>=', '3.5']]]],
+                ]
+        '''
+        print('TEST COMPOUND CONDITION: NOT (cond AND cond)')
+        print('A query with NOT (cond AND cond')
+        expected = "[['SELECT', ['sid', 'cgpa']], ['FROM', [['Student']]], ['WHERE', ['NOT', [['sid', '>', '0'], 'AND', ['cgpa', '>=', '3.5']]]]]"
+        output = ast('select sid, cgpa from Student where not sid > 0 and cgpa >= 3.5')
+        print(expected)
+        print(output)
 
     def test_18_compound_condition_2and_1or(self):
 
@@ -660,6 +675,59 @@ class TestSQL(unittest.TestCase):
         print('A query which orders by a certain column.')
         expected = "[['SELECT', ['country', 'population']], ['FROM', [['Countries', 'C']]], ['ORDER BY', ['country']]]"
         output = ast('select country, population from Countries as C order by country')
+        print(expected)
+        print(output)
+
+    def test_34_is_null(self):
+        ''' TEST ISNULL
+            A query which checks if a column ISNULL or IS NULL.
+            Expected output:
+                [   
+                    [ 'SELECT', ['country', 'population']],
+                    [ 'FROM',   [['Countries']]],
+                    [ 'WHERE',  [['gpa', 'ISNULL']]]
+                ]
+        '''
+        print('TEST ISNULL')
+        print('A query which checks if a column ISNULL or IS NULL.')
+        expected = "[['SELECT', ['country', 'population']], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'ISNULL']]]]"
+        output1 = ast('select country, population from Countries where gpa ISNULL')
+        output2 = ast('select country, population from Countries where gpa IS NULL')
+        print(expected)
+        print(output1)
+        print(output2)
+
+    def test_35_notnull(self):
+        ''' TEST NOTNULL
+            A query which checks if a column NOTNULL.
+            Expected output:
+                [
+                    [ 'SELECT', ['country']],
+                    [ 'FROM',   [['Countries']]],
+                    [ 'WHERE',  [['gpa', 'NOTNULL']]]
+                ]
+        '''
+        print('TEST NOTNULL')
+        print('A query which checks if a column NOTNULL.')
+        expected = "[['SELECT', ['country']], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'NOTNULL']]]]"
+        output = ast('select country from Countries where gpa notnull')
+        print(expected)
+        print(output)
+
+    def test_36_between(self):
+        ''' TEST BETWEEN
+            A query which checks if a column is BETWEEN values x and y.
+            Expected output:
+                [
+                    [ 'SELECT', ['gpa']],
+                    [ 'FROM',   [['Countries']]],
+                    [ 'WHERE',  [['gpa', 'BETWEEN', 'x', 'AND', 'y']]]
+                ]
+        '''
+        print('TEST BETWEEN')
+        print('A query which checks if a column is BETWEEN x and y.')
+        expected = "[['SELECT', ['gpa']], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'BETWEEN', 'x', 'AND', 'y']]]]"
+        output = ast('select gpa from Countries where gpa between x and y')
         print(expected)
         print(output)
 
