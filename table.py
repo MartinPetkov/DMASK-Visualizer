@@ -9,6 +9,7 @@ class Table:
     :param step: the step on which this table was created
     :param col_names: a list of the column names; the indexes match the order of values in the value tuples
     :param tuples: a list of string lists, one for each tuple of values in the table
+    :param reasons: a map of row numbers (counting from 1) to Reason objects, saying why they were kept; for WHERE and JOIN queries, this will be the actual row number but for NATUAL JOIN queries and queries with only one condition, there will only be an entry for row 0 which is true for all rows
     """
     def __init__(self, t_name, step, col_names, tuples=[], reasons={}):
         self.t_name = t_name

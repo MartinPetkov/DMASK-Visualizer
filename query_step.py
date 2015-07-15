@@ -11,7 +11,6 @@ class QueryStep:
     :param result_table: a string ID of the output table
     :param namespace: a list of strings of the tables in the namespace before executing this step
     :param res_table_name: the optional name of this resulting table
-    :param reasons: a map of row numbers (counting from 1) to Reason objects, saying why they were kept; for WHERE and JOIN queries, this will be the actual row number but for NATUAL JOIN queries and queries with only one condition, there will only be an entry for row 0 which is true for all rows
     """
     def __init__(self, step_number, sql_chunk, input_tables, result_table, namespace=[]):
         self.step_number = step_number
