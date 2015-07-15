@@ -1,16 +1,14 @@
 """
 LEGEND:
-<sql_query> = a symbol built based on rules defined elsewhere in the document
-"SELECT"    = the literal word SELECT
-'col_name'  = any string representing the column name
-[<arg>]     = a list containing one example of <arg>
-[<arg> ...] = a list containing any number of <arg>s
-(<elem>?)   = optional element
-(<elem>)+   = 1 or more of this element
-(<elem>)*   = 0 or more of this element
-
+    <sql_query> = symbol built based on rules defined elsewhere in the document
+    "SELECT"    = the literal word SELECT
+    'col_name'  = any string representing the column name
+    [<arg>]     = a list containing one example of <arg>
+    [<arg> ...] = a list containing any number of <arg>s
+    (<elem>?)   = optional element
+    (<elem>)+   = 1 or more of this element
+    (<elem>)*   = 0 or more of this element
 """
-
 
 <AST>               = <sql_query> | <create_view> | [ <sql_query> (<set_operation> <sql_query>)+ ]
 
@@ -18,32 +16,72 @@ LEGEND:
 
 <sql_query>         = [ <sql_statement> ... ]
 
-<sql_statement>     = [ "SELECT", [ <select_arg> ... ] ]
-                        |   [ "FROM", [ <from_arg> (<from_connector>?) ... ] ]
-                        |   [ "WHERE", [ <where_arg> (<where_connector>?) ... ] ]
+<sql_statement>     =       [ "SELECT",     [ <select_arg> ... ]],
+                            [ "FROM",       [ <from_arg>, (<from_connector>?) ... ] ],
+                            ([ "WHERE",     [ <where_arg> (<where_connector>?) ... ] ])?,
+                            ([ "GROUP BY",  [ 'col_name' ... ] ])?,
+                            ([ "HAVING",    [ <aggregate_fn>, <comparator>, <val> ]])?,
+                            ([ "ORDER BY",  [ 'col_name' ... ] ])?,
+                            ([ "LIMIT",     [ <numeric>] ] )?,
+                            ([ "OFFSET",    [ <numeric>] ] )?
+                            
+<create_view>       = [ "CREATE VIEW", ("AS"?), 'view_name', <sql_query> ]
 
-<create_view>       = [ "CREATE VIEW", 'view_name', <sql_query> ]
 
 # For SELECT
 <select_arg>        = 'col_name'
-                        |   [ ('col_name' | <col_equation>), 'new_name' ]
+                        |   [ ('col_name' 
+                            | <col_equation> 
+                            | <aggregate_fn> 
+                            | <col_val> ), <as>, 'new_name']
+                            
 
-<col_equation>      = ['col_name', (<operator>, 'col_name')+]
-<oprator>           = "+" | "-" | "*" | "/" | "||"
+<col_equation>      = ['col_name', (<operator>, 'col_name')+ ]
+
+<aggregate_fn>      = function('col_name')
+
+<col_val>           = <val>
+
+<operator>          = "+" | "-" | "*" | "/" | "||"
+
+<as>                = " " | "AS"
 
 
 # For FROM
-<from_arg>          = 'table_name'
-                        |   [ ('table_name' | <sql_query>), 'new_name' ]
+<from_arg>          = ['table_name']
+                        |   [ ('table_name' | <sql_query>), <as>, 'new_name']
                         |   [ 'table_name', 'ON', <reason> ]
-<from_connector>    = ",", "NATURAL JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN"
 
+<from_connector>    = "," 
+                        | ("NATURAL" 
+                            | "INNER" 
+                            | ("LEFT" | "RIGHT" | "FULL")? "OUTER" 
+                            | "CROSS"
+                            | "LEFT"
+                            | "RIGHT"
+                            | "FULL"
+                        )? "JOIN"
+                    
 
 # For WHERE
-<where_arg>         = <reason>
-                        | [<where_arg>]
+<where_arg>         = ("NOT", ?) <reason> | [<where_arg>]
+
 <where_connector>   = "AND" | "OR"
-<reason>            = [("NOT",?) "EXISTS", <sql_query>]
-                        |   [("NOT",?) 'col_name', "IN", <sql_query>]
-                        |   [("NOT",?) 'col1_name', <comparator>, ('col2_name' | ("ANY" | "ALL"), <sql_query>)]
+
+<reason>            = ['col_name', <comparator>, <val>]
+                        | ['col_name', 
+
+<reason>            = ["EXISTS", <sql_query>] 
+                        |   ['col_name', "IN", <sql_query>]
+                        |   ['col1_name', <comparator>, ('col2_name' | ("ANY" | "ALL"), <sql_query>)]
+
+<as>                = " " | "AS" 
+
 <comparator>        = "=" | "<>" | "!=" | ">" | ">=" | "<" | "<="
+
+<numeric>           = /^[1-9][0-9]*$/
+
+<val>               = <numeric> | 'quoted string'
+
+
+
