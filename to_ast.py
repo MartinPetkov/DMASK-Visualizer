@@ -3,7 +3,7 @@ from pyparsing import (ParseResults, Literal, CaselessLiteral, Word, Upcase, del
     opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr)
 
 # ============== Define SQL KEYWORDS ========================
-SELECT          =   KEYWORD("select", caseless=True)
+SELECT          =   KEYWORD("SELECT", caseless=True)
 FROM            =   KEYWORD("FROM", caseless=True)
 WHERE           =   KEYWORD("WHERE", caseless=True)
 GROUP           =   KEYWORD("GROUP", caseless=True)
@@ -252,4 +252,4 @@ query           <<  (sqlStmt | setOp | createView)
 # ============= TESTING TRACES ===============
 
 def ast(string):
-    return query.parseString(string)
+    return query.parseString(string).__str__()
