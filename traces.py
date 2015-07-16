@@ -57,7 +57,7 @@ global_tables = {
 
 DESIRED_ASTS = {}
 
-
+# ============= FIXED ================
 ''' A simple SELECT-FROM-WHERE query '''
 def generate_simple_query():
     query_text =\
@@ -90,6 +90,7 @@ def generate_simple_query():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0')]
                     reasons={
+                        0: Reason(["cgpa > 3"]),
                         1: Reason(["cgpa > 3"]),
                         2: Reason(["cgpa > 3"])
                     }),
@@ -116,7 +117,7 @@ def generate_simple_query():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with a cross product in it '''
 def generate_simple_cross_product_query():
     query_text =\
@@ -260,7 +261,7 @@ def generate_simple_cross_product_query():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with two NATURAL JOINs in it '''
 def generate_simple_natural_join_query():
     query_text =\
@@ -283,7 +284,7 @@ def generate_simple_natural_join_query():
         QueryStep('1.1.2', 'Took', [], 'Took',
             namespace=[ "Took: sid, ofid, grade"]),
 
-        QueryStep('1.1.3', 'Student NATURAL JOIN Took', ['1.1.1', '1.1.2'], '1.1',
+        QueryStep('1.1.3', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1',
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade"]),
 
@@ -466,7 +467,6 @@ def generate_simple_natural_join_query():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
 ''' A query with a LEFT JOIN on a condition in it '''
 def generate_simple_condition_join_query():
     query_text =\
@@ -518,7 +518,6 @@ def generate_simple_condition_join_query():
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
-
 
 ''' A query with one subquery in the FROM '''
 def generate_simple_subquery():
@@ -604,7 +603,7 @@ def generate_simple_subquery():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with an AND in its WHERE clause '''
 def generate_simple_and_query():
     query_text =\
@@ -614,35 +613,38 @@ def generate_simple_and_query():
     ' AND firstName=\'Martin\''
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1',
+        QueryStep('1', 'FROM Student', [], 'Student',
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['1'], '2',
-            reasons= {
-                0: Reason(["cgpa > 3", "firstName='Martin'"]),
-            }),
+        QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['Student'], '2'),
+
         QueryStep('3', 'SELECT email, cgpa', ['2'], '3')
     ]
 
     tables = {
         '1': Table(t_name='1',
                     step='1',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
                             ('4', 'James', 'james@mail.com', '2.8')]
                     ),
+
         '2': Table(t_name='2',
                     step='2',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4')]
+                            ('1', 'Martin', 'martin@mail.com', '3.4')],
+                    reasons= {
+                                0: Reason(["cgpa > 3", "firstName='Martin'"])
+                                1: Reason(["cgpa > 3", "firstName='Martin'"])
+                            }
                     ),
         '3': Table(t_name='3',
                     step='3',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    col_names=['email', 'cgpa'],
                     tuples=[
                             ('martin@mail.com', '3.4')]
                     ),
@@ -659,7 +661,7 @@ def generate_simple_and_query():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with an OR in its WHERE clause '''
 def generate_simple_or_query():
     query_text =\
@@ -669,39 +671,43 @@ def generate_simple_or_query():
     ' OR firstName=\'Sophia\''
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1',
+        QueryStep('1', 'FROM Student', [], 'Student',
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['1'], '2',
-            reasons = {
-                1: Reason(["cgpa > 2"]),
-                2: Reason(["cgpa > 2"]),
-                3: Reason(["firstName=\'Sophia\'"]),
-            }),
+        QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['Student'], '2')
+
         QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='Student',
                     step='1',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
                             ('4', 'James', 'james@mail.com', '2.8')]
                     ),
+
         '2': Table(t_name='2',
                     step='2',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
-                            ('3', 'Sophia', 'not_martin@mail.com', '1.7')]
+                            ('3', 'Sophia', 'not_martin@mail.com', '1.7')],
+                    reasons = {
+                                0: Reason(["cgpa > 2", "firstname=\'Sophia\'"])
+                                1: Reason(["cgpa > 2"]),
+                                2: Reason(["cgpa > 2"]),
+                                3: Reason(["firstName=\'Sophia\'"])
+                            }
                     ),
+
         '3': Table(t_name='3',
                     step='3',
-                    col_names=['Student.email', 'Student.cgpa'],
+                    col_names=['email', 'cgpa'],
                     tuples=[
                             ('martin@mail.com', '3.4'),
                             ('kathy@mail.com', '4.0'),
@@ -720,7 +726,7 @@ def generate_simple_or_query():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with both AND and OR in its WHERE statement '''
 def generate_complex_and_plus_or():
     query_text =\
@@ -731,22 +737,18 @@ def generate_complex_and_plus_or():
     '    OR firstName=\'Kathy\')'
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1',
+        QueryStep('1', 'FROM Student', [], 'Student',
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['1'], '2',
-            reasons = {
-                1: Reason(["cgpa > 3", "firstName='Martin'"]),
-                2: Reason(["cgpa > 3", "firstName='Kathy'"]),
-            }),
+        QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['Student'], '2'),
 
         QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='Student',
                     step='1',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
@@ -755,14 +757,19 @@ def generate_complex_and_plus_or():
                     ),
         '2': Table(t_name='2',
                     step='2',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                            ('2', 'Kathy', 'kathy@mail.com', '4.0')],
+                    reasons = {
+                                0: Reason(["cgpa > 3", "firstName=\'Martin\' OR firstName=\'Kathy\'"])
+                                1: Reason(["cgpa > 3", "firstName='Martin'"]),
+                                2: Reason(["cgpa > 3", "firstName='Kathy'"]),
+                            }
                     ),
         '3': Table(t_name='3',
                     step='3',
-                    col_names=['Student.email', 'Student.cgpa'],
+                    col_names=['email', 'cgpa'],
                     tuples=[
                             ('martin@mail.com', '3.4'),
                             ('kathy@mail.com', '4.0')]
@@ -779,7 +786,6 @@ def generate_complex_and_plus_or():
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
-
 
 
 ''' A query with renaming of tables '''
