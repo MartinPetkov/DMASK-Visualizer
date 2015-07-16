@@ -91,13 +91,7 @@ function onPageLoad(){
         openModalWindow(reason.subquery);
     });
 
-    $(document).on("click", "#modalcontainer", function(e){
-        if (e.target.id == "modalcontainer"){
-            $("#modalcontainer").hide();
-            currentWindow = MainWindow;
-            $("#tooltip").hide();
-        }
-    });
+    $(document).on("click", ".shadow", closeModalWindow);
 
 }
 
