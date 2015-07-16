@@ -82,26 +82,24 @@ def generate_simple_query():
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
                             ('4', 'James', 'james@mail.com', '2.8')]
                     ),
-
         '2': Table(t_name='2',
-                    step='2',
-                    col_names=['sid', 'firstName', 'email', 'cgpa'],
-                    tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0')]
-                    reasons={
-                        0: Reason(["cgpa > 3"]),
-                        1: Reason(["cgpa > 3"]),
-                        2: Reason(["cgpa > 3"])
-                    }),
-
+                   step='2',
+                   col_names=['sid', 'firstName', 'email', 'cgpa'],
+                   tuples=[
+                           ('1', 'Martin', 'martin@mail.com', '3.4'),
+                           ('2', 'Kathy', 'kathy@mail.com', '4.0')],
+                   reasons={
+                       0: Reason(["cgpa > 3"]),
+                       1: Reason(["cgpa > 3"]),
+                       2: Reason(["cgpa > 3"])
+                   }),
         '3': Table(t_name='3',
-                    step='3',
-                    col_names=['sid', 'cgpa'],
-                    tuples=[
-                            ('1', '3.4'),
-                            ('2', '4.0')]
-                    )
+                   step='3',
+                   col_names=['sid', 'cgpa'],
+                   tuples=[
+                           ('1', '3.4'),
+                           ('2', '4.0')]
+                   )
     }
 
 
@@ -131,10 +129,10 @@ def generate_simple_cross_product_query():
         QueryStep('1.1', 'Student', [], 'Student', 'SELECT * FROM Student',
             namespace=[ "Student: sid, firstName, email, cgpa"]),
         QueryStep('1.2', 'Took', [], 'Took', 'SELECT * FROM Took',
-            namespace=[ "Took: sid, ofid, grade"])
+            namespace=[ "Took: sid, ofid, grade"]),
         QueryStep('1.3', 'Student, Took', ['Student', 'Took'], '1', 'SELECT * FROM Student, Took',
             namespace=[ "Student: sid, firstName, email, cgpa",
-                        "Took: sid, ofid, grade"])
+                        "Took: sid, ofid, grade"]),
         QueryStep('2', 'SELECT Student.sid, Student.email, Took.grade', ['1'], '2', 'SELECT Student.sid, Student.email, Took.grade FROM Student, Took')
         ]
 
@@ -349,7 +347,7 @@ def generate_simple_natural_join_query():
 
         '1.1.1': Table(t_name='Student',
                     step='1.1.1',
-                    col_names = ['sid', 'firstName', 'email', 'cgpa']
+                    col_names = ['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
@@ -378,7 +376,7 @@ def generate_simple_natural_join_query():
 
         '1.2': Table(t_name='Course',
                     step='1.2',
-                    col_names = ['dept', 'cNum', 'name']
+                    col_names = ['dept', 'cNum', 'name'],
                     tuples=[
                             ('csc', '148', 'Intro to Computer Science'),
                             ('csc', '209', 'Systems Programming'),
@@ -638,7 +636,7 @@ def generate_simple_and_query():
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4')],
                     reasons= {
-                                0: Reason(["cgpa > 3", "firstName='Martin'"])
+                                0: Reason(["cgpa > 3", "firstName='Martin'"]),
                                 1: Reason(["cgpa > 3", "firstName='Martin'"])
                             }
                     ),
@@ -674,7 +672,7 @@ def generate_simple_or_query():
         QueryStep('1', 'FROM Student', [], 'Student',
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['Student'], '2')
+        QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['Student'], '2'),
 
         QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
     ]
@@ -698,7 +696,7 @@ def generate_simple_or_query():
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7')],
                     reasons = {
-                                0: Reason(["cgpa > 2", "firstname=\'Sophia\'"])
+                                0: Reason(["cgpa > 2", "firstname=\'Sophia\'"]),
                                 1: Reason(["cgpa > 2"]),
                                 2: Reason(["cgpa > 2"]),
                                 3: Reason(["firstName=\'Sophia\'"])
@@ -762,7 +760,7 @@ def generate_complex_and_plus_or():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0')],
                     reasons = {
-                                0: Reason(["cgpa > 3", "firstName=\'Martin\' OR firstName=\'Kathy\'"])
+                                0: Reason(["cgpa > 3", "firstName=\'Martin\' OR firstName=\'Kathy\'"]),
                                 1: Reason(["cgpa > 3", "firstName='Martin'"]),
                                 2: Reason(["cgpa > 3", "firstName='Kathy'"]),
                             }

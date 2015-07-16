@@ -28,18 +28,21 @@ Step.prototype.getInputTables = function(){
 Step.prototype.getInputHTML = function(){
     var tables = this.getInputTables();
     
-    var html = "";
+    var html = [];
     var i;
     for (var i = 0; i < tables.length; i++){
-        html += "<div class='input'>"+tables[i].toDisplay()+"</div>";
-    }
-    
+        var container = $.parseHTML("<div class='input'></div>");
+        $(container).append(tables[i].toDisplay());
+        html.push(container);
+    }    
     return html;
 }
 
 Step.prototype.getOutputHTML = function(){
     var output = this.query.tables_dictionary[this.result_id];
-    return "<div class='output'>" + output.toDisplay() + "</div>";
+    var container = $.parseHTML("<div class='output'></div>");
+    $(container).append(output.toDisplay());
+    return container;
 }
 
 Step.prototype.loadStep = function(){
@@ -64,7 +67,10 @@ Step.prototype.loadStep = function(){
     var input = this.getInputHTML();
     var inbox = $("#" + current_window.generateElemID("inbox"));
     inbox.empty();
-    inbox.append(input);
+    var i;
+    for (i = 0; i < input.length; i++){
+        inbox.append(input[i]);
+    }
 
     // update the output
     var output = this.getOutputHTML();

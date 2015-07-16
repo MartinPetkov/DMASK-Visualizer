@@ -13,7 +13,7 @@ class QueryStep:
     :param executable_sql: the string of executable SQL that will execute this step
     :param res_table_name: the optional name of this resulting table
     """
-    def __init__(self, step_number, sql_chunk, input_tables, result_table, executable_sql, namespace=[]):
+    def __init__(self, step_number, sql_chunk, input_tables, result_table, executable_sql="", namespace=[]):
         self.step_number = step_number
         self.sql_chunk = sql_chunk
         self.input_tables = input_tables
@@ -27,7 +27,7 @@ class QueryStep:
             "sql_chunk": self.sql_chunk,
             "input_tables": self.input_tables,
             "result_table": self.result_table,
-            "executable_sql": self.executable,
+            "executable_sql": self.executable_sql,
             "namespace": self.namespace
         }
 

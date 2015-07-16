@@ -67,7 +67,7 @@ function onPageLoad(){
 */
 
     // -- 'Reasons' box handler
-    $("#outbox, #modal-outbox").on("click", ".output-row", function(e){
+    $(document).on("click", ".outbox .output-row", function(e){
         var id = e.target.closest(".output-row").id;
         var reasons = getReasons(id);
         var tooltip = $("#tooltip");
