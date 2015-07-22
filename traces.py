@@ -883,7 +883,7 @@ def generate_complex_subquery_in_where_repeated():
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
                                         namespace=["o1: oid, dept, cNum, instructor",
-                                                    "o2: oid, dpet, cNum, instructor"]),
+                                                    "o2: oid, dept, cNum, instructor"]),
                                     QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
                                         reasons = {
                                             0: Reason(["o2.oid <> o1.oid"])
@@ -891,26 +891,26 @@ def generate_complex_subquery_in_where_repeated():
                                     QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
-                                    '1': Table(t_name='1',
+                                    '1': Table(t_name='o2',
                                     step='1',
-                                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                                    col_names=['o2.oid', 'o2.dept', 'o2.cNum', 'o2.instructor'],
                                     tuples=[
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
                                             ('4', 'ger', '100', 'E. Luzi')]
                                     ),
-                                    '2': Table(t_name='2',
+                                    '2': Table(t_name='o2',
                                     step='2',
-                                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                                    col_names=['o2.oid', 'o2.dept', 'o2.cNum', 'o2.instructor'],
                                     tuples=[
                                             ('2', 'csc', '343', 'D. Horton'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
                                             ('4', 'ger', '100', 'E. Luzi')]
                                     ),
-                                    '3': Table(t_name='3',
+                                    '3': Table(t_name='o2',
                                     step='3',
-                                    col_names=['Offering.oid'],
+                                    col_names=['o2.oid'],
                                     tuples=[
                                             ('2'),
                                             ('3'),
@@ -1057,9 +1057,9 @@ def generate_complex_subquery_in_where_repeated():
     ]
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='o1',
                     step='1',
-                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                    col_names=['o1.oid', 'o1.dept', 'o1.cNum', 'o1.instructor'],
                     tuples=[
                             ('1', 'csc', '209', 'K. Reid'),
                             ('2', 'csc', '343', 'D. Horton'),
@@ -1068,7 +1068,7 @@ def generate_complex_subquery_in_where_repeated():
                     ),
         '2': Table(t_name='2',
                     step='2',
-                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                    col_names=['o1.oid', 'o1.dept', 'o1.cNum', 'o1.instructor'],
                     tuples=[
                             ('1', 'csc', '209', 'K. Reid'),
                             ('2', 'csc', '343', 'D. Horton'),
@@ -1077,7 +1077,7 @@ def generate_complex_subquery_in_where_repeated():
                     ),
         '3': Table(t_name='3',
                     step='3',
-                    col_names=['Offering.instructor'],
+                    col_names=['o1.instructor'],
                     tuples=[
                             ('K. Reid'),
                             ('D. Horton'),
@@ -1414,7 +1414,10 @@ def generate_diane_where_any():
     '    WHERE grade > 100);'
 
     steps = [
-        QueryStep('1', '', [''], '', namespace=[]),
+        QueryStep('1', 'FROM Student', [], '1', namespace=['Student: sid, firstName, email, cgpa']),
+        QueryStep('2', 'WHERE gpa > ANY (SELECT gpa FROM Student NATURAL JOIN Took WHERE grade > 100)', ['1'], '2'),
+            # ???
+        QueryStep('3', 'SELECT sid', ['2'], '3'),
     ]
 
     tables = {

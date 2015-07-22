@@ -18,7 +18,7 @@ LEGEND:
 
 <sql_query>         = [ <sql_statement> ... ]
 
-<sql_statement>     = [ "SELECT", [ <select_arg> ... ] ]
+<sql_statement>     = [ "SELECT", ("DISTINCT",?) [ <select_arg> ... ] ]
                         |   [ "FROM", [ <from_arg> (<from_connector>?) ... ] ]
                         |   [ "WHERE", [ <where_arg> (<where_connector>?) ... ] ]
 
