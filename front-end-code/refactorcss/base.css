@@ -1,0 +1,38 @@
+body {
+    margin: 0px;
+    padding: 0px;
+    min-width: 800px;
+    min-height: 600px;
+    font-family: Verdana, Geneva, sans-serif;
+    background: #FFFFFF;
+}
+
+#bodybag {
+    height: 100%;
+    width: 100%;
+    min-width: 800px;
+    min-height: 600px;
+    overflow: hidden;
+}
+
+.shadow {
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0, 0.5);
+    position:fixed;
+    top:0px;
+    left: 0px;
+    min-width: 800px;
+    min-height: 400px;
+}
+
+.modalbag {
+    width: 80%;
+    height: 80%;
+    min-height: 400px;
+    min-width: 600px;
+    background: #FFFFFF;
+    border-radius: 10px;
+    position: absolute;
+    overflow: hidden;
+}

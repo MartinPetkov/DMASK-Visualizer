@@ -1,133 +1,189 @@
-/*
-    Given a step's id, load the step into display
-*/
-function loadStep(id){
-    $("#tooltip").hide();
-
-    currentWindow.current_step = id;
-    var step = $(currentWindow.toc + " #" + id);
-    $(currentWindow.toc + " .step").removeClass("selected");
-    step.addClass("selected");
-    
-    // Expand all collapsed cells containing id
-    var parent_to_show = step;
-
-    // Expand all ancestors until the step is shown
-    while (step.is(':hidden')){
-        // Find the parent (which might be collapsed)
-        var parentitem = parent_to_show.parent().closest("tr");
-        var collapsible = parentitem.find(".collapsible")[0];
-
-        // If the parent is already expanded, don't collapse it
-        if (jQuery(collapsible).html() == "[+]")
-            collapseHandler(collapsible);
-
-        parent_to_show = parentitem;
-    }
-
-    // Load the input and output tables
-    replaceInputTables(idsToHTML(currentWindow.steps_dictionary[toKey(id)][1]));
-    replaceOutputTable(currentWindow.tables_dictionary[currentWindow.steps_dictionary[toKey(id)][5]]);
-    updateNamespace(currentWindow.steps_dictionary[toKey(id)][3]);
-
-}
-
-function updateNamespace(namespace){
-    if (namespace.length < 1){
-        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
-        while (index > 0 && namespace.length < 1){
-            index -= 1;
-            namespace = currentWindow.steps_dictionary[currentWindow.step_keys[index]][3];
-        }
-    }
-    $(currentWindow.namespacebody).html(namespace.join("<br>"));
-}
-
 function stepOut(){
-    if (currentWindow.current_step == 0){
+    var step_id = current_window.current_step_id;
+    if (step_id == ""){
         return;
     }
-    if (currentWindow.current_step == currentWindow.step_keys[0]){
-        return
+    if (isFirstStep(step_id)){
+        return;
     } else {
-        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
+        var current_step = current_window.current_step;
+        var current_query_number = readStepID(step_id)[0];
+        var step_keys = current_step.query.step_keys;
+        
+        // get the index of the current step in the step_keys dictionary
+        var index = current_step.query.getKeysIndex(current_step.stepnumber);
         var initial = index;
-        while (index > 1 && hasNested(currentWindow.step_keys, index - 1)){
-            index -= 1;
+        
+        // exit the loop when the step doesn't have a nested step in it
+        while (index > 1 && hasNested(step_keys, index - 1)){
+            index -= 1;        
         }
         
-        if (nestedInside(currentWindow.step_keys, initial, index) || (index == 1 && nestedInside (currentWindow.step_keys, initial, 0))){
-            index = initial + 1;
-        }
-        
-        loadStep(toID(currentWindow.step_keys[index - 1]));
+        // if the step found has the initial step nested inside, go to
+        // the previous query if it exists. otherwise, go back to the initial step
+        var query_index = previousHelper(step_keys, initial, index, current_query_number);
+        current_query_number = query_index[0];
+        index = query_index[1];
+
+        var query = current_window.queries[current_query_number];
+        query.steps_dictionary[query.step_keys[index - 1]].loadStep();
     }
 }
 
 function stepBack(){
-    if (currentWindow.current_step == 0){
+    var step_id = current_window.current_step_id;
+    if (step_id == ""){
         return;
     }
-    if (currentWindow.current_step == currentWindow.step_keys[0]){
-        return
+    if (isFirstStep(step_id)){
+        return;
     } else {
-        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
-        if (hasNested(currentWindow.step_keys, index - 1) && differentLevels(currentWindow.step_keys, index, index - 1)){
-            // The initial step is the first part of a nested step (ex. 2.1)
-            // Step out of the nested component and go to the next one on the same level
-            while (index > 1 && hasNested(currentWindow.step_keys, index - 1)){
+        var current_step = current_window.current_step;
+        var current_query_number = readStepID(step_id)[0];
+        var step_keys = current_step.query.step_keys;
+        
+        // get the index of the current step in the step_keys dictionary
+        var index = current_step.query.getKeysIndex(current_step.stepnumber);
+
+        // if the initial step is the first part of a nested step (ex. 2.1.)
+        // step out of the nested component and go to the next one on the same level
+        if (hasNested(step_keys, index - 1) && differentLevels(step_keys, index, index - 1)){
+            while (index > 1 && hasNested(step_keys, index - 1)){
                 index -= 1;
             }
         }
         
         var initial = index;
-        
-        // Move to the next step on the same depth
-        while (index > 1 && differentLevels(currentWindow.step_keys, initial, index - 1)){
+
+        // move to the previous step on the same depth
+        while (index > 1 && differentLevels(step_keys, initial, index - 1)){
             index -= 1;
         }
 
-        if (nestedInside(currentWindow.step_keys, initial, index) || (index == 1 && nestedInside (currentWindow.step_keys, initial, 0))){
-            index = initial + 1;
-        }
+        // if the step found has the initial step nested inside, go to
+        // the previous query if it exists. otherwise, go back to the initial step
+        var query_index = previousHelper(step_keys, initial, index, current_query_number);
+        current_query_number = query_index[0];
+        index = query_index[1];
 
-        loadStep(toID(currentWindow.step_keys[index - 1]));
+        var query = current_window.queries[current_query_number];
+        query.steps_dictionary[query.step_keys[index - 1]].loadStep();
     }
 }
 
 function stepNext(){
-    if (currentWindow.current_step == 0){
-        loadStep(toID(currentWindow.step_keys[0]));
+    var step_id = current_window.current_step_id;
+    if (step_id == ""){
+        var first_query = current_window.queries[0];
+        first_query.steps_dictionary[first_query.step_keys[0]].loadStep();
         return;
     }
-    if (currentWindow.current_step == currentWindow.step_keys[currentWindow.step_keys.length-1]){
-        return
+    if (isLastStep(step_id)){
+        return;
     } else {
-        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
-        var initial = index;
+        var current_step = current_window.current_step;
+        var current_query_number = readStepID(step_id)[0];
+        var step_keys = current_step.query.step_keys;
         
-        if (!isLastNested(currentWindow.step_keys, index)) {
-            // Move to the next step on the same depth
-            while (index < currentWindow.step_keys.length - 1 && differentLevels(currentWindow.step_keys, initial, index + 1)){
+        // get the index of the current step in the step_keys dictionary
+        var index = current_step.query.getKeysIndex(current_step.stepnumber);
+        var initial = index;
+
+        if (!isLastNested(step_keys, index)){
+            // move to the next step on the same depth
+            while (index < step_keys.length - 1 && differentLevels(step_keys, initial, index + 1)){
                 index += 1;
             }
         }
-        loadStep(toID(currentWindow.step_keys[index + 1]));
+
+        // if there's no next step, then move to the next query
+        if (index == initial && step_keys[index + 1] == undefined){
+            index = -1;
+            current_query_number += 1;
+        }
+
+        var query = current_window.queries[current_query_number];
+        query.steps_dictionary[query.step_keys[index + 1]].loadStep();
     }
 }
 
 function stepIn(){
-    if (currentWindow.current_step == 0){
-        loadStep(toID(currentWindow.step_keys[0]));
+    var step_id = current_window.current_step_id;
+    if (step_id == ""){
+        var first_query = current_window.queries[0];
+        first_query.steps_dictionary[first_query.step_keys[0]].loadStep();
         return;
     }
-    if (currentWindow.current_step == currentWindow.step_keys[currentWindow.step_keys.length - 1]){
-        return
+    if (isLastStep(step_id)){
+        return;
     } else {
-        var index = currentWindow.step_keys.indexOf(toKey(currentWindow.current_step));
-        while (index < currentWindow.step_keys.length - 1 && hasNested(currentWindow.step_keys, index + 1)){
-            index += 1;
+        var current_step = current_window.current_step;
+        var current_query_number = readStepID(step_id)[0];
+        var step_keys = current_step.query.step_keys;
+        
+        // get the index of the current step in the step_keys dictionary
+        var index = current_step.query.getKeysIndex(current_step.stepnumber);
+        
+        // if there's no next step, then move to the next query
+        if (step_keys[index + 1] == undefined){
+            index = -1;
+            current_query_number += 1;
+        } else {
+            while (index < step_keys.length - 1 && hasNested(step_keys, index + 1)){
+                index += 1;
+            }
         }
-        loadStep(toID(currentWindow.step_keys[index + 1]));
+        
+        var query = current_window.queries[current_query_number];
+        query.steps_dictionary[query.step_keys[index + 1]].loadStep();
     }
 }
+
+// navigation helper functions
+
+function readStepID(step_id){
+    var array = step_id.split("-");
+    var query_number = array[0].slice(1);
+    array.splice(0, 1);
+    var step_number = array.join(".");
+    return [query_number, step_number];
+}
+
+function isFirstStep(step_id){
+    var parsed_id = readStepID(step_id);
+    var query_number = parsed_id[0];
+    var step_number = parsed_id[1];
+
+    if (query_number == 0 && current_window.queries[0].step_keys[0] == step_number)
+        return 1;
+    return 0;
+}
+
+function isLastStep(step_id){
+    var parsed_id = readStepID(step_id);
+    var query_number = parsed_id[0];
+    var step_number = parsed_id[1];
+
+    var last_query_index = current_window.queries.length - 1;
+    var last_query = current_window.queries[last_query_index];
+    
+    if (query_number == last_query_index && 
+        last_query.step_keys[last_query.step_keys.length - 1] == step_number)
+        return 1;
+    return 0;
+}
+
+function previousHelper(step_keys, initial, index, current_query_number){
+    if (nestedInside(step_keys, initial, index) || (index == 1 && nestedInside(step_keys, initial, 0))){
+        index = 0;
+        if (current_query_number > 0){
+            // move to the last step in the previous query
+            current_query_number -= 1;
+            index = current_window.queries[current_query_number].step_keys.length;
+        } else {
+            index = initial + 1;
+        }
+    }
+    return [current_query_number, index];
+}
+

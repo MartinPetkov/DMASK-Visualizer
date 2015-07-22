@@ -36,7 +36,7 @@ Query.prototype.toTOC = function(){
         if (isLastNested(this.step_keys, i))
             step += "</table></td></tr>";
 
-        allsteps = step;
+        allsteps += step;
     }
 
     // Set the value of each step in the DOM to the step object
@@ -48,8 +48,12 @@ Query.prototype.toTOC = function(){
     return toc;
 }
 
+Query.prototype.getKeysIndex = function (stepnumber){
+    return this.step_keys.indexOf(stepnumber);
+}
+
 Query.prototype.getStepID = function (index){
-    return "q" + this.number + "-" + toID(this.step_keys[i]);
+    return "q" + this.number + "-" + toID(this.step_keys[index]);
 }
 
 

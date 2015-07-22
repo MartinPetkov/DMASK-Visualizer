@@ -4,32 +4,59 @@ $(document).ready(onPageLoad);
 // Every resize of window
 $(window).resize(sizeContent);
 
-function onPageLoad(){
-    sizeContent();
-    parseAndLoad(parsedquery);
+var current_window;
 
-    // add event handlers
-    // -- ToC Handlers (Collapsing, clicking on steps)
+function loadQueries(queries){
+    // Parse the JSON content and load them into the current window's ToC
+    var toc = $("#" + current_window.generateElemID("toc"));
+    toc.empty();
+    var i = 0;
+    for (i = 0; i < queries.length; i++){
+        var q = new Query(queries[i].steps, queries[i].tables, queries[i].query_text, i);
+        current_window.queries.push(q);
+        toc.append(q.toTOC());
+    }
+}
+
+function onPageLoad(){
+    base = $("#bodybag").clone();
+    main = new Window("");
+    current_window = main;
+
+    loadQueries(parsedquery);
+    sizeContent();
+
+    // add collapse handlers
     $(document).on("click", ".collapsible", function(e){
         collapseHandler(e.target);
     });
     collapseAll();
 
+    // add navigation handlers
     $(document).on("click", ".step", function(e){
         if (!jQuery(e.target).hasClass("collapsible"))
             var step = jQuery(e.target.closest("tr"));
             if (step != undefined){
-                var id = step[0].id;
-                loadStep(id);
+                var step_object = step.val();
+                step_object.loadStep();
             }
     });
 
-    // -- Navigation handlers (stepping through)
     $(document).on("click", "#stepout", stepOut);
     $(document).on("click", "#back", stepBack);
     $(document).on("click", "#next", stepNext);
     $(document).on("click", "#stepin", stepIn);
 
+    
+//    parseAndLoad(parsedquery);
+
+    // add event handlers
+    // -- ToC Handlers (Collapsing, clicking on steps)
+
+
+    // -- Navigation handlers (stepping through)
+
+/*
     // -- Table handlers
     $("#inbox, #modal-inbox").on("click", ".tablecontainer", function(e){
         var id = e.target.closest(".tablecontainer").id;
@@ -37,9 +64,10 @@ function onPageLoad(){
         if (currentWindow.steps_dictionary[toKey(stepid)])
             loadStep(stepid);
     });
+*/
 
     // -- 'Reasons' box handler
-    $("#outbox, #modal-outbox").on("click", ".output-row", function(e){
+    $(document).on("click", ".outbox .output-row", function(e){
         var id = e.target.closest(".output-row").id;
         var reasons = getReasons(id);
         var tooltip = $("#tooltip");
@@ -63,13 +91,7 @@ function onPageLoad(){
         openModalWindow(reason.subquery);
     });
 
-    $(document).on("click", "#modalcontainer", function(e){
-        if (e.target.id == "modalcontainer"){
-            $("#modalcontainer").hide();
-            currentWindow = MainWindow;
-            $("#tooltip").hide();
-        }
-    });
+    $(document).on("click", ".shadow", closeModalWindow);
 
 }
 

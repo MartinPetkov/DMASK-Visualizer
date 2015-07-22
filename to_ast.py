@@ -1,8 +1,8 @@
-from pyparsing import (Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
+from pyparsing import (ParseResults, Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
     Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString,
-    operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress)
+    opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr)
 
-# Define SQL KEYWORDS
+# ============== Define SQL KEYWORDS ========================
 SELECT          =   KEYWORD("SELECT", caseless=True)
 FROM            =   KEYWORD("FROM", caseless=True)
 WHERE           =   KEYWORD("WHERE", caseless=True)
@@ -20,8 +20,6 @@ DESC            =   KEYWORD("DESC", caseless=True)
 USING           =   KEYWORD("USING", caseless=True)
 LIMIT           =   KEYWORD("LIMIT", caseless=True)
 OFFSET          =   KEYWORD("OFFSET", caseless=True)
-
-# Define OPERATORS
 AND_            =   KEYWORD("AND", caseless=True)
 OR_             =   KEYWORD("OR", caseless=True)
 IS_             =   KEYWORD("IS", caseless=True)
@@ -45,41 +43,34 @@ FULL_           =   KEYWORD("FULL", caseless=True)
 NULL_           =   KEYWORD("NULL", caseless=True)
 ISNULL_         =   KEYWORD("ISNULL", caseless=True)
 NOTNULL_        =   KEYWORD("NOTNULL", caseless=True)
+BETWEEN_        =   KEYWORD("BETWEEN", caseless=True)
 
 KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
                     CREATE | VIEW | AS | DISTINCT | ON | ASC | DESC | USING | 
                     LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
                     ANY_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
                     JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
-                    NULL_ | ISNULL_ | NOTNULL_ )
+                    NULL_ | ISNULL_ | NOTNULL_ | BETWEEN_)
 
-# Define SQL CLAUSES
-# Grammar for clauses will be defined below
+# ================= Define SQL CLAUSES =======================
+# Grammar for clauses will be defined below. 
+# The following statements can be recursively defined.
+
 sqlStmt         =   Forward()
-selectColumn    =   Forward()
-selectClause    =   Forward()
+whereCompound   =   Forward()
 whereClause     =   Forward()
+subquery        =   Forward()
 query           =   Forward()
 createView      =   Forward()
 setOp           =   Forward()
 
-# Define view names, column names, column renames, table names, table renames
-ident           =   ~KEYWORDS + Word(alphas, alphanums + "_$")
-viewName        =   delimitedList(ident, ".", combine=True)
-columnName      =   delimitedList(ident, ".", combine=True)
-columnRename    =   delimitedList(ident, ".", combine=True)
-tableName       =   delimitedList(ident, ".", combine=True)
-tableRename     =   delimitedList(ident, ".", combine=True)
-columnNameList  =   (delimitedList(columnName) 
-                    + Optional((Suppress(AS) + columnRename) |('||' + columnRename) | columnRename)
-                    )
-columnRenameList=   Group(delimitedList(columnRename))
-tableNameList   =   Group(delimitedList(tableName, ", ", combine=True))
-tableRenameList =   Group(delimitedList(tableRename))
+# ========== Define column values/operations ================
 
-# Define column values/operations
+# Binary operators
 BINOP           =   oneOf("= != < > <> >= <= || eq ne lt le gt ge LIKE", caseless=True)
+
 arithSign       =   Word("-=",exact=1)
+
 E = CaselessLiteral("E")
 
 realNum         =   Combine( Optional(arithSign) 
@@ -89,10 +80,51 @@ realNum         =   Combine( Optional(arithSign)
 
 intNum          =   Combine( Optional(arithSign) 
                     + Word( nums ) 
-                    + Optional( E + Optional("+") + Word(nums) ) 
+                    + Optional( E + Optional("+") + Word(nums) )
                     )
 
-subquery        =   Suppress("(") + Group(sqlStmt) + Suppress(")")
+# ============= Define Tokens ===============================
+ident           =   (~KEYWORDS 
+                    + (Word(alphas, alphanums + "_$")
+                        | realNum
+                        | intNum)
+                    )
+viewName        =   delimitedList(ident, ".", combine=True)
+columnName      =   delimitedList(ident, ".", combine=True)
+columnRename    =   delimitedList(ident, ".", combine=True)
+tableName       =   delimitedList(ident, ".", combine=True)
+tableRename     =   delimitedList(ident, ".", combine=True)
+columnNameList  =   (delimitedList(columnName)
+                    + Optional(('||') + columnRename) 
+                    + Optional((Suppress(AS) + columnRename))
+                    )
+columnRenameList=   Group(delimitedList(columnRename))
+tableNameList   =   Group(delimitedList(tableName, ", ", combine=True))
+tableRenameList =   Group(delimitedList(tableRename))
+
+
+# =========== PRECEDENCE FUNCTION ============
+
+def precedence(num):
+    if num is None:
+        initlen = 2
+        incr = 1
+    else:
+        initlen = {0:1, 1:2, 2:3, 3:5}[num]
+        incr = {0:1, 1:1, 2:2, 3:4}[num]
+
+    def pa(s, l, t):
+        t = t[0]
+        if len(t) > initlen:
+            ret = ParseResults(t[:initlen])
+            i = initlen
+            while i < len(t):
+                ret = ParseResults([ret] + t[i:i+incr])
+                i+= incr
+            return ParseResults([ret])
+    return pa
+
+
 '''
 UNARY, BINARY, TERNARY = 1, 2, 3
 operators       =   operatorPrecedence(
@@ -108,22 +140,26 @@ operators       =   operatorPrecedence(
                     ((BETWEEN, AND), TERNARY, opAssoc.LEFT),   
                     ]) 
 '''
+
 #========= SELECT CLAUSE ===========
 
 # Aggregate functions
 aggregatefns    =   Combine(Word(alphas) + ("(") + columnName + (")"))
 
-# Concatenated columns
-concatcolumn    =   Group (columnName + '||' + columnName)
-
 # Possible column values
 columnRval      =   (realNum | intNum | quotedString | columnName)
 
 # Possible attributes to SELECT over
-selectColumn    <<  ('*' | aggregatefns |  columnNameList | columnRval)
+selectColumn    =   ('*' | aggregatefns |  columnNameList | columnRval)
 
 # SELECT CLAUSE
-selectClause    <<  ( Group(selectColumn) | subquery)
+selectClause    =   ( Group(selectColumn) | subquery)
+
+'''
+columnNameList  =   (delimitedList(columnName) 
+                    + Optional((Suppress(AS) + columnRename) |('||' + columnRename) | columnRename)
+                    )
+'''
 
 
 # ========== FROM CLAUSE =========== 
@@ -145,33 +181,41 @@ joins           =   (Literal(',')
                     )
 
 # tableBlock nested within joinBlock, includes renames
-tableBlock      =   Group(tableName 
-                    + Optional ((Suppress(AS) + tableRename) | tableRename)
-                    )
+tableBlock      =   (Group(tableName 
+                    + Optional(Suppress(AS)) + tableRename
+                    ) | tableName)
 
-# <tableBlock> {JOIN} <tableBlock>
-joinBlock       =   (joins 
-                    + tableBlock 
+tableOnBlock    =   (tableBlock 
                     + (Optional(ON + Group(columnName + BINOP + columnRval))
-                        | Optional(USING + Group(columnName)))
-                    )
-# FROM CLAUSE
-fromClause      =   ((tableBlock +  ZeroOrMore(joinBlock)) 
-                    | subquery + Optional(tableRename | Suppress(AS) + tableRename)
-                    )
+                    | Optional(USING + Group(columnName))
+                    ))
+
+fromClause      =   (operatorPrecedence(
+                        tableOnBlock, 
+                        [(joins, 2, opAssoc.LEFT, precedence(2))]
+                    ))
 
 # ========= WHERE CLAUSE ===========
 whereCondition  =   Group(
-                    ( columnName + BINOP + Optional(ANY_ | ALL_) + columnRval ) |
-                    ( columnName + IN_ + Suppress("(") + delimitedList( columnRval ) + Suppress(")") ) |
-                    ( columnName + (IN_ | BINOP + (ANY_ | ALL_))  + subquery ) |
-                    ( NOT_ + EXISTS_ + subquery) | 
-                    ( Suppress("(") + whereClause + Suppress(")") )
+                    Optional(Suppress("(")) 
+                    + (
+                        ( columnName + BINOP + columnRval)
+                        | (columnName + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
+                        | (columnName + (IN_ | BINOP + (ANY_ | ALL_)) + subquery )
+                        | ( EXISTS_ + subquery)
+                        | (columnName + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_))) 
+                        | (columnName + (ISNULL_ | NOTNULL_))
+                        | (columnName + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
+                    ) 
+                    + Optional(Suppress(")"))
                     )
 
-whereCompound   =   whereCondition + ZeroOrMore( (AND_ | OR_) + whereCondition)
-
-whereClause     <<  Group(whereCompound + ZeroOrMore( (AND_ | OR_) + whereCompound))
+whereClause     =   operatorPrecedence(
+                        whereCondition,
+                        [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
+                            ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
+                        ]
+                    )
 
 #==========HAVING CLAUSE ===========
 havingClause    =   Group(aggregatefns + BINOP + columnRval)
@@ -180,7 +224,7 @@ havingClause    =   Group(aggregatefns + BINOP + columnRval)
 # Define the grammar for SQL query.
 sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Group(    FROM + Group(fromClause) ) 
-                    + Optional( Group( WHERE + ( whereClause ).setResultsName("where")))
+                    + Optional( Group( WHERE + ( whereClause )))
                     + Optional( Group( Combine( GROUP + " " + BY) + Group(columnNameList)))
                     + Optional( Group( HAVING + havingClause))
                     + Optional( Group( Combine(ORDER + " " + BY) + Group(columnNameList)))
@@ -188,6 +232,9 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Optional( Group(OFFSET + Group(columnRval)))
                     + Optional( Suppress(";"))
                     )
+
+
+subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")")
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + viewName 
@@ -204,18 +251,5 @@ query           <<  (sqlStmt | setOp | createView)
 
 # ============= TESTING TRACES ===============
 
-def test( string ):
-    print (string,"->")
-    try:
-        tokens = query.parseString( string )
-        print( "tokens = ",        tokens)
-        print( "tokens.columns =", tokens.columns)
-        print ("tokens.tables =",  tokens.tables)
-        print ("tokens.where =", tokens.where) 
-    except ParseException:
-        print (" "*err.loc + "^\n" + err.msg)
-        print (err)
-    print('================\n')
-
 def ast(string):
-    return query.parseString(string)
+    return query.parseString(string).__str__()
