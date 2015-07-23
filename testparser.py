@@ -492,15 +492,15 @@ class TestSQL(unittest.TestCase):
             A query with one subquery in the SELECT clause
             Expected output:
                 [
-                    [   'SELECT', [[ 
-                            ['SELECT', ['only']], ['FROM', [['Took']] ]
-                            ], 'H']],
+                    [   'SELECT', [
+                            ['SELECT', [['only']]], ['FROM', [['Took']] ]
+                            ], 'H'],
                         ['FROM', [['Offering']] ]
                 ]
         '''
         print('TEST SUBQUERY IN SELECT CLAUSE:')
         print('A query with one subquery in the SELECT clause')
-        expected = "[['SELECT', [[['SELECT', ['only']], ['FROM', [['Took']]]], 'H']], ['FROM', [['Offering']]]]"
+        expected = "[['SELECT', [['SELECT', [['only']]], ['FROM', [['Took']]], 'H']], ['FROM', [['Offering']]]]"
         output = ast('select (select only from Took) H from Offering')
         print(expected)
         print(output)
@@ -533,10 +533,10 @@ class TestSQL(unittest.TestCase):
             A query containing a subquery using keyword ANY in WHERE condition.
             Expected output:
                 [
-                    [ 'SELECT', ['sid']],
+                    [ 'SELECT', [['sid']]],
                     [ 'FROM'    [['Student']]],
                     [ 'WHERE',  ['gpa', '>', 'ANY', [
-                                                ['SELECT', ['gpa']], 
+                                                ['SELECT', [['gpa']]], 
                                                 ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], 
                                                 ['WHERE', [['grade', '>', '100']]]
                                             ]]
@@ -545,7 +545,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST ANY')
         print('A query using keyword ANY in WHERE condition.')
-        expected = "[['SELECT', ['sid']], ['FROM', [['Student']]], ['WHERE', ['gpa', '>', 'ANY', [['SELECT', ['gpa']], ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]"
+        expected = "[['SELECT', [['sid']]], ['FROM', [['Student']]], ['WHERE', ['gpa', '>', 'ANY', [['SELECT', [['gpa']]], ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]"
         output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100);')
         print(expected)
         print(output)
@@ -556,10 +556,10 @@ class TestSQL(unittest.TestCase):
             A query containing a subquery using keyword IN.
             Expected output:
                 [
-                    [ 'SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']],
+                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]],
                     [ 'FROM',   [['Took'], 'NATURAL JOIN', ['Offering']]],
                     [ 'WHERE',  [['grade', '>=', '80'], 'AND', ['dept', 'IN', 
-                                [   ['SELECT',  ['dept']], 
+                                [   ['SELECT',  [['dept']]], 
                                     ['FROM',    [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]],
                                     ['WHERE',   [['surname', '=', "'Lakemeyer'"]]]
                                 ]]]
@@ -568,7 +568,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST IN')
         print('A query containing a subquery using keyword IN.')
-        expected = "[['SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade']], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering']]], ['WHERE', [['grade', '>=', '80'], 'AND', ['dept', 'IN', [['SELECT', ['dept']], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]], ['WHERE', [['surname', '=', "'Lakemeyer'"]]]]]]]]"
+        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering']]], ['WHERE', [['grade', '>=', '80'], 'AND', ['dept', 'IN', [['SELECT', [['dept']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]], ['WHERE', [['surname', '=', "'Lakemeyer'"]]]]]]]]"
         output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join offering natural join Student where surname = \'Lakemeyer\');')
         print(expected)
         print(output)
@@ -578,10 +578,10 @@ class TestSQL(unittest.TestCase):
             A query containing a subquery using keyword EXISTS.
             Expected output:
                 [
-                    [ 'SELECT', ['instructor']],
+                    [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']],
                     [ 'WHERE',  ['NOT', 'EXISTS', 
-                                    [['SELECT', ['*']],
+                                    [['SELECT', [['*']]],
                                     ['FROM',    [['Offering']]],
                                     ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]
                 ]]
@@ -589,13 +589,13 @@ class TestSQL(unittest.TestCase):
 
         print('TEST NOT EXISTS')
         print('A query containing a subquery using keyword NOT EXISTS.')
-        expected = "[['SELECT', ['instructor']], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['NOT', 'EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
+        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['NOT', 'EXISTS', [['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
         output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
 
         print('Subquery')
-        expected2 = "[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]"
+        expected2 = "[['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]"
         output2 = ast('select * from Offering where oid <> Offl.oid and instructor = Offl.instructor')
         print(expected2)
         print(output2)
@@ -605,10 +605,10 @@ class TestSQL(unittest.TestCase):
             A query containing a subquery using keyword EXISTS.
             Expected output:
                 [
-                    [ 'SELECT', ['instructor']],
+                    [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']]],
                     [ 'WHERE',  ['EXISTS', 
-                                    [['SELECT', ['*']],
+                                    [['SELECT', [['*']]],
                                     ['FROM',    [['Offering']]],
                                     ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]
                 ]]
@@ -616,13 +616,13 @@ class TestSQL(unittest.TestCase):
 
         print('TEST EXISTS')
         print('A query containing a subquery using keyword EXISTS.')
-        expected = "[['SELECT', ['instructor']], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
+        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['EXISTS', [['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
         output = ast('select instructor from Offering as Offl where exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
 
         print('Subquery')
-        expected2 = "[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]"
+        expected2 = "[['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]"
         output2 = ast('select * from Offering where oid <> Offl.oid and instructor = Offl.instructor')
         print(expected2)
         print(output2)
@@ -650,14 +650,14 @@ class TestSQL(unittest.TestCase):
             A query limiting the number of entries in the query result.
             Expected output:
                 [
-                    [ 'SELECT', ['sid']],
+                    [ 'SELECT', [['sid']]],
                     [ 'FROM",   [['Took']]],
                     [ 'LIMIT', ['10']]
                 ]
         '''
         print('TEST LIMIT')
         print('A query limiting the number of entries in the query result.')
-        expected = "[['SELECT', ['sid']], ['FROM', [['Took']]], ['LIMIT', ['10']]]"
+        expected = "[['SELECT', [['sid']]], ['FROM', [['Took']]], ['LIMIT', ['10']]]"
         output = ast('select sid from Took limit 10')
         print(expected)
         print(output)
@@ -667,7 +667,7 @@ class TestSQL(unittest.TestCase):
             A query limiting the number of entries in the query result and offset by a value.
             Expected output:
                 [
-                    [ 'SELECT', ['sid']],
+                    [ 'SELECT', [['sid']]],
                     [ 'FROM",   [['Took']]],
                     [ 'LIMIT',  ['10']],
                     [ 'OFFSET', ['4']]
@@ -675,7 +675,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST LIMIT AND OFFSET')
         print('A query limiting number of entries in the query result and offset by a value')
-        expected = "[['SELECT', ['sid']], ['FROM', [['Took']]], ['LIMIT', ['10']], ['OFFSET', ['4']]]"
+        expected = "[['SELECT', [['sid']]], ['FROM', [['Took']]], ['LIMIT', ['10']], ['OFFSET', ['4']]]"
         output = ast('select sid from Took limit 10 offset 4')
         print(expected)
         print(output)
@@ -685,7 +685,7 @@ class TestSQL(unittest.TestCase):
             A query selecting over one aggregated column. 
             Expected output:
                 [
-                    [ 'SELECT', ['max(sid)']],
+                    [ 'SELECT', [['max(sid)']]],
                     [ 'FROM',   [['Student']]],
                 ]
         '''
@@ -701,14 +701,14 @@ class TestSQL(unittest.TestCase):
             A query selecting over one aggregated column and one unaggregated column
             Expected output:
                 [
-                    [ 'SELECT', ['max(cgpa)', 'sid']],
+                    [ 'SELECT', ['max(cgpa)', ['sid']]],
                     [ 'FROM',   [['Student']]],
                     [ 'GROUP BY', ['sid']]
                 ]
         '''
         print('TEST GROUP BY')
         print('A  query selecting over one aggregated column and one unaggregated column')
-        expected = "[['SELECT', ['max(cgpa)', 'sid']], ['FROM', [['Student']]], ['GROUP BY', ['sid']]]"
+        expected = "[['SELECT', [['max(cgpa)'], ['sid']]], ['FROM', [['Student']]], ['GROUP BY', ['sid']]]"
         output = ast('select max(cgpa), sid from Student group by sid')
         print(expected)
         print(output)
@@ -754,14 +754,14 @@ class TestSQL(unittest.TestCase):
             A query which orders by a certain column.
             Expected output:
                 [
-                    [ 'SELECT', ['country', 'population']],
+                    [ 'SELECT', [['country'], ['population']]],
                     [ 'FROM',   [['Countries', 'AS', 'C']]],
                     [ 'ORDER BY', ['country']]
                 ]
         '''
         print('TEST ORDER BY')
         print('A query which orders by a certain column.')
-        expected = "[['SELECT', ['country', 'population']], ['FROM', [['Countries', 'AS', 'C']]], ['ORDER BY', ['country']]]"
+        expected = "[['SELECT', [['country'], ['population']]], ['FROM', [['Countries', 'AS', 'C']]], ['ORDER BY', ['country']]]"
         output = ast('select country, population from Countries as C order by country')
         print(expected)
         print(output)
@@ -771,14 +771,14 @@ class TestSQL(unittest.TestCase):
             A query which checks if a column ISNULL or IS NULL.
             Expected output:
                 [   
-                    [ 'SELECT', ['country', 'population']],
+                    [ 'SELECT', [['country'], ['population']]],
                     [ 'FROM',   [['Countries']]],
                     [ 'WHERE',  [['gpa', 'ISNULL']]]
                 ]
         '''
         print('TEST ISNULL')
         print('A query which checks if a column ISNULL or IS NULL.')
-        expected = "[['SELECT', ['country', 'population']], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'ISNULL']]]]"
+        expected = "[['SELECT', [['country'], ['population']]], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'ISNULL']]]]"
         output1 = ast('select country, population from Countries where gpa ISNULL')
         output2 = ast('select country, population from Countries where gpa IS NULL')
         print(expected)
@@ -790,14 +790,14 @@ class TestSQL(unittest.TestCase):
             A query which checks if a column NOTNULL.
             Expected output:
                 [
-                    [ 'SELECT', ['country']],
+                    [ 'SELECT', [['country']]],
                     [ 'FROM',   [['Countries']]],
                     [ 'WHERE',  [['gpa', 'NOTNULL']]]
                 ]
         '''
         print('TEST NOTNULL')
         print('A query which checks if a column NOTNULL.')
-        expected = "[['SELECT', ['country']], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'NOTNULL']]]]"
+        expected = "[['SELECT', [['country']]], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'NOTNULL']]]]"
         output = ast('select country from Countries where gpa notnull')
         print(expected)
         print(output)
@@ -807,14 +807,14 @@ class TestSQL(unittest.TestCase):
             A query which checks if a column is BETWEEN values x and y.
             Expected output:
                 [
-                    [ 'SELECT', ['gpa']],
+                    [ 'SELECT', [['gpa']]],
                     [ 'FROM',   [['Countries']]],
                     [ 'WHERE',  [['gpa', 'BETWEEN', 'x', 'AND', 'y']]]
                 ]
         '''
         print('TEST BETWEEN')
         print('A query which checks if a column is BETWEEN x and y.')
-        expected = "[['SELECT', ['gpa']], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'BETWEEN', 'x', 'AND', 'y']]]]"
+        expected = "[['SELECT', [['gpa']]], ['FROM', [['Countries']]], ['WHERE', [['gpa', 'BETWEEN', 'x', 'AND', 'y']]]]"
         output = ast('select gpa from Countries where gpa between x and y')
         print(expected)
         print(output)

@@ -62,58 +62,8 @@ query           =   Forward()
 createView      =   Forward()
 setOp           =   Forward()
 token           =   Forward()
-
-# ========== Define column values/operations ================
-
-# Binary operators
-BINOP           =   oneOf("= != < > <> >= <= || eq ne lt le gt ge LIKE", caseless=True)
-
-arithSign       =   Word("-=",exact=1)
-
-E = CaselessLiteral("E")
-
-realNum         =   Combine( Optional(arithSign) 
-                    + ( Word( nums ) + "." + Optional( Word(nums) ) | ( "." + Word(nums) ) ) 
-                    + Optional( E + Optional(arithSign) + Word(nums) ) 
-                    )
-
-intNum          =   Combine( Optional(arithSign) 
-                    + Word( nums ) 
-                    + Optional( E + Optional("+") + Word(nums) )
-                    )
-
-# ============= Define Tokens ===============================
-ident           =   (~KEYWORDS 
-                    + (Word(alphas, alphanums + "_$")
-                        | realNum
-                        | intNum)
-                    )
-
-token           =   delimitedList(ident, ".", combine=True)
-
-tokenObs        =   Group(token 
-                    + Optional(('||') + token)
-                    + Optional(AS + token)
-                    )
-
-tokenList       =   delimitedList(tokenObs)
-
-
-'''
-viewName        =   delimitedList(ident, ".", combine=True)
-columnName      =   delimitedList(ident, ".", combine=True)
-
-columnName      =   delimitedList(ident
-                    + Optional(('||') + columnRename) 
-                    + Optional((Suppress(AS) + columnRename)), ".", combine=True)
-columnRename    =   delimitedList(ident, ".", combine=True)
-tableName       =   delimitedList(ident, ".", combine=True)
-tableRename     =   delimitedList(ident, ".", combine=True)
-columnNameList  =   Group(delimitedList(columnName))
-columnRenameList=   Group(delimitedList(columnRename))
-tableNameList   =   Group(delimitedList(tableName, ", ", combine=True))
-tableRenameList =   Group(delimitedList(tableRename))
-'''
+aggregatefns    =   Forward()
+columnRval      =   Forward()
 
 # =========== PRECEDENCE FUNCTION ============
 
@@ -153,19 +103,76 @@ operators       =   operatorPrecedence(
                     ]) 
 '''
 
-#========= SELECT CLAUSE ===========
+# ========== Define column values/operations ================
+
+# Binary operators
+BINOP           =   oneOf("= != < > <> >= <= || eq ne lt le gt ge LIKE", caseless=True)
+
+arithSign       =   Word("-=",exact=1)
+
+E = CaselessLiteral("E")
+
+realNum         =   Combine( Optional(arithSign) 
+                    + ( Word( nums ) + "." + Optional( Word(nums) ) | ( "." + Word(nums) ) ) 
+                    + Optional( E + Optional(arithSign) + Word(nums) ) 
+                    )
+
+intNum          =   Combine( Optional(arithSign) 
+                    + Word( nums ) 
+                    + Optional( E + Optional("+") + Word(nums) )
+                    )
+
+# ============= Define Tokens ===============================
+ident           =   (~KEYWORDS 
+                    + (Word(alphas, alphanums + "_$")
+                        | realNum
+                        | intNum)
+                    )
+
+
+token           =   delimitedList(ident, ".", combine=True)
+
 
 # Aggregate functions
-aggregatefns    =   Combine(Word(alphas) + ("(") + token + (")"))
+aggregatefns    =   (Combine(Word(alphas) + ("(") + token + (")")))
 
 # Possible column values
-columnRval      =   (realNum | intNum | quotedString | token)
+columnRval      =   (realNum | intNum | quotedString | aggregatefns | token)
+
+tokenObs        =   Group(
+                    columnRval
+                    + Optional(('||') + columnRval)
+                    + Optional(AS) + Optional(token)
+                    )
+
+tokenList       =   delimitedList(tokenObs)
+
+
+'''
+viewName        =   delimitedList(ident, ".", combine=True)
+columnName      =   delimitedList(ident, ".", combine=True)
+
+columnName      =   delimitedList(ident
+                    + Optional(('||') + columnRename) 
+                    + Optional((Suppress(AS) + columnRename)), ".", combine=True)
+columnRename    =   delimitedList(ident, ".", combine=True)
+tableName       =   delimitedList(ident, ".", combine=True)
+tableRename     =   delimitedList(ident, ".", combine=True)
+columnNameList  =   Group(delimitedList(columnName))
+columnRenameList=   Group(delimitedList(columnRename))
+tableNameList   =   Group(delimitedList(tableName, ", ", combine=True))
+tableRenameList =   Group(delimitedList(tableRename))
+'''
+
+
+
+#========= SELECT CLAUSE ===========
 
 # Possible attributes to SELECT over
 selectColumn    =   ('*' | aggregatefns |  tokenList | columnRval)
 
 # SELECT CLAUSE
-selectClause    =   ( Group(selectColumn) | subquery)
+selectClause    =   ( Group(selectColumn) | (subquery + Optional(AS) + Optional(token)))
 
 
 # ========== FROM CLAUSE =========== 
@@ -187,7 +194,7 @@ joins           =   (Literal(',')
                     )
 
 # tableBlock nested within joinBlock, includes renames
-tableBlock      =   (Group(((token) | subquery) 
+tableBlock      =   (Group((token | subquery) 
                     + Optional(AS) + Optional(token)
                     ))
 
@@ -253,9 +260,9 @@ havingClause    =   operatorPrecedence(
 sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Group(    FROM + Group(fromClause) ) 
                     + Optional( Group( WHERE + Group( whereClause )))
-                    + Optional( Group( Combine( GROUP + " " + BY) + Group(tokenList)))
+                    + Optional( Group( Combine( GROUP + " " + BY) + (tokenList)))
                     + Optional( Group( HAVING + Group(havingClause)))
-                    + Optional( Group( Combine(ORDER + " " + BY) + Group(tokenList)))
+                    + Optional( Group( Combine(ORDER + " " + BY) + (tokenList)))
                     + Optional( Group(LIMIT + Group(columnRval)))
                     + Optional( Group(OFFSET + Group(columnRval)))
                     + Optional( Suppress(";"))

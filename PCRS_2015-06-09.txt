@@ -1,0 +1,73 @@
+= RA and SQL visualizers for PCRS: meeting, 9 July 2015 =
+
+How to handle subqueries in a FROM
+- reasons to use a modal window:
+	names introduced are not accessible outside the subquery
+	simply because there is a subquery: Diane not sure would want a modal window
+		in this case, but it doesn't seem possible to have a subquery introduce
+		names that continue to exist when it's done
+- hypothesis: names introduced in a subquery in a FROM
+  are not accessible outside the subquery
+	Confirm this
+- in that case, use a modal window
+
+Renames
+- example:
+	SELECT xxx 
+	FROM Offering O1
+	WHERE ....
+  can you then refer to Offering.oid?  Postgres says no.
+- therefore namespace should only show O1, not Offering
+
+Non-correlated subqueries in a WHERE
+- rethought tentative decisions from previous meeting with Sophia
+- don't want to expand the subquery in the TOC because we want it
+  to look like a subquery in its own namespace
+- came up with a new possible design (whiteboard)
+
+Subqueries in a select
+- confirm that psql does not support it
+- Katherine thinks it does
+
+Subqueries with union, etc.
+- analogous to subquery in WHERE
+	- x.1 is first subquery -- creates a modal window
+	
+Distinct
+- make it a substep of select
+
+Decision
+- restrict visualizer to single-column subqueries in where clauses
+
+LIMIT
+- treat it as a separate step
+- okay to not handle LIMIT
+
+IMPORTANT
+- keep a list of all limitations in the visualizer
+
+Update on the SQL Parser
+- handles
+	subqueries, having, group by, order by, set ops
+- still working on
+	order of operations and use of brackets
+- compound statements separated by semicolon: 
+  DMASK removes comments and breaks input down into single statements
+  before passing it on. 	
+- make sure that throughout, any errors throw an exception
+- add code that handles all possible exceptions:
+	try running the query in psql
+	if it runs:
+		report "can't visualize this, but here's the result:"
+	else:
+		report "invalid query; here's the psql error:"
+
+Going from AST to PQO lists: Martin
+- just getting started
+
+TODOs
+- confirm things above
+- complete test cases that K started for aggregation, group-by, and having
+	need the json output specified
+- Sophia to figure out UI for these
+- completing the other test cases in progress (from Diane's recent email)
