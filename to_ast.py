@@ -1,5 +1,5 @@
 from pyparsing import (ParseResults, Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
-    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString,
+    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, commaSeparatedList,
     opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr)
 
 # ============== Define SQL KEYWORDS ========================
@@ -137,16 +137,15 @@ token           =   delimitedList(ident, ".", combine=True)
 aggregatefns    =   (Combine(Word(alphas) + ("(") + token + (")")))
 
 # Possible column values
-columnRval      =   (realNum | intNum | quotedString | aggregatefns | token)
+columnRval      =   (realNum | intNum | quotedString | token)
 
 tokenObs        =   Group(
-                    columnRval
+                    (aggregatefns | columnRval)
                     + Optional(('||') + columnRval)
                     + Optional(AS) + Optional(token)
                     )
 
 tokenList       =   delimitedList(tokenObs)
-
 
 '''
 viewName        =   delimitedList(ident, ".", combine=True)
@@ -169,7 +168,7 @@ tableRenameList =   Group(delimitedList(tableRename))
 #========= SELECT CLAUSE ===========
 
 # Possible attributes to SELECT over
-selectColumn    =   ('*' | aggregatefns |  tokenList | columnRval)
+selectColumn    =   ('*' | tokenList | columnRval)
 
 # SELECT CLAUSE
 selectClause    =   ( Group(selectColumn) | (subquery + Optional(AS) + Optional(token)))
@@ -213,6 +212,7 @@ fromClause      =   (operatorPrecedence(
                     ))
 '''
 # ========= WHERE CLAUSE ===========
+
 whereCondition  =   Group(
                     Optional(Suppress("(")) 
                     + (
@@ -273,7 +273,7 @@ subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")")
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 
-                    + Suppress(AS) 
+                    + Optional(AS) 
                     + subquery
                     )
 
