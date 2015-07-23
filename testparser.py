@@ -63,13 +63,13 @@ class TestSQL(unittest.TestCase):
             A query selecting two columns concatenated.
             Expected output:
                 [
-                    [ 'SELECT', [['dept', '||' ,'cnum']]],
+                    [ 'SELECT', [[['dept', '||' ,'cnum']]]],
                     [ 'FROM',   [['Student']]]
                 ]
         '''
         print('TEST CONCATENATED COLUMNS')
         print('A query selecting two columns concatenated.')
-        expected = "[['SELECT', [['dept', '||', 'cnum']]], ['FROM', [['Student']]]]"
+        expected = "[['SELECT', [[['dept', '||', 'cnum']]]], ['FROM', [['Student']]]]"
         output = ast('select dept || cnum from Student')
         print(expected)
         print(output)
@@ -338,7 +338,6 @@ class TestSQL(unittest.TestCase):
 
     def test_16b_compound_condition_andor_withbrackets(self):
 
-        #***************************************
         ''' TEST COMPOUND CONDITION: AND + OR, WITH BRACKETS
             A query with both AND and OR in its WHERE statement. With brackets.
             Expected output:
@@ -406,7 +405,7 @@ class TestSQL(unittest.TestCase):
                     [ 'SELECT', [['sid']]], 
                     [ 'FROM',   [[
                         [
-                            [ 'SELECT', [['instructor']]], 
+                            [ 'SELECT', 'DISTINCT', [['instructor']]], 
                             [ 'FROM',   [['Course']]]
                         ], 'H']]
                                 ]
@@ -414,8 +413,8 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST SUBQUERY IN FROM CLAUSE:')
         print('A query with one subquery in the FROM clause')
-        expected = "[['SELECT', [['sid']]], ['FROM', [[[['SELECT', [['instructor']]], ['FROM', [['Course']]]], 'H']]]]"
-        output = ast('select sid from (select instructor from Course) H')
+        expected = "[['SELECT', [['sid']]], ['FROM', [[[['SELECT', 'DISTINCT', [['instructor']]], ['FROM', [['Course']]]], 'H']]]]"
+        output = ast('select sid from (select distinct instructor from Course) H')
         print(expected)
         print(output)
 
@@ -426,11 +425,11 @@ class TestSQL(unittest.TestCase):
             A query with one subquery in the FROM clause
             Expected output: 
                 [
-                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]],
+                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]],
                     [ 'FROM',   [['Took'], ',', [
-                                    ['SELECT',  [['*']] ],
+                                    ['SELECT',  ['*'] ],
                                     ['FROM',    [['Offering']] ],
-                                    ['WHERE',   [['instructor', '=', '\'Horton\'']]]
+                                    ['WHERE',   [[['instructor', '=', '\'Horton\'']]]]
                                     ]
                                 , 'H']], 
                     ['WHERE', [['Took.oid', '=', 'H.oid']]]
@@ -440,8 +439,8 @@ class TestSQL(unittest.TestCase):
 
         print('TEST SUBQUERY IN FROM CLAUSE (COMPLEX): ')
         print('A query with one subquery in the FROM')
-        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]], ['FROM', [['Took'], ',', [['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
-        output = ast('select sid, dept || cnum as course, grade from Took, (select * from Offering where instructor=\'Horton\') H where Took.oid = H.oid;')
+        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [['Took'], ',', [[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']]], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
+        output = ast('select sid, dept || cnum course, grade from Took, (select * from Offering where instructor=\'Horton\';) H where Took.oid = H.oid;')
         print(expected)
         print(output)
 
@@ -462,7 +461,7 @@ class TestSQL(unittest.TestCase):
         print('TEST SUBQUERY IN WHERE CONDITION')
         print('A query with one subquery in the WHERE clause')
         expected = "[['SELECT', [['pizza']]], ['FROM', [['Student']]], ['WHERE', [['cgpa', 'IN', [['SELECT', [['cgpa']]], ['FROM', [['Took']]]]]]]]"
-        output = ast('select pizza from Student where cgpa in (select cgpa from Took)')
+        output = ast('select pizza from Student where cgpa in (select cgpa from Took;)')
         print(expected)
         print(output)
 
@@ -473,15 +472,15 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['pizza']] ],
                     [ 'FROM',   [['Student'] ]],
-                    [ 'WHERE',  [['cgpa', 'IN', [['SELECT', [['*']]],
+                    [ 'WHERE',  [['cgpa', 'IN', [['SELECT', ['*']],
                                     ['FROM',    [['Offering']]],
-                                    ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]
+                                    ['WHERE',   [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]
                 ]
         '''
         print('TEST SUBQUERY IN WHERE CONDITION (COMPLEX):')
         print('A query with one subquery in the WHERE clause')
-        expected = "[['SELECT', [['pizza']]], ['FROM', [['Student']]], ['WHERE', [['cgpa', 'IN', [['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]"
-        output = ast('select pizza from Student where cgpa in (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor)')
+        expected = "[['SELECT', [['pizza']]], ['FROM', [['Student']]], ['WHERE', [['cgpa', 'IN', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]]"
+        output = ast('select pizza from Student where cgpa in (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor;)')
         print(expected)
         print(output)
 
@@ -501,7 +500,7 @@ class TestSQL(unittest.TestCase):
         print('TEST SUBQUERY IN SELECT CLAUSE:')
         print('A query with one subquery in the SELECT clause')
         expected = "[['SELECT', [['SELECT', [['only']]], ['FROM', [['Took']]], 'H']], ['FROM', [['Offering']]]]"
-        output = ast('select (select only from Took) H from Offering')
+        output = ast('select (select only from Took;) H from Offering')
         print(expected)
         print(output)
 
@@ -524,7 +523,7 @@ class TestSQL(unittest.TestCase):
         print('TEST UNION:')
         print('A union of two SQL queries.')
         expected = "[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['Took']]]]]"
-        output = ast('(select sid from Student) union (select sid from Took)')
+        output = ast('(select sid from Student;) union (select sid from Took;)')
         print(expected)
         print(output)
 
@@ -535,18 +534,18 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['sid']]],
                     [ 'FROM'    [['Student']]],
-                    [ 'WHERE',  ['gpa', '>', 'ANY', [
+                    [ 'WHERE',  [['gpa', '>', 'ANY', [
                                                 ['SELECT', [['gpa']]], 
                                                 ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], 
                                                 ['WHERE', [['grade', '>', '100']]]
-                                            ]]
+                                            ]]]
                     ]
                 ]
         '''
         print('TEST ANY')
         print('A query using keyword ANY in WHERE condition.')
-        expected = "[['SELECT', [['sid']]], ['FROM', [['Student']]], ['WHERE', ['gpa', '>', 'ANY', [['SELECT', [['gpa']]], ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]"
-        output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100);')
+        expected = "[['SELECT', [['sid']]], ['FROM', [['Student']]], ['WHERE', [['gpa', '>', 'ANY', [['SELECT', [['gpa']]], ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]]"
+        output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100;);')
         print(expected)
         print(output)
 
@@ -556,20 +555,20 @@ class TestSQL(unittest.TestCase):
             A query containing a subquery using keyword IN.
             Expected output:
                 [
-                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]],
+                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]],
                     [ 'FROM',   [['Took'], 'NATURAL JOIN', ['Offering']]],
-                    [ 'WHERE',  [['grade', '>=', '80'], 'AND', ['dept', 'IN', 
+                    [ 'WHERE',  [[['grade', '>=', '80'], 'AND', ['dept', 'IN', 
                                 [   ['SELECT',  [['dept']]], 
                                     ['FROM',    [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]],
                                     ['WHERE',   [['surname', '=', "'Lakemeyer'"]]]
-                                ]]]
+                                ]]]]
                     ]
                 ]
         '''
         print('TEST IN')
         print('A query containing a subquery using keyword IN.')
-        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering']]], ['WHERE', [['grade', '>=', '80'], 'AND', ['dept', 'IN', [['SELECT', [['dept']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]], ['WHERE', [['surname', '=', "'Lakemeyer'"]]]]]]]]"
-        output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join offering natural join Student where surname = \'Lakemeyer\');')
+        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering']]], ['WHERE', [[['grade', '>=', '80'], 'AND', ['dept', 'IN', [['SELECT', [['dept']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]], ['WHERE', [['surname', '=', \"'Lakemeyer'\"]]]]]]]]]"
+        output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join offering natural join Student where surname = \'Lakemeyer\';);')
         print(expected)
         print(output)
 
@@ -580,17 +579,17 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']],
-                    [ 'WHERE',  [['NOT', 'EXISTS', 
+                    [ 'WHERE',  [['NOT', ['EXISTS', 
                                     [['SELECT', ['*']],
                                     ['FROM',    [['Offering']]],
-                                    ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]
+                                    ['WHERE',   [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]
                 ]]]
         '''
 
         print('TEST NOT EXISTS')
         print('A query containing a subquery using keyword NOT EXISTS.')
-        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['NOT', 'EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
-        output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
+        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', [['NOT', ['EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]]]"
+        output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor;);')
         print(expected)
         print(output)
 
@@ -607,17 +606,17 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']]],
-                    [ 'WHERE',  ['EXISTS', 
+                    [ 'WHERE',  [['EXISTS', 
                                     [['SELECT', ['*']],
                                     ['FROM',    [['Offering']]],
-                                    ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]
+                                    ['WHERE',   [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]
                 ]]
         '''
 
         print('TEST EXISTS')
         print('A query containing a subquery using keyword EXISTS.')
-        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
-        output = ast('select instructor from Offering as Offl where exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
+        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', [['EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]]"
+        output = ast('select instructor from Offering as Offl where exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor;);')
         print(expected)
         print(output)
 

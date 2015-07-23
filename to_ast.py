@@ -61,9 +61,7 @@ subquery        =   Forward()
 query           =   Forward()
 createView      =   Forward()
 setOp           =   Forward()
-token           =   Forward()
-aggregatefns    =   Forward()
-columnRval      =   Forward()
+whereClause     =   Forward()
 
 # =========== PRECEDENCE FUNCTION ============
 
@@ -137,15 +135,16 @@ token           =   delimitedList(ident, ".", combine=True)
 aggregatefns    =   (Combine(Word(alphas) + ("(") + token + (")")))
 
 # Possible column values
-columnRval      =   (realNum | intNum | quotedString | token)
+columnRval      =   (realNum | intNum | quotedString | aggregatefns | token)
 
 tokenObs        =   Group(
-                    (aggregatefns | columnRval)
+                    (Group(columnRval + ('||') + columnRval) | columnRval)
                     + Optional(('||') + columnRval)
                     + Optional(AS) + Optional(token)
                     )
 
 tokenList       =   delimitedList(tokenObs)
+
 
 '''
 viewName        =   delimitedList(ident, ".", combine=True)
@@ -217,8 +216,8 @@ whereCondition  =   Group(
                     Optional(Suppress("(")) 
                     + (
                         (token + BINOP + (((ANY_ | ALL_) + subquery) | columnRval)) 
+                        | (token + IN_ + subquery)
                         | (token + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
-                        | (token + IN_ + subquery )
                         | (EXISTS_ + subquery)
                         | (token + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_))) 
                         | (token + (ISNULL_ | NOTNULL_))
@@ -227,7 +226,7 @@ whereCondition  =   Group(
                     + Optional(Suppress(")"))
                     )
 
-whereClause     =   operatorPrecedence(
+whereClause     <<   operatorPrecedence(
                         whereCondition,
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
