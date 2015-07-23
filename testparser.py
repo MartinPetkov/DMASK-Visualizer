@@ -276,7 +276,7 @@ class TestSQL(unittest.TestCase):
         print('TEST CREATE VIEW AS')
         print('A query with CREATE VIEW.')
         expected = "['CREATE VIEW', 'students', [['SELECT', [['email']]], ['FROM', [['Student']]]]]"
-        output = ast('create view students as (select email from Student)')
+        output = ast('create view students (select email from Student)')
         print(expected)
         print(output)
 
@@ -288,12 +288,12 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']] ],
                     [ 'FROM',   [['Student']]],
-                    [ 'WHERE',  [['cgpa', '>', '3'], 'AND', ['firstName='Martin''] ] ]
+                    [ 'WHERE',  [[['cgpa', '>', '3'], 'AND', ['firstName='Martin''] ] ]]
                 ]
         '''
         print('TEST COMPOUND CONDITION: AND')
         print('A query with an AND in its WHERE clause.')
-        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [['cgpa', '>', '3'], 'AND', ['firstName', '=', \"'Martin'\"]]]]"
+        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[['cgpa', '>', '3'], 'AND', ['firstName', '=', \"'Martin'\"]]]]]"
         output = ast('select email, cgpa from Student where cgpa > 3 and firstName=\'Martin\'')
         print(expected)
         print(output)
@@ -312,7 +312,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST COMPOUND CONDITION: OR')
         print('A query with an OR in its WHERE clause.')
-        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student', 'AS', 'S']]], ['WHERE', [['cgpa', '>', '3'], 'OR', ['firstName', 'LIKE', \"'%Mart%'\"]]]]"
+        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student', 'AS', 'S']]], ['WHERE', [[['cgpa', '>', '3'], 'OR', ['firstName', 'LIKE', \"'%Mart%'\"]]]]]"
         output = ast('select email, cgpa from Student as S where cgpa > 3 or firstName like \'%Mart$\'')
         print(expected)
         print(output)
@@ -325,13 +325,13 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']] ],
                     [ 'FROM',   [['Student']] ],
-                    [ 'WHERE',  [ [['cgpa', '>', '3'], 'AND', ['firstName', '=', 'Martin'] ],
-                                    'OR', ['firstName', 'LIKE', '%Kat%'] ] ]
+                    [ 'WHERE',  [ [[['cgpa', '>', '3'], 'AND', ['firstName', '=', 'Martin'] ],
+                                    'OR', ['firstName', 'LIKE', '%Kat%'] ] ]]
                 ]
         '''
         print('TEST COMPOUND CONDITION: AND + OR, NO BRACKETS')
         print('A query with an AND and OR in its WHERE statement. Left evaluation, no brackets.')
-        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[['cgpa', '>', '3'], 'AND', ['firstName', '=', \"'Martin'\"]], 'OR', ['firstName', 'LIKE', \"'%Kat$'\"]]]]"
+        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[[['cgpa', '>', '3'], 'AND', ['firstName', '=', \"'Martin'\"]], 'OR', ['firstName', 'LIKE', \"'%Kat$'\"]]]]]"
         output = ast('select email, cgpa from Student where cgpa > 3 and firstName=\'Martin\' or firstName like \'%Kat%\'')
         print(expected)
         print(output)
@@ -345,15 +345,15 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']] ],
                     [ 'FROM',   [['Student']] ],
-                    [ 'WHERE',  [ ['cgpa', '>', '3'], 'AND', 
+                    [ 'WHERE',  [ [['cgpa', '>', '3'], 'AND', 
                                     [ ['firstName', '=', 'Martin'], 'OR', ['firstName', 'LIKE', '%Kat%']]
-                                ]
+                                ]]
                     ]
                 ]
         '''
         print('TEST COMPOUND CONDITION: AND + OR, WITH BRACKETS')
         print('A query with an AND and OR in its WHERE statement. With brackets.')
-        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [['cgpa', '>', '3'], 'AND', [['firstName', '=', \"'Martin'\"], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]]]]]"
+        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[['cgpa', '>', '3'], 'AND', [['firstName', '=', \"'Martin'\"], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]]]]]]"
         output = ast('select email, cgpa from Student where cgpa > 3 and (firstName=\'Martin\' or firstName like \'%Kat%\'')
         print(expected)
         print(output)
@@ -365,12 +365,12 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['sid'], ['cgpa']]],
                     [ 'FROM',   [['Student']]],
-                    [ 'WHERE',  ['NOT', [['sid', '>', '0'], 'AND', ['cgpa', '>=', '3.5']]]],
+                    [ 'WHERE',  [['NOT', [['sid', '>', '0'], 'AND', ['cgpa', '>=', '3.5']]]]]
                 ]
         '''
         print('TEST COMPOUND CONDITION: NOT (cond AND cond)')
         print('A query with NOT (cond AND cond')
-        expected = "[['SELECT', [['sid'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', ['NOT', [['sid', '>', '0'], 'AND', ['cgpa', '>=', '3.5']]]]]"
+        expected = "[['SELECT', [['sid'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [['NOT', [['sid', '>', '0'], 'AND', ['cgpa', '>=', '3.5']]]]]]"
         output = ast('select sid, cgpa from Student where not sid > 0 and cgpa >= 3.5')
         print(expected)
         print(output)
@@ -384,16 +384,16 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']]],
                     [ 'FROM',   [['Student']]],
-                    [ 'WHERE',  [ [[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 
+                    [ 'WHERE',  [ [[[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 
                                     'OR', ['firstName', 'LIKE', '%Kat%']],
-                                    'AND', ['sid', '!=', '0']]
+                                    'AND', ['sid', '!=', '0']]]
                     ]
                 ]
 
         '''
         print('TEST COMPOUND CONDITION: 2 AND + 1 OR')
         print('A query with two ANDS and an OR in its WHERE statement. Multiple compounded conditions.')
-        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]], 'AND', ['sid', '!=', '0']]]]"
+        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[[[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]], 'AND', ['sid', '!=', '0']]]]]"
         output = ast('select email, cgpa from Student where cgpa < 1.5 and cgpa > 3 or firstName like \'%Kat%\' and sid != 0')
         print(expected)
         print(output)
@@ -426,11 +426,11 @@ class TestSQL(unittest.TestCase):
             A query with one subquery in the FROM clause
             Expected output: 
                 [
-                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]],
-                    [ 'FROM',   [[
+                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]],
+                    [ 'FROM',   [['Took'], ',', [
                                     ['SELECT',  [['*']] ],
                                     ['FROM',    [['Offering']] ],
-                                    ['WHERE',   ['instructor', '=', '\'Horton\'']]
+                                    ['WHERE',   [['instructor', '=', '\'Horton\'']]]
                                     ]
                                 , 'H']], 
                     ['WHERE', [['Took.oid', '=', 'H.oid']]]
@@ -440,7 +440,7 @@ class TestSQL(unittest.TestCase):
 
         print('TEST SUBQUERY IN FROM CLAUSE (COMPLEX): ')
         print('A query with one subquery in the FROM')
-        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [[['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
+        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]], ['FROM', [['Took'], ',', [['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
         output = ast('select sid, dept || cnum as course, grade from Took, (select * from Offering where instructor=\'Horton\') H where Took.oid = H.oid;')
         print(expected)
         print(output)
@@ -580,22 +580,22 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']],
-                    [ 'WHERE',  ['NOT', 'EXISTS', 
-                                    [['SELECT', [['*']]],
+                    [ 'WHERE',  [['NOT', 'EXISTS', 
+                                    [['SELECT', ['*']],
                                     ['FROM',    [['Offering']]],
                                     ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]
-                ]]
+                ]]]
         '''
 
         print('TEST NOT EXISTS')
         print('A query containing a subquery using keyword NOT EXISTS.')
-        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['NOT', 'EXISTS', [['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
+        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['NOT', 'EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
         output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
 
         print('Subquery')
-        expected2 = "[['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]"
+        expected2 = "[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]"
         output2 = ast('select * from Offering where oid <> Offl.oid and instructor = Offl.instructor')
         print(expected2)
         print(output2)
@@ -608,7 +608,7 @@ class TestSQL(unittest.TestCase):
                     [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']]],
                     [ 'WHERE',  ['EXISTS', 
-                                    [['SELECT', [['*']]],
+                                    [['SELECT', ['*']],
                                     ['FROM',    [['Offering']]],
                                     ['WHERE',   [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]
                 ]]
@@ -616,13 +616,13 @@ class TestSQL(unittest.TestCase):
 
         print('TEST EXISTS')
         print('A query containing a subquery using keyword EXISTS.')
-        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['EXISTS', [['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
+        expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', ['EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]"
         output = ast('select instructor from Offering as Offl where exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
 
         print('Subquery')
-        expected2 = "[['SELECT', [['*']]], ['FROM', [['Offering']]], ['WHERE', [['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]"
+        expected2 = "[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]"
         output2 = ast('select * from Offering where oid <> Offl.oid and instructor = Offl.instructor')
         print(expected2)
         print(output2)
@@ -691,7 +691,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST AGGREGATE FUNCTION ONLY')
         print('A query selecting over one aggregated column. ')
-        expected = "[['SELECT', ['max(sid)']], ['FROM', [['Student']]]]"
+        expected = "[['SELECT', [['max(sid)']]], ['FROM', [['Student']]]]"
         output = ast('select max(sid) from Student')
         print(expected)
         print(output)
@@ -701,7 +701,7 @@ class TestSQL(unittest.TestCase):
             A query selecting over one aggregated column and one unaggregated column
             Expected output:
                 [
-                    [ 'SELECT', ['max(cgpa)', ['sid']]],
+                    [ 'SELECT', [['max(cgpa)'], ['sid']]],
                     [ 'FROM',   [['Student']]],
                     [ 'GROUP BY', ['sid']]
                 ]
@@ -719,15 +719,15 @@ class TestSQL(unittest.TestCase):
             A query HAVING a condition.
             Expected output:
                 [
-                    [ 'SELECT', ['max(cgpa)']],
+                    [ 'SELECT', [['max(cgpa)', 'H']] ],
                     [ 'FROM',   [['Student']]],
                     [ 'HAVING', [['max(cgpa)', '>=', '3.5']]]
                 ]
         '''
         print('TEST HAVING')
         print('A query HAVING a condition.')
-        expected = "[['SELECT', ['max(cgpa)']], ['FROM', [['Student']]], ['HAVING', [['max(cgpa)', '>=', '3.5']]]]"
-        output = ast('select max(cgpa) from Student having max(cgpa) >= 3.5')
+        expected = "[['SELECT', [['max(cgpa)', 'H']]], ['FROM', [['Student']]], ['HAVING', [['max(cgpa)', '>=', '3.5']]]]"
+        output = ast('select max(cgpa) H from Student having max(cgpa) >= 3.5')
         print(expected)
         print(output)
 
@@ -736,7 +736,7 @@ class TestSQL(unittest.TestCase):
             A query containing a HAVING condition over aggregate function not in select clause.
             Expected output:
                 [
-                    [ 'SELECT', ['sum(salary)']], 
+                    [ 'SELECT', [['sum(salary)']]], 
                     [ 'FROM',   [['Department'], 'JOIN', ['Employee'], 'ON', ['dept', '=', 'did']]],
                     [ 'GROUP BY', ['dept']],
                     [ 'HAVING', [['min(salary)', '>=', '100']]]
@@ -744,7 +744,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST HAVING CONDITION NOT IN SELECT CLAUSE')
         print('A query containing a HAVING condition over aggregate function not in select clause.')
-        expected = "[['SELECT', ['sum(salary)']], ['FROM', [['Department'], 'JOIN', ['Employee'], 'ON', ['dept', '=', 'did']]], ['GROUP BY', ['dept']], ['HAVING', [['min(salary)', '>=', '100']]]]"
+        expected = "[['SELECT', [['sum(salary)']]], ['FROM', [['Department'], 'JOIN', ['Employee'], 'ON', ['dept', '=', 'did']]], ['GROUP BY', ['dept']], ['HAVING', [['min(salary)', '>=', '100']]]]"
         output = ast('select sum(salary) from Department join Employee on dept = did group by dept having min(salary) >= 100')
         print(expected)
         print(output)
