@@ -268,33 +268,41 @@ def generate_simple_natural_join_query():
 
     steps = [
         QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', [], '1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade",
                         "Course: dept, cNum, name"]),
 
         QueryStep('1.1', 'Student NATURAL JOIN Took', [], '1.1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade"]),
 
         QueryStep('1.1.1', 'Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
             namespace=[ "Student: sid, firstName, email, cgpa"]),
 
         QueryStep('1.1.2', 'Took', [], 'Took',
+            executable_sql="SELECT * FROM Took",
             namespace=[ "Took: sid, ofid, grade"]),
 
         QueryStep('1.1.3', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade"]),
 
         QueryStep('1.2', 'Course', [], 'Course',
+            executable_sql="SELECT * FROM Course",
             namespace=[ "Course: dept, cNUm, name"]),
 
         QueryStep('1.3', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.1', 'Course'], '1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade",
                         "Course: dept, cNum, name"]),
 
         QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2',
+            executable_sql="SELECT sid, email, cgpa FROM Student NATURAL JOIN Took NATURAL JOIN Course",
             namespace=['1: sid, email, cgpa'])
     ]
 
