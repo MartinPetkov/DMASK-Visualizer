@@ -6,6 +6,6 @@
 6. DISTINCT
 7. UNION | INTERSECT | EXCEPT
 8. ORDER BY
-9. LIMIT
+9. LIMIT / OFFSET
 
 Source: http://tinman.cs.gsu.edu/~raj/sql/node22.html

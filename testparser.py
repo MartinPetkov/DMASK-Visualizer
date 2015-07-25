@@ -480,7 +480,7 @@ class TestSQL(unittest.TestCase):
         print('TEST SUBQUERY IN WHERE CONDITION (COMPLEX):')
         print('A query with one subquery in the WHERE clause')
         expected = "[['SELECT', [['pizza']]], ['FROM', [['Student']]], ['WHERE', [['cgpa', 'IN', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]]"
-        output = ast('select pizza from Student where cgpa in (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor;)')
+        output = ast('select pizza from Student where cgpa in (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor)')
         print(expected)
         print(output)
 
@@ -491,20 +491,20 @@ class TestSQL(unittest.TestCase):
             A query with one subquery in the SELECT clause
             Expected output:
                 [
-                    [   'SELECT', [
+                    [   'SELECT', [[[
                             ['SELECT', [['only']]], ['FROM', [['Took']] ]
-                            ], 'H'],
+                            ], 'H']]],
                         ['FROM', [['Offering']] ]
                 ]
         '''
         print('TEST SUBQUERY IN SELECT CLAUSE:')
         print('A query with one subquery in the SELECT clause')
-        expected = "[['SELECT', [['SELECT', [['only']]], ['FROM', [['Took']]], 'H']], ['FROM', [['Offering']]]]"
-        output = ast('select (select only from Took;) H from Offering')
+        expected = "[['SELECT', [[[['SELECT', [['only']]], ['FROM', [['Took']]]], 'H']], ['FROM', [['Offering']]]]"
+        output = ast('select (select only from Took) H from Offering')
         print(expected)
         print(output)
 
-    def test_22_union(self):
+    def test_22a_union(self):
 
         ''' TEST UNION
             A UNION of two SQL queries.
@@ -523,7 +523,31 @@ class TestSQL(unittest.TestCase):
         print('TEST UNION:')
         print('A union of two SQL queries.')
         expected = "[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['Took']]]]]"
-        output = ast('(select sid from Student;) union (select sid from Took;)')
+        output = ast('(select sid from Student) union (select sid from Took);')
+        print(expected)
+        print(output)
+
+    def test_22b_union_orderby(self):
+
+        ''' TEST UNION
+            A UNION of two SQL queries.
+            Expected Output:
+                [
+                    [   [ 'SELECT', [['sid']]],
+                        [ 'FROM,    [['Student']] ]
+                    ], 
+                    'UNION',
+                    [   [ 'SELECT', [['sid']] ],
+                        [ 'FROM',   [['Took'] ]]
+                    ],
+                    [ 'ORDER BY', ['sid']]
+                ]
+        '''
+
+        print('TEST UNION:')
+        print('A union of two SQL queries.')
+        expected = "[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['Took']]]], ['ORDER BY', ['sid']]]"
+        output = ast('(select sid from Student) union (select sid from Took) order by sid;')
         print(expected)
         print(output)
 
@@ -616,7 +640,7 @@ class TestSQL(unittest.TestCase):
         print('TEST EXISTS')
         print('A query containing a subquery using keyword EXISTS.')
         expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', [['EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]]"
-        output = ast('select instructor from Offering as Offl where exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor;);')
+        output = ast('select instructor from Offering as Offl where exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
 
@@ -817,6 +841,79 @@ class TestSQL(unittest.TestCase):
         output = ast('select gpa from Countries where gpa between x and y')
         print(expected)
         print(output)
+
+    def test_37_positional_parameter(self):
+        ''' TEST POSITIONAL PARAMETER
+            A query which contains a positional parameter as column value.
+            Expected output:
+                [
+                    [ 'SELECT', [['gpa']]],
+                    [ 'FROM',   [['Countries']]],
+                    [ 'WHERE',  [['gpa', '=', '$1']]]
+                ]
+        '''
+        print('TEST POSITIONAL PARAMETER')
+        print('A query which contains a positional parameter as column value.')
+        expected = "[['SELECT', [['gpa']]], ['FROM', [['Countries']]], ['WHERE', [['gpa', '=', '$1']]]]"
+        output = ast('select gpa from Countries where gpa = $1')
+        print(expected)
+        print(output)
+
+    def test_38_scalar_subquery(self):
+        ''' TEST SCALAR SUBQUERY
+            A query with a scalar subquery in the SELECT clause.
+            Expected output:
+                [
+                    [ 'SELECT', [
+                        ['name'], 
+                        [[
+                            ['SELECT',  [['max(pop)']]],
+                            ['FROM',    [['Cities']]],
+                            ['WHERE',   [['cities.state', '=', 'states.name']]]
+                        ]]]],
+                    [ 'FROM',   ['States']]]
+                ]
+        '''
+        print('TEST SCALAR SUBQUERY')
+        print('A query with a scalar subquery in the SELECT clause.')
+        expected = "[['SELECT', [['name'], [['SELECT', [['max(pop)']]], ['FROM', [['Cities']]], ['WHERE', [['cities.state' '=', 'states.name']]]]]], ['FROM', [['States']]]]"
+        output = ast('select name, (select max(pop) from Cities where cities.state = states.name) from States;')
+        print(expected)
+        print(output)
+
+    def test_39_column_operations(self):
+        ''' TEST COLUMN OPERATIONS 
+            A query selecting over a column operation.
+            Expected output:
+                [
+                    [ 'SELECT', [['a'], [['b', '+', 'c']]]],
+                    [ 'FROM',   [['Table1']]]
+                ]
+        '''
+        print('TEST COLUMN OPERATIONS')
+        print('A query selecting over a column operation.')
+        expected = "[['SELECT', [['a'], [['b', '+', 'c']]]], ['FROM', [['Table1']]]]"
+        output = ast('select a, b + c from Table1')
+        print(expected)
+        print(output)
+
+    def test_40_arithmeticop(self):
+        ''' TEST ARITHMETIC OPERATIONS
+            A query omitting table expression and using SELECT command as a calculator.
+            Expected output:
+                [
+                    ['SELECT', [['3', '*', '4']]]
+                ]
+        '''
+        print('TEST ARITHMETIC OPERAITONS')
+        print('A query omitting table expression and using SELECT command as a calculator.')
+        expected = "[['SELECT', [['3', '*', '4']]]]"
+        output = ast('select 3 * 4')
+        print(expected)
+        print(output)
+        
+
+        
 
 if __name__ == "__main__":
     unittest.main()
