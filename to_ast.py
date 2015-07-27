@@ -1,5 +1,5 @@
 from pyparsing import (ParseResults, Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
-    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString,
+    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, commaSeparatedList,
     opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr)
 
 # ============== Define SQL KEYWORDS ========================
@@ -57,51 +57,11 @@ KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER |
 # The following statements can be recursively defined.
 
 sqlStmt         =   Forward()
-whereCompound   =   Forward()
-whereClause     =   Forward()
 subquery        =   Forward()
 query           =   Forward()
 createView      =   Forward()
 setOp           =   Forward()
-
-# ========== Define column values/operations ================
-
-# Binary operators
-BINOP           =   oneOf("= != < > <> >= <= || eq ne lt le gt ge LIKE", caseless=True)
-
-arithSign       =   Word("-=",exact=1)
-
-E = CaselessLiteral("E")
-
-realNum         =   Combine( Optional(arithSign) 
-                    + ( Word( nums ) + "." + Optional( Word(nums) ) | ( "." + Word(nums) ) ) 
-                    + Optional( E + Optional(arithSign) + Word(nums) ) 
-                    )
-
-intNum          =   Combine( Optional(arithSign) 
-                    + Word( nums ) 
-                    + Optional( E + Optional("+") + Word(nums) )
-                    )
-
-# ============= Define Tokens ===============================
-ident           =   (~KEYWORDS 
-                    + (Word(alphas, alphanums + "_$")
-                        | realNum
-                        | intNum)
-                    )
-viewName        =   delimitedList(ident, ".", combine=True)
-columnName      =   delimitedList(ident, ".", combine=True)
-columnRename    =   delimitedList(ident, ".", combine=True)
-tableName       =   delimitedList(ident, ".", combine=True)
-tableRename     =   delimitedList(ident, ".", combine=True)
-columnNameList  =   (delimitedList(columnName)
-                    + Optional(('||') + columnRename) 
-                    + Optional((Suppress(AS) + columnRename))
-                    )
-columnRenameList=   Group(delimitedList(columnRename))
-tableNameList   =   Group(delimitedList(tableName, ", ", combine=True))
-tableRenameList =   Group(delimitedList(tableRename))
-
+whereClause     =   Forward()
 
 # =========== PRECEDENCE FUNCTION ============
 
@@ -124,43 +84,69 @@ def precedence(num):
             return ParseResults([ret])
     return pa
 
+# ========== Define column values/operations ================
 
-'''
-UNARY, BINARY, TERNARY = 1, 2, 3
-operators       =   operatorPrecedence(
-                    [
-                    (oneOf ('+ -'), UNARY, opAssoc.RIGHT), 
-                    (oneOf('^ ||'), opAssoc.LEFT), 
-                    (oneOf('* / %'), BINARY, opAssoc.LEFT), 
-                    (oneOf('+ -'), BINARY, opAssoc.LEFT),
-                    (oneOf('<< >> & |'), BINARY, opAssoc.LEFT),
-                    (oneOf('< <= > >= lt le gt ge'), BINARY, opAssoc.LEFT),
-                    (oneOf('= == != <> eq ne') | IS_ | IN_ | LIKE_, BINARY, opAssoc.LEFT),
-                    ('||', BINARY, opAssoc.LEFT),
-                    ((BETWEEN, AND), TERNARY, opAssoc.LEFT),   
-                    ]) 
-'''
+# Binary operators
+BINOP           =   oneOf("= != < > <> >= <= || eq ne lt le gt ge LIKE", caseless=True)
+
+# Column operators
+COLOPS          =   (oneOf("+ - * / % // DIV || ==",caseless=True) | BINOP)
+
+arithSign       =   Word("-=",exact=1)
+
+E = CaselessLiteral("E")
+
+realNum         =   Combine( Optional(arithSign) 
+                    + ( Word( nums ) + "." + Optional( Word(nums) ) | ( "." + Word(nums) ) ) 
+                    + Optional( E + Optional(arithSign) + Word(nums) ) 
+                    )
+
+intNum          =   Combine( Optional(arithSign) 
+                    + Word( nums ) 
+                    + Optional( E + Optional("+") + Word(nums) )
+                    )
+
+posParam        =   Combine('$' + (realNum | intNum))
+
+# ============= Define Tokens ===============================
+ident           =   (~KEYWORDS 
+                    + (Word(alphas, alphanums + "_$")
+                        | realNum
+                        | intNum)
+                    )
+
+
+token           =   delimitedList(ident, ".", combine=True)
+
+
+# Aggregate functions
+aggregatefns    =   (Combine(Word(alphas) + ("(") + token + (")")))
+
+# Possible column values
+columnRval      =   (realNum | intNum | quotedString | posParam | aggregatefns | token)
+
+tokenObs        =   Group(
+                    (Group(columnRval + (COLOPS) + columnRval) | columnRval)
+                    + Optional((COLOPS) + columnRval)
+                    + Optional(AS) + Optional(token)
+                    | (subquery + Optional(AS) + Optional(token))
+                    )
+
+tokenList       =   delimitedList(tokenObs)
+
 
 #========= SELECT CLAUSE ===========
 
-# Aggregate functions
-aggregatefns    =   Combine(Word(alphas) + ("(") + columnName + (")"))
-
-# Possible column values
-columnRval      =   (realNum | intNum | quotedString | columnName)
-
 # Possible attributes to SELECT over
-selectColumn    =   ('*' | aggregatefns |  columnNameList | columnRval)
+selectColumn    =   ('*' | tokenList | columnRval)
 
 # SELECT CLAUSE
-selectClause    =   ( Group(selectColumn) | subquery)
+selectClause    =   Group(selectColumn)
 
-'''
-columnNameList  =   (delimitedList(columnName) 
-                    + Optional((Suppress(AS) + columnRename) |('||' + columnRename) | columnRename)
-                    )
-'''
-
+selectCalculator=   Group(SELECT + 
+                    (Group( 
+                        Group((intNum | realNum) + COLOPS + (intNum | realNum) 
+                            + Optional(AS) + Optional(token)))))
 
 # ========== FROM CLAUSE =========== 
 
@@ -181,36 +167,55 @@ joins           =   (Literal(',')
                     )
 
 # tableBlock nested within joinBlock, includes renames
-tableBlock      =   (Group(tableName 
-                    + Optional(Suppress(AS)) + tableRename
-                    ) | tableName)
+tableBlock      =   (Group((token | subquery) 
+                    + Optional(AS) + Optional(token)
+                    ))
 
 tableOnBlock    =   (tableBlock 
-                    + (Optional(ON + Group(columnName + BINOP + columnRval))
-                    | Optional(USING + Group(columnName))
+                    + (Optional(ON + Group(token + BINOP + columnRval))
+                    | Optional(USING + Group(token))
                     ))
 
-fromClause      =   (operatorPrecedence(
-                        tableOnBlock, 
-                        [(joins, 2, opAssoc.LEFT, precedence(2))]
-                    ))
+fromClause      =   (tableOnBlock + ZeroOrMore(joins + tableOnBlock))
 
 # ========= WHERE CLAUSE ===========
+
 whereCondition  =   Group(
-                    Optional(Suppress("(")) 
+                    Optional(Suppress("("))
                     + (
-                        ( columnName + BINOP + columnRval)
-                        | (columnName + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
-                        | (columnName + (IN_ | BINOP + (ANY_ | ALL_)) + subquery )
-                        | ( EXISTS_ + subquery)
-                        | (columnName + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_))) 
-                        | (columnName + (ISNULL_ | NOTNULL_))
-                        | (columnName + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
-                    ) 
+                        (token + BINOP + ( 
+                            columnRval 
+                            | ((ANY_ | ALL_) + subquery)))
+                        | (token + IN_ + (
+                            (Suppress("(") + delimitedList(columnRval) + Suppress(")"))
+                            | subquery))
+                        | (EXISTS_ + subquery)
+                        | (token + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_)))
+                        | (token + (ISNULL_ | NOTNULL_))
+                        | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
+                    )
                     + Optional(Suppress(")"))
                     )
 
-whereClause     =   operatorPrecedence(
+'''
+
+whereCondition  =   Group(
+                    Optional(Suppress("(")) 
+                    + (
+                        (token + BINOP + (((ANY_ | ALL_) + subquery) | columnRval)) 
+                        | (token + IN_ + subquery)
+                        | (token + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
+                        | (EXISTS_ + subquery)
+                        | (token + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_))) 
+                        | (token + (ISNULL_ | NOTNULL_))
+                        | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
+                    ) 
+                    + Optional(Suppress(")"))
+                    )
+'''
+
+
+whereClause     <<   operatorPrecedence(
                         whereCondition,
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
@@ -218,36 +223,58 @@ whereClause     =   operatorPrecedence(
                     )
 
 #==========HAVING CLAUSE ===========
-havingClause    =   Group(aggregatefns + BINOP + columnRval)
+havingCondition = Group(
+                    Optional(Suppress("("))
+                    + (
+                        (aggregatefns + BINOP + (((ANY_ | ALL_) + subquery) | columnRval))
+                        | (aggregatefns + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
+                        | (aggregatefns + IN_ + subquery)
+                        | (aggregatefns + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_)))
+                        | (aggregatefns + (ISNULL_ | NOTNULL_))
+                        | (aggregatefns + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
+                    )
+                    + Optional(Suppress(")"))
+                    )
+
+havingClause    =   operatorPrecedence(
+                        havingCondition,
+                        [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
+                            ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
+                        ]
+                    )
 
 #=========== SQL STATEMENT =========
 # Define the grammar for SQL query.
 sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Group(    FROM + Group(fromClause) ) 
-                    + Optional( Group( WHERE + ( whereClause )))
-                    + Optional( Group( Combine( GROUP + " " + BY) + Group(columnNameList)))
-                    + Optional( Group( HAVING + havingClause))
-                    + Optional( Group( Combine(ORDER + " " + BY) + Group(columnNameList)))
+                    + Optional( Group( WHERE + Group( whereClause )))
+                    + Optional( Group( Combine( GROUP + " " + BY) + (tokenList)))
+                    + Optional( Group( HAVING + Group(havingClause)))
+                    + Optional( Group( Combine(ORDER + " " + BY) + (tokenList)))
                     + Optional( Group(LIMIT + Group(columnRval)))
                     + Optional( Group(OFFSET + Group(columnRval)))
-                    + Optional( Suppress(";"))
                     )
 
 
-subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")")
+subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")") + Optional(Suppress(";"))
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
-                    + viewName 
-                    + Suppress(AS) 
+                    + token 
+                    + Optional(AS) 
                     + subquery
                     )
 
-setOp           <<  ((subquery) 
+setOp           <<  (
+                    ((subquery) 
                     + (UNION_ | INTERSECT_ | EXCEPT_) 
                     + (subquery)
                     )
+                    + Optional( Group( Combine(ORDER + " "  + BY) + (tokenList)))
+                    + Optional( Group(LIMIT + Group(columnRval)))
+                    + Optional( Group(OFFSET + Group(columnRval)))
+                    )
 
-query           <<  (sqlStmt | setOp | createView)
+query           <<  (selectCalculator | sqlStmt | setOp | createView)
 
 # ============= TESTING TRACES ===============
 

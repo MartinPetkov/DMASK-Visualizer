@@ -13,7 +13,7 @@ Took(_sid,ofid_, grade)
 '''
 
 # Starting Values:
-Student_colnames = ['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa']
+Student_colnames = ['sid', 'firstName', 'email', 'cgpa']
 Student_tuples=[
 ('1', 'Martin', 'martin@mail.com', '3.4'),
 ('2', 'Kathy', 'kathy@mail.com', '4.0'),
@@ -21,7 +21,7 @@ Student_tuples=[
 ('4', 'James', 'james@mail.com', '2.8')]
 Student_table = Table(t_name='Student', step = '0', col_names=Student_colnames, tuples=Student_tuples)
 
-Course_colnames = ['Course.dept', 'Course.cNum', 'Course.name']
+Course_colnames = ['dept', 'cNum', 'name']
 Course_tuples=[
 ('csc', '148', 'Intro to Computer Science'),
 ('csc', '209', 'Systems Programming'),
@@ -30,7 +30,7 @@ Course_tuples=[
 ('ger', '100', 'Intro to German')]
 Course_table = Table(t_name='Course', step = '0', col_names=Course_colnames, tuples=Course_tuples)
 
-Offering_colnames = ['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor']
+Offering_colnames = ['oid', 'dept', 'cNum', 'instructor']
 Offering_tuples=[
 ('1', 'csc', '209', 'K. Reid'),
 ('2', 'csc', '343', 'D. Horton'),
@@ -38,7 +38,7 @@ Offering_tuples=[
 ('4', 'ger', '100', 'E. Luzi'),]
 Offering_table = Table(t_name='Offering', step = '0', col_names=Offering_colnames, tuples=Offering_tuples)
 
-Took_colnames = ['Took.sid', 'Took.ofid', 'Took.grade']
+Took_colnames = ['sid', 'ofid', 'grade']
 Took_tuples=[
 ('1', '2', '87'),
 ('1', '4', '73'),
@@ -80,20 +80,20 @@ def generate_simple_query():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]
-                    ),
-        '2': Table(t_name='2',
+                            ('4', 'James', 'james@mail.com', '2.8')],
+                    reasons={
+                        0: Reason(["cgpa > 3"]),
+                        1: Reason(["cgpa > 3"]),
+                        2: Reason(["cgpa > 3"])
+                    }),
+        '2': Table(t_name='Student',
                    step='2',
                    col_names=['sid', 'firstName', 'email', 'cgpa'],
                    tuples=[
                            ('1', 'Martin', 'martin@mail.com', '3.4'),
-                           ('2', 'Kathy', 'kathy@mail.com', '4.0')],
-                   reasons={
-                       0: Reason(["cgpa > 3"]),
-                       1: Reason(["cgpa > 3"]),
-                       2: Reason(["cgpa > 3"])
-                   }),
-        '3': Table(t_name='3',
+                           ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                   ),
+        '3': Table(t_name='Student',
                    step='3',
                    col_names=['sid', 'cgpa'],
                    tuples=[
@@ -137,7 +137,7 @@ def generate_simple_cross_product_query():
         ]
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='Student, Took',
                     step='1',
                     col_names=['Student.sid', 'firstName', 'email', 'cgpa', 'Took.sid', 'ofid', 'grade'],
                     tuples=[
@@ -188,7 +188,7 @@ def generate_simple_cross_product_query():
                             ('4', '1', '60')]
                     ),
 
-        '1.3': Table(t_name='1',
+        '1.3': Table(t_name='Student, Took',
                     step='1.3',
                     col_names=['Student.sid', 'firstName', 'email', 'cgpa', 'Took.sid', 'ofid', 'grade'],
                     tuples=[
@@ -218,7 +218,7 @@ def generate_simple_cross_product_query():
                             ('4', 'James', 'james@mail.com', '2.8',     '4', '1', '60')]
                     ),
 
-        '2': Table(t_name='2',
+        '2': Table(t_name='Student, Took',
                     step='2',
                     col_names=['sid', 'email', 'grade'],
                     tuples=[
@@ -268,38 +268,46 @@ def generate_simple_natural_join_query():
 
     steps = [
         QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', [], '1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade",
                         "Course: dept, cNum, name"]),
 
         QueryStep('1.1', 'Student NATURAL JOIN Took', [], '1.1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade"]),
 
         QueryStep('1.1.1', 'Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
             namespace=[ "Student: sid, firstName, email, cgpa"]),
 
         QueryStep('1.1.2', 'Took', [], 'Took',
+            executable_sql="SELECT * FROM Took",
             namespace=[ "Took: sid, ofid, grade"]),
 
         QueryStep('1.1.3', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade"]),
 
         QueryStep('1.2', 'Course', [], 'Course',
+            executable_sql="SELECT * FROM Course",
             namespace=[ "Course: dept, cNUm, name"]),
 
         QueryStep('1.3', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.1', 'Course'], '1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade",
                         "Course: dept, cNum, name"]),
 
         QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2',
+            executable_sql="SELECT sid, email, cgpa FROM Student NATURAL JOIN Took NATURAL JOIN Course",
             namespace=['1: sid, email, cgpa'])
     ]
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='Student NATURAL JOIN Took NATURAL JOIN Course',
                     step='1',
                     col_names=['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade', 'dept', 'cNum', 'name'],
                     tuples=[
@@ -335,7 +343,7 @@ def generate_simple_natural_join_query():
 
                     ),
 
-        '1.1': Table(t_name='1.1',
+        '1.1': Table(t_name='Student NATURAL JOIN Took',
                     step='1.1',
                     col_names = ['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade'],
                     tuples=[
@@ -364,7 +372,7 @@ def generate_simple_natural_join_query():
                             ('3', '1', '80'),
                             ('4', '1', '60')]),
 
-        '1.1.3': Table(t_name='1.1',
+        '1.1.3': Table(t_name='Student NATURAL JOIN Took',
                     step='1.1.3',
                     col_names = ['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade'],
                     tuples=[
@@ -384,7 +392,7 @@ def generate_simple_natural_join_query():
                             ('mat', '137', 'Calculus'),
                             ('ger', '100', 'Intro to German')]),
 
-        '1.3': Table(t_name='1',
+        '1.3': Table(t_name='Student NATURAL JOIN Took NATURAL JOIN Course',
                     step='1.3',
                     col_names=['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade', 'dept', 'cNum', 'name'],
                     tuples = [
@@ -417,7 +425,7 @@ def generate_simple_natural_join_query():
                             ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'ger', '100', 'Intro to German'),
                             ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'ger', '100', 'Intro to German')]),
 
-        '2': Table(t_name='2',
+        '2': Table(t_name='Student NATURAL JOIN Took NATURAL JOIN Course',
                     step='2',
                     col_names=['sid', 'email', 'cgpa'],
                     tuples=[
@@ -465,6 +473,7 @@ def generate_simple_natural_join_query():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
+# ============= FIXED ================
 ''' A query with a LEFT JOIN on a condition in it '''
 def generate_simple_condition_join_query():
     query_text =\
@@ -473,28 +482,36 @@ def generate_simple_condition_join_query():
 
     steps = [
         QueryStep('1', 'FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid', ['Took', 'Offering'], '1',
-            reasons = {
-                0: Reason(["Took.ofid=Offering.oid"]),
-            },
-            namespace=["Took: sid, ofid, grade",
-                        "Offering: oid, dept, cNum, instructor"]),
-
-        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2'),
+                  namespace=["Took: sid, ofid, grade",
+                             "Offering: oid, dept, cNum, instructor"]),
+        QueryStep('1.1', 'Took', [], 'Took', namespace=["Took: sid, ofid, grade"]),
+        QueryStep('1.2', 'Offering', [], 'Offering', namespace=["Offering: oid, dept, cNum, instructor"]),
+        QueryStep('1.3', 'Took LEFT JOIN Offering ON Took.ofid=Offering.oid', ['Took', 'Offering'], '1', 
+                  namespace=["Took: sid, ofid, grade",
+                             "Offering: oid, dept, cNum, instructor"]),
+        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2', namespace=["Took: sid, grade", "Offering: instructor"]),
     ]
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='Took LEFT JOIN Offering ON Took.ofid = Offering.oid',
                     step='1',
-                    col_names=['Took.sid', 'Took.ofid', 'Took.grade', 'Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                    col_names=['sid', 'ofid', 'grade', 'oid', 'dept', 'cNum', 'instructor'],
                     tuples=[
                             ('1', '2', '87', '1', 'csc', '209', 'K. Reid'),
                             ('1', '4', '73', '1', 'csc', '209', 'K. Reid'),
                             ('2', '2', '92', '2', 'csc', '343', 'D. Horton'),
                             ('3', '1', '80', '3', 'mat', '137', 'J. Kamnitzer'),
-                            ('4', '1', '60', '4', 'ger', '100', 'E. Luzi')]
-                    ),
+                            ('4', '1', '60', '4', 'ger', '100', 'E. Luzi')],
+                    reasons={
+                        0: Reason(["Took.ofid=Offering.oid"]),
+                        1: Reason(["Took.ofid=Offering.oid"]),
+                        2: Reason(["Took.ofid=Offering.oid"]),
+                        3: Reason(["Took.ofid=Offering.oid"]),
+                        4: Reason(["Took.ofid=Offering.oid"]),
+                        5: Reason(["Took.ofid=Offering.oid"])
+                    }),
 
-        '2': Table(t_name='2',
+        '2': Table(t_name='Took LEFT JOIN Offering ON Took.ofid = Offering.oid',
                     step='2',
                     col_names=['Took.sid', 'Took.grade', 'Offering.instructor'],
                     tuples=[
@@ -517,6 +534,7 @@ def generate_simple_condition_join_query():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
+# ============= FIXED ================
 ''' A query with one subquery in the FROM '''
 def generate_simple_subquery():
     query_text =\
@@ -528,14 +546,15 @@ def generate_simple_subquery():
 
     steps = [
         QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS LimitedCols', ['Offering'], '1',
-                namespace=["LimitedCols: oid, dept"]),
+                  namespace=["LimitedCols: oid, dept"]),
 
             QueryStep('1.1', '(SELECT oid, dept FROM Offering)', ['Offering'], '1.1',
-                namespace=["Offering: oid, dept"]),
+                      namespace=["Offering: oid, dept"]),
 
                 QueryStep('1.1.1', 'FROM Offering', [], '1.1.1',
-                    namespace=["Offering: oid, dept, cNum, instructor"]),
-                QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1'),
+                          namespace=["Offering: oid, dept, cNum, instructor"]),
+                QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1',
+                          namespace=["Offering: oid, dept"]),
 
             QueryStep('1.2', 'AS LimitedCols', ['1.1'], '1',
                 namespace=["LimitedCols: oid, dept"]),
@@ -544,9 +563,9 @@ def generate_simple_subquery():
     ]
 
     tables = {
-        '1.1.1': Table(t_name='1.1.1',
+        '1.1.1': Table(t_name='Offering',
                     step = '1.1.1',
-                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                    col_names=['oid', 'dept', 'cNum', 'instructor'],
                     tuples=[
                             ('1', 'csc', '209', 'K. Reid'),
                             ('2', 'csc', '343', 'D. Horton'),
@@ -554,9 +573,9 @@ def generate_simple_subquery():
                             ('4', 'ger', '100', 'E. Luzi')]
                     ),
 
-        '1.1': Table(t_name='1.1',
+        '1.1': Table(t_name='Offering',
                     step = '1.1',
-                    col_names=['Offering.oid', 'Offering.dept'],
+                    col_names=['oid', 'dept'],
                     tuples=[
                             ('1', 'csc'),
                             ('2', 'csc'),
@@ -566,7 +585,7 @@ def generate_simple_subquery():
 
         '1': Table(t_name='LimitedCols',
                     step = '1',
-                    col_names=['LimitedCols.oid', 'LimitedCols.dept'],
+                    col_names=['oid', 'dept'],
                     tuples=[
                             ('1', 'csc'),
                             ('2', 'csc'),
@@ -574,9 +593,9 @@ def generate_simple_subquery():
                             ('4', 'ger')]
                     ),
 
-        '2': Table(t_name='2',
+        '2': Table(t_name='LimitedCols',
                     step = '2',
-                    col_names=['LimitedCols.oid'],
+                    col_names=['oid'],
                     tuples=[
                             ('1'),
                             ('2'),
@@ -620,7 +639,7 @@ def generate_simple_and_query():
     ]
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='Student',
                     step='1',
                     col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
@@ -630,7 +649,7 @@ def generate_simple_and_query():
                             ('4', 'James', 'james@mail.com', '2.8')]
                     ),
 
-        '2': Table(t_name='2',
+        '2': Table(t_name='Student',
                     step='2',
                     col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
@@ -640,7 +659,7 @@ def generate_simple_and_query():
                                 1: Reason(["cgpa > 3", "firstName='Martin'"])
                             }
                     ),
-        '3': Table(t_name='3',
+        '3': Table(t_name='Student',
                     step='3',
                     col_names=['email', 'cgpa'],
                     tuples=[
@@ -688,7 +707,7 @@ def generate_simple_or_query():
                             ('4', 'James', 'james@mail.com', '2.8')]
                     ),
 
-        '2': Table(t_name='2',
+        '2': Table(t_name='Student',
                     step='2',
                     col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
@@ -703,7 +722,7 @@ def generate_simple_or_query():
                             }
                     ),
 
-        '3': Table(t_name='3',
+        '3': Table(t_name='Student',
                     step='3',
                     col_names=['email', 'cgpa'],
                     tuples=[
@@ -751,21 +770,21 @@ def generate_complex_and_plus_or():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]
-                    ),
-        '2': Table(t_name='2',
-                    step='2',
-                    col_names=['sid', 'firstName', 'email', 'cgpa'],
-                    tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0')],
+                            ('4', 'James', 'james@mail.com', '2.8')],
                     reasons = {
                                 0: Reason(["cgpa > 3", "firstName=\'Martin\' OR firstName=\'Kathy\'"]),
                                 1: Reason(["cgpa > 3", "firstName='Martin'"]),
                                 2: Reason(["cgpa > 3", "firstName='Kathy'"]),
                             }
                     ),
-        '3': Table(t_name='3',
+        '2': Table(t_name='Student',
+                    step='2',
+                    col_names=['sid', 'firstName', 'email', 'cgpa'],
+                    tuples=[
+                            ('1', 'Martin', 'martin@mail.com', '3.4'),
+                            ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                    ),
+        '3': Table(t_name='Student',
                     step='3',
                     col_names=['email', 'cgpa'],
                     tuples=[

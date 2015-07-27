@@ -11,6 +11,7 @@ function sizeContent() {
         centerWindow(window);
         adjustInventory(window);
         adjustNamespace(window);
+        drawLines(window);
         window = window.parent;
     }
 }
