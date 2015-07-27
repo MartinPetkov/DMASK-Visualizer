@@ -106,7 +106,7 @@ def generate_simple_query():
     # Strings if it is a simple column or table, list if it's a subquery or expression (i.e. "SELECT (a+b) AS col1")
     DESIRED_ASTS['simple_query'] =\
         [
-            [ 'SELECT', ['sid','cgpa'] ],
+            [ 'SELECT', [['sid'], ['cgpa']] ],
             [ 'FROM',   [ ['Student'] ] ],
             [ 'WHERE',  [ ['cgpa', '>', '3'] ] ],
         ]
@@ -252,7 +252,7 @@ def generate_simple_cross_product_query():
 
     DESIRED_ASTS['simple_cross_product_query'] =\
         [
-            [ 'SELECT', ['Student.sid','Student.email','Took.grade'] ],
+            [ 'SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']] ],
             [ 'FROM',   [ ['Student'], ',', ['Took'] ] ],
         ]
 
@@ -465,8 +465,8 @@ def generate_simple_natural_join_query():
 
     DESIRED_ASTS['simple_natural_join_query'] =\
         [
-            [ 'SELECT', ['sid','email','cgpa'] ],
-            [ 'FROM',   [ [ ['Student'], 'NATURAL JOIN', ['Took'] ],
+            [ 'SELECT', [['sid'], ['email'], ['cgpa']] ],
+            [ 'FROM',   [['Student'], 'NATURAL JOIN', ['Took'],
                             'NATURAL JOIN', ['Course']] ],
         ]
 
@@ -482,14 +482,22 @@ def generate_simple_condition_join_query():
 
     steps = [
         QueryStep('1', 'FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid', ['Took', 'Offering'], '1',
+                  executable_sql="SELECT * Took LEFT JOIN Offering ON Took.ofid=Offering.oid",  
                   namespace=["Took: sid, ofid, grade",
                              "Offering: oid, dept, cNum, instructor"]),
-        QueryStep('1.1', 'Took', [], 'Took', namespace=["Took: sid, ofid, grade"]),
-        QueryStep('1.2', 'Offering', [], 'Offering', namespace=["Offering: oid, dept, cNum, instructor"]),
+        QueryStep('1.1', 'Took', [], 'Took', 
+                executable_sql="SELECT * FROM Took",
+                namespace=["Took: sid, ofid, grade"]),
+        QueryStep('1.2', 'Offering', [], 'Offering', 
+                executable_sql="SELECT * FROM Offering",
+                namespace=["Offering: oid, dept, cNum, instructor"]),
         QueryStep('1.3', 'Took LEFT JOIN Offering ON Took.ofid=Offering.oid', ['Took', 'Offering'], '1', 
+                  executable_sql="SELECT * FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid",
                   namespace=["Took: sid, ofid, grade",
                              "Offering: oid, dept, cNum, instructor"]),
-        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2', namespace=["Took: sid, grade", "Offering: instructor"]),
+        QueryStep('2', 'SELECT sid, grade, instructor', ['1'], '2', 
+                executable_sql="SELECT sid, grade, instructor FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid",
+                namespace=["Took: sid, grade", "Offering: instructor"]),
     ]
 
     tables = {
@@ -526,9 +534,9 @@ def generate_simple_condition_join_query():
 
     DESIRED_ASTS['simple_condition_join_query'] =\
         [
-            [ 'SELECT', ['sid','grade','instructor'] ],
+            [ 'SELECT', [['sid'], ['grade'], ['instructor']] ],
             [ 'FROM', [['Took'],
-                        'LEFT JOIN', ['Offering'], 'ON', [['Took.ofid','=','Offering.ofid']] ]],
+                        'LEFT JOIN', ['Offering'], 'ON', ['Took.ofid','=','Offering.ofid']]],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -546,20 +554,28 @@ def generate_simple_subquery():
 
     steps = [
         QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS LimitedCols', ['Offering'], '1',
-                  namespace=["LimitedCols: oid, dept"]),
-
-            QueryStep('1.1', '(SELECT oid, dept FROM Offering)', ['Offering'], '1.1',
-                      namespace=["Offering: oid, dept"]),
-
-                QueryStep('1.1.1', 'FROM Offering', [], '1.1.1',
-                          namespace=["Offering: oid, dept, cNum, instructor"]),
-                QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1',
-                          namespace=["Offering: oid, dept"]),
-
-            QueryStep('1.2', 'AS LimitedCols', ['1.1'], '1',
+                
+                executable_sql="SELECT * FROM (SELECT oid, dept FROM Offering) AS LimitedCols",
                 namespace=["LimitedCols: oid, dept"]),
 
-        QueryStep('2', 'SELECT LimitedCols.oid', ['1'], '2'),
+            QueryStep('1.1', '(SELECT oid, dept FROM Offering)', ['Offering'], '1.1',
+                executable_sql="SELECT oid, dept FROM Offering",
+                namespace=["Offering: oid, dept"]),
+
+            QueryStep('1.1.1', 'FROM Offering', [], '1.1.1',
+                executable_sql="SELECT * FROM Offering",
+                namespace=["Offering: oid, dept, cNum, instructor"]),
+            
+            QueryStep('1.1.2', 'SELECT oid, dept', ['1.1.1'], '1.1',
+                executable_sql="SELECT oid, dept FROM Offering",
+                namespace=["Offering: oid, dept"]),
+
+            QueryStep('1.2', 'AS LimitedCols', ['1.1'], '1',
+                executable_sql="SELECT * FROM (SELECT oid, dept FROM Offering) AS LimitedCols "
+                namespace=["LimitedCols: oid, dept"]),
+
+        QueryStep('2', 'SELECT LimitedCols.oid', ['1'], '2',
+                executable_sql="SELECT LimitedCols.oid FROM (SELECT oid, dept FROM Offering) AS LimitedCols"),
     ]
 
     tables = {
@@ -606,16 +622,15 @@ def generate_simple_subquery():
 
 
     DESIRED_ASTS['simple_subquery'] =\
-        [[
-            [ 'SELECT', ['LimitedCols.oid'] ],
+        [
+            [ 'SELECT', [['LimitedCols.oid']] ],
             [ 'FROM', [[
                 [
-                    [ 'SELECT', ['oid','dept'] ],
+                    [ 'SELECT', [['oid'], ['dept']] ],
                     [ 'FROM', [['Offering']] ]
                 ]
 
-                , 'LimitedCols']] ],
-        ]]
+                , 'LimitedCols']] ]]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
@@ -631,11 +646,14 @@ def generate_simple_and_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['Student'], '2'),
+        QueryStep('2', 'WHERE cgpa > 3 AND firstName=\'Martin\'', ['Student'], '2',
+            executable_sql="SELECT * FROM Student WHERE cgpa > 3 AND firstName=\'Martin\'"),
 
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3')
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
+            executable_sql="SELECT email, cgpa FROM Student WHERE cgpa > 3 AND firstName=\'Martin\'")
     ]
 
     tables = {
@@ -670,9 +688,9 @@ def generate_simple_and_query():
 
     DESIRED_ASTS['simple_and_query'] =\
         [
-            [ 'SELECT', ['email','cgpa'] ],
-            [ 'FROM', ['Student'] ],
-            [ 'WHERE', [ ['cgpa', '>', '3'], 'AND', ['firstName', '=', '\'Martin\''] ] ],
+            [ 'SELECT', [['email'], ['cgpa']] ],
+            [ 'FROM', [['Student']] ],
+            [ 'WHERE', [[['cgpa', '>', '3'], 'AND', ['firstName', '=', '\'Martin\''] ] ]],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -689,11 +707,14 @@ def generate_simple_or_query():
 
     steps = [
         QueryStep('1', 'FROM Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['Student'], '2'),
+        QueryStep('2', 'WHERE cgpa > 2 OR firstName=\'Sophia\'', ['Student'], '2',
+            executable_sql="SELECT * FROM Student WHERE cgpa > 2 OR firstName=\'Sophia\'"),
 
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
+            executable_sql="SELECT email, cgpa FROM Student WHERE cgpa > 2 OR firstName=\'Sophia\'"),
     ]
 
     tables = {
@@ -735,9 +756,9 @@ def generate_simple_or_query():
 
     DESIRED_ASTS['simple_or_query'] =\
         [
-            [ 'SELECT', ['email','cgpa'] ],
-            [ 'FROM', ['Student'] ],
-            [ 'WHERE', [ ['cgpa', '>', '3'], 'OR', ['firstName', '=', '\'Sophia\''] ] ],
+            [ 'SELECT', [['email'], ['cgpa']] ],
+            [ 'FROM', [['Student']] ],
+            [ 'WHERE', [[ ['cgpa', '>', '3'], 'OR', ['firstName', '=', '\'Sophia\''] ] ]]
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -755,11 +776,14 @@ def generate_complex_and_plus_or():
 
     steps = [
         QueryStep('1', 'FROM Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['Student'], '2'),
+        QueryStep('2', 'WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')', ['Student'], '2',
+            executable_sql="SELECT * FROM Student WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')"),
 
-        QueryStep('3', 'SELECT email, cgpa', ['2'], '3'),
+        QueryStep('3', 'SELECT email, cgpa', ['2'], '3',
+            executable_sql="SELECT email, cgpa FROM Student WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')"),
     ]
 
     tables = {
@@ -796,9 +820,9 @@ def generate_complex_and_plus_or():
 
     DESIRED_ASTS['complex_and_plus_or'] =\
         [
-            [ 'SELECT', ['email','cgpa'] ],
-            [ 'FROM', ['Student'] ],
-            [ 'WHERE', [['cgpa', '>', '3'], 'AND', [ ['firstName', '=', '\'Martin\''], 'OR', ['firstName', '=', '\'Kathy\''] ] ] ],
+            [ 'SELECT', [['email'], ['cgpa']] ],
+            [ 'FROM', [['Student']] ],
+            [ 'WHERE', [[['cgpa', '>', '3'], 'AND', [ ['firstName', '=', '\'Martin\''], 'OR', ['firstName', '=', '\'Kathy\''] ] ] ]],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
@@ -813,19 +837,28 @@ def generate_complex_renaming():
 
     steps = [
         QueryStep('1', 'FROM Took t, Offering o', [], '1',
+            executable_sql="SELECT * FROM Took t, Offering o",
             namespace=["t: sid, ofid, grade",
                         "o: oid, dept, cNum, instructor"]),
 
             QueryStep('1.1', 'Took t', ['Took'], '1.1',
+                executable_sql="SELECT * FROM Took t",
                 namespace=["t: sid, ofid, grade"]),
 
             QueryStep('1.2', 'Offering o', ['Offering'], '1.2', # t_name = 'o'
+                executable_sql="SELECT * FROM Offering"
                 namespace=["t: sid, ofid, grade",
                             "o: oid, dept, cNum, instructor"]),
 
-            QueryStep('1.3', 'Took t, Offering o', ['1.1', '1.2'], '1'),
+            QueryStep('1.3', 'Took t, Offering o', ['1.1', '1.2'], '1',
+                executable_sql="SELECT * FROM Took t, Offering o",
+                namespace=["t: sid, ofid, grade",
+                            "o: oid, dept, cNum, instructor"]),
 
-        QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2'),
+        QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2',
+            executable_sql="SELECT t.sid, o.oid FROM Took t, Offering o",
+            namespace=["t: sid, ofid, grade",
+                        "o: oid, dept, cNum, instructor"]),
     ]
 
     tables = {
@@ -908,10 +941,10 @@ def generate_complex_renaming():
 
 
     DESIRED_ASTS['complex_renaming'] =\
-        [[
-            [ 'SELECT', ['t.sid','o.oid'] ],
+        [
+            [ 'SELECT', [['t.sid'], ['o.oid']] ],
             [ 'FROM', [['Took', 'AS', 't'], 'JOIN', ['Offering', 'AS', 'o']] ],
-        ]]
+        ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
