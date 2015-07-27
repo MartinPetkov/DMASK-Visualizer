@@ -25,7 +25,7 @@ LEGEND:
                             ([ "LIMIT",     [ <numeric>] ] )?,
                             ([ "OFFSET",    [ <numeric>] ] )?
 
-<create_view>       = [ "CREATE VIEW", ("AS"?), 'view_name', <sql_query> ]
+<create_view>       = [ "CREATE VIEW", 'view_name', ("AS"?), <sql_query> ]
 
 
 # For SELECT

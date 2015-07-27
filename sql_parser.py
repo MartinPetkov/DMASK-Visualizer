@@ -60,6 +60,7 @@ def reorder_sql_statements(sql_statements):
 
 last_table = '';
 last_executable_sql = '';
+namespace = '';
 """ Convert a single SQL AST into a list of QueryStep objects """
 # TODO: Implement
 def sql_ast_to_steps(ast, schema):
@@ -74,6 +75,10 @@ def sql_ast_to_steps(ast, schema):
         "UNION": parse_union,
         "ORDER BY": parse_order_by,
     }
+
+    last_table = '';
+    last_executable_sql = '';
+    namespace = '';
 
     steps = []
     # Reorder the statements in the correct order, then parse beginning to end
@@ -126,7 +131,7 @@ def parse_from(ast_node, step_number=''):
     sql_chunk = ' '.join(flatten(ast_node))
     input_tables = []
     # Either going to be a combined intermediate table, or just the one table being selected if there is only one
-    result_table = args[0][0] if (len(args) == 1 and len(args[0]) == 1 ) else current_step_number
+    result_table = args[0][0] if (len(args) == 1 and len(args[0]) == 1) else current_step_number
     executable_sql = "SELECT * " + sql_chunk
     last_executable_sql = executable_sql
     namespace = '' # TODO
@@ -134,6 +139,9 @@ def parse_from(ast_node, step_number=''):
     # Create and add the first step
     first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(first_step)
+
+    if (len(args) == 1 and len(args[0]) == 1):
+        return
 
     # TODO: Create and add the remaining substeps, if any
     for arg in args:
@@ -203,4 +211,19 @@ def parse_create_view(ast_node, step_number=''):
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
-    pass
+    # Create the first step
+    current_step_number = step_number + "1"
+    sql_chunk = ' '.join(flatten(ast_node))
+    input_tables = []
+    result_table = ast_node[1]
+    executable_sql = sql_chunk # In the case of CREATE VIEW, it is its own executable SQL
+    namespace = '' # TODO
+
+    # Create and add the first step
+    first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
+    steps.append(first_step)
+
+    sql_query_node = ast_node[len(ast_node)-1]
+    steps += parse_sql_query(sql_query_node)
+
+    return steps
