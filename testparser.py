@@ -440,7 +440,7 @@ class TestSQL(unittest.TestCase):
         print('TEST SUBQUERY IN FROM CLAUSE (COMPLEX): ')
         print('A query with one subquery in the FROM')
         expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [['Took'], ',', [[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']]], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
-        output = ast('select sid, dept || cnum course, grade from Took, (select * from Offering where instructor=\'Horton\';) H where Took.oid = H.oid;')
+        output = ast('select sid, dept || cnum course, grade from Took, (select * from Offering where instructor=\'Horton\') H where Took.oid = H.oid;')
         print(expected)
         print(output)
 
@@ -461,7 +461,7 @@ class TestSQL(unittest.TestCase):
         print('TEST SUBQUERY IN WHERE CONDITION')
         print('A query with one subquery in the WHERE clause')
         expected = "[['SELECT', [['pizza']]], ['FROM', [['Student']]], ['WHERE', [['cgpa', 'IN', [['SELECT', [['cgpa']]], ['FROM', [['Took']]]]]]]]"
-        output = ast('select pizza from Student where cgpa in (select cgpa from Took;)')
+        output = ast('select pizza from Student where cgpa in (select cgpa from Took);')
         print(expected)
         print(output)
 
@@ -499,7 +499,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST SUBQUERY IN SELECT CLAUSE:')
         print('A query with one subquery in the SELECT clause')
-        expected = "[['SELECT', [[[['SELECT', [['only']]], ['FROM', [['Took']]]], 'H']], ['FROM', [['Offering']]]]"
+        expected = "[['SELECT', [[[['SELECT', [['only']]], ['FROM', [['Took']]]], 'H']]], ['FROM', [['Offering']]]]"
         output = ast('select (select only from Took) H from Offering')
         print(expected)
         print(output)
@@ -522,7 +522,7 @@ class TestSQL(unittest.TestCase):
 
         print('TEST UNION:')
         print('A union of two SQL queries.')
-        expected = "[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['Took']]]]]"
+        expected = "[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['Took']]]]]]"
         output = ast('(select sid from Student) union (select sid from Took);')
         print(expected)
         print(output)
@@ -546,8 +546,35 @@ class TestSQL(unittest.TestCase):
 
         print('TEST UNION:')
         print('A union of two SQL queries.')
-        expected = "[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['Took']]]], ['ORDER BY', ['sid']]]"
+        expected = "[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['Took']]]]], ['ORDER BY', ['sid']]]"
         output = ast('(select sid from Student) union (select sid from Took) order by sid;')
+        print(expected)
+        print(output)
+
+    def test_22c_two_unions(self):
+        ''' TEST TWO UNIONS 
+            query1 UNION query2 UNION query3
+            Expected output:
+                [
+                    [
+                        [
+                            [ 'SELECT', [['sid']]],
+                            [ 'FROM',    [['Student']]]
+                        ], UNION, ALL,
+                        [   [ 'SELECT', [['sid']]],
+                            [ 'FROM',   [['Took']]]
+                        ]
+                    ], UNION,
+                    [   
+                        [ 'SELECT', [['sid']]],
+                        [ 'FROM',   [['University']]]
+                    ]
+                ]
+        '''
+        print('TEST TWO UNIONS')
+        print('query1 UNION query2 UNION query3')
+        expected = "[[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', 'ALL', [['SELECT', [['sid']]], ['FROM', [['Took']]]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['University']]]]]]"
+        output = ast('((select sid from Student) union all (select sid from Took)) union (select sid from University);')
         print(expected)
         print(output)
 
@@ -569,7 +596,7 @@ class TestSQL(unittest.TestCase):
         print('TEST ANY')
         print('A query using keyword ANY in WHERE condition.')
         expected = "[['SELECT', [['sid']]], ['FROM', [['Student']]], ['WHERE', [['gpa', '>', 'ANY', [['SELECT', [['gpa']]], ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], ['WHERE', [['grade', '>', '100']]]]]]]]"
-        output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100;);')
+        output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100);')
         print(expected)
         print(output)
 
@@ -592,7 +619,7 @@ class TestSQL(unittest.TestCase):
         print('TEST IN')
         print('A query containing a subquery using keyword IN.')
         expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering']]], ['WHERE', [[['grade', '>=', '80'], 'AND', ['dept', 'IN', [['SELECT', [['dept']]], ['FROM', [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]], ['WHERE', [['surname', '=', \"'Lakemeyer'\"]]]]]]]]]"
-        output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join offering natural join Student where surname = \'Lakemeyer\';);')
+        output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join offering natural join Student where surname = \'Lakemeyer\');')
         print(expected)
         print(output)
 
@@ -613,7 +640,7 @@ class TestSQL(unittest.TestCase):
         print('TEST NOT EXISTS')
         print('A query containing a subquery using keyword NOT EXISTS.')
         expected = "[['SELECT', [['instructor']]], ['FROM', [['Offering', 'AS', 'Offl']]], ['WHERE', [['NOT', ['EXISTS', [['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]]]"
-        output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor;);')
+        output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
 
@@ -876,7 +903,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST SCALAR SUBQUERY')
         print('A query with a scalar subquery in the SELECT clause.')
-        expected = "[['SELECT', [['name'], [['SELECT', [['max(pop)']]], ['FROM', [['Cities']]], ['WHERE', [['cities.state' '=', 'states.name']]]]]], ['FROM', [['States']]]]"
+        expected = "[['SELECT', [['name'], [[['SELECT', [['max(pop)']]], ['FROM', [['Cities']]], ['WHERE', [['cities.state', '=', 'states.name']]]]]]], ['FROM', [['States']]]]"
         output = ast('select name, (select max(pop) from Cities where cities.state = states.name) from States;')
         print(expected)
         print(output)

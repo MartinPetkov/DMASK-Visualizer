@@ -27,6 +27,7 @@ IN_             =   KEYWORD("IN", caseless=True)
 EXISTS_         =   KEYWORD("EXISTS", caseless=True)
 NOT_            =   KEYWORD("NOT", caseless=True)
 ANY_            =   KEYWORD("ANY", caseless=True)
+SOME_           =   KEYWORD("SOME", caseless=True)
 ALL_            =   KEYWORD("ALL", caseless=True)
 UNION_          =   KEYWORD("UNION", caseless=True)
 INTERSECT_      =   KEYWORD("INTERSECT", caseless=True)
@@ -48,7 +49,7 @@ BETWEEN_        =   KEYWORD("BETWEEN", caseless=True)
 KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
                     CREATE | VIEW | AS | DISTINCT | ON | ASC | DESC | USING | 
                     LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
-                    ANY_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
+                    ANY_ | SOME_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
                     JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
                     NULL_ | ISNULL_ | NOTNULL_ | BETWEEN_)
 
@@ -81,7 +82,7 @@ def precedence(num):
             while i < len(t):
                 ret = ParseResults([ret] + t[i:i+incr])
                 i+= incr
-            return ParseResults([ret])
+            return ParseResults(ret)
     return pa
 
 # ========== Define column values/operations ================
@@ -181,11 +182,11 @@ fromClause      =   (tableOnBlock + ZeroOrMore(joins + tableOnBlock))
 # ========= WHERE CLAUSE ===========
 
 whereCondition  =   Group(
-                    Optional(Suppress("("))
-                    + (
+                    # Optional(Suppress("("))
+                    (
                         (token + BINOP + ( 
                             columnRval 
-                            | ((ANY_ | ALL_) + subquery)))
+                            | ((ANY_ | SOME_ | ALL_) + subquery)))
                         | (token + IN_ + (
                             (Suppress("(") + delimitedList(columnRval) + Suppress(")"))
                             | subquery))
@@ -194,7 +195,7 @@ whereCondition  =   Group(
                         | (token + (ISNULL_ | NOTNULL_))
                         | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
                     )
-                    + Optional(Suppress(")"))
+                    # Optional(Suppress(")"))
                     )
 
 '''
@@ -224,16 +225,16 @@ whereClause     <<   operatorPrecedence(
 
 #==========HAVING CLAUSE ===========
 havingCondition = Group(
-                    Optional(Suppress("("))
-                    + (
-                        (aggregatefns + BINOP + (((ANY_ | ALL_) + subquery) | columnRval))
+                    #Optional(Suppress("("))
+                    (
+                        (aggregatefns + BINOP + (((ANY_ | SOME_ | ALL_) + subquery) | columnRval))
                         | (aggregatefns + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
                         | (aggregatefns + IN_ + subquery)
                         | (aggregatefns + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_)))
                         | (aggregatefns + (ISNULL_ | NOTNULL_))
                         | (aggregatefns + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
                     )
-                    + Optional(Suppress(")"))
+                    #+ Optional(Suppress(")"))
                     )
 
 havingClause    =   operatorPrecedence(
@@ -250,13 +251,13 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Optional( Group( WHERE + Group( whereClause )))
                     + Optional( Group( Combine( GROUP + " " + BY) + (tokenList)))
                     + Optional( Group( HAVING + Group(havingClause)))
-                    + Optional( Group( Combine(ORDER + " " + BY) + (tokenList)))
-                    + Optional( Group(LIMIT + Group(columnRval)))
-                    + Optional( Group(OFFSET + Group(columnRval)))
+                    + Optional( Group( Combine( ORDER + " " + BY) + (tokenList)))
+                    + Optional( Group( LIMIT + Group(columnRval)))
+                    + Optional( Group( OFFSET + Group(columnRval)))
                     )
 
 
-subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")") + Optional(Suppress(";"))
+subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")")
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 
@@ -264,17 +265,15 @@ createView      <<  (Combine( CREATE + " " + VIEW)
                     + subquery
                     )
 
-setOp           <<  (
-                    ((subquery) 
-                    + (UNION_ | INTERSECT_ | EXCEPT_) 
-                    + (subquery)
-                    )
-                    + Optional( Group( Combine(ORDER + " "  + BY) + (tokenList)))
-                    + Optional( Group(LIMIT + Group(columnRval)))
-                    + Optional( Group(OFFSET + Group(columnRval)))
+setOp           <<  (operatorPrecedence(
+                        (subquery),
+                        [( (UNION_ | INTERSECT_ | EXCEPT_) + Optional(ALL_), 2, opAssoc.LEFT, )]
+                    )   + Optional(Group (Combine (ORDER + " " + BY) + tokenList))
+                        + Optional(Group(LIMIT + Group(columnRval )))
+                        + Optional(Group(OFFSET + Group(columnRval)))
                     )
 
-query           <<  (selectCalculator | sqlStmt | setOp | createView)
+query           <<  (selectCalculator | sqlStmt | setOp | createView) + Optional(Suppress(";"))
 
 # ============= TESTING TRACES ===============
 
