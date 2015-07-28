@@ -221,12 +221,14 @@ havingCondition = Group(
                     #+ Optional(Suppress(")"))
                     )
 
-havingClause    =   operatorPrecedence(
-                        havingCondition,
+havingNested    = nestedExpr("(", ")", havingCondition)
+
+havingClause    =   (havingNested | operatorPrecedence(
+                        havingNested | havingCondition,
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
-                    )
+                    ))
 
 #=========== SQL STATEMENT =========
 # Define the grammar for SQL query.
