@@ -828,7 +828,7 @@ def generate_complex_and_plus_or():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with renaming of tables '''
 def generate_complex_renaming():
     query_text =\
@@ -949,7 +949,7 @@ def generate_complex_renaming():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with a subquery in the WHERE that's not repeated for each row '''
 def generate_complex_subquery_in_where_not_repeated():
     query_text =\
@@ -961,53 +961,18 @@ def generate_complex_subquery_in_where_not_repeated():
     '     WHERE sid=4)'
 
     steps = [
-        QueryStep('1', 'FROM Student', [], '1',
+        QueryStep('1', 'FROM Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
             namespace=["Student: sid, firstName, email, cgpa"]),
 
-        QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['1'], '2',
-                reasons = {
-                    0: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4)"],
-                        {
-                            "cgpa > (SELECT cgpa FROM Student WHERE sid=4)": ParsedQuery(
-                                [
-                                    QueryStep('1', 'FROM Student', [], '1',
-                                        namespace=["Student: sid, firstName, email, cgpa"]),
-                                    QueryStep('2', 'WHERE sid=4', ['1'], '2',
-                                        reasons = {
-                                            0: Reason(["sid=4"])
-                                        }),
+        QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['Student'], '2',
+            executable_sql="SELECT * FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)",
+            namespace=["Student: sid, firstName, email, cgpa"]),
 
-                                    QueryStep('3', 'SELECT cgpa', ['2'], '3'),
-                                ],
-                                {
-                                    '1': Table(t_name='1',
-                                        step='1',
-                                        col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
-                                        tuples=[
-                                                ('1', 'Martin', 'martin@mail.com', '3.4'),
-                                                ('2', 'Kathy', 'kathy@mail.com', '4.0'),
-                                                ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
-                                                ('4', 'James', 'james@mail.com', '2.8')]
-                                        ),
-                                    '2': Table(t_name='2',
-                                        step='2',
-                                        col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
-                                        tuples=[
-                                                ('4', 'James', 'james@mail.com', '2.8')]
-                                        ),
-                                    '3': Table(t_name='3',
-                                        step='3',
-                                        col_names=['Student.cgpa'],
-                                        tuples=[
-                                                ('2.8')]
-                                        ),
-                                },
-                                "SELECT cgpa FROM Student WHERE sid=4")
-                        }),
-                }),
-
-        QueryStep('3', 'SELECT sid, firstName', ['2'], '3'),
-    ]
+        QueryStep('3', 'SELECT sid, firstName', ['2'], '3',
+            executable_sql="SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4",
+            namespace=["Student: sid, firstName"])
+        ]
 
     tables = {
         '1': Table(t_name='1',
@@ -1024,8 +989,126 @@ def generate_complex_subquery_in_where_not_repeated():
                     col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0')]
-                    ),
+                            ('2', 'Kathy', 'kathy@mail.com', '4.0'),
+                    ]
+                    reasons={
+                        0: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4"],
+                            {"cgpa > (SELECT cgpa FROM Student WHERE sid=4": 
+                                ParsedQuery(
+                                [
+                                    QueryStep('1', 'FROM Student', [], 'Student',
+                                        executable_sql="SELECT * FROM Student",
+                                        namespace=["Student: sid, firstName, email, cgpa"]),
+                                    QueryStep('2', 'WHERE sid=4', ['Student'], '2',
+                                        executable_sql="SELECT * FROM Student WHERE sid=4",
+                                        namespace=["Student: sid, firstName, email, cgpa"]),
+                                    QueryStep('3', 'SELECT cgpa', ['2'], '3',
+                                        executable_sql="SELECT cgpa FROM Student WHERE sid=4",
+                                        namespace=["Student: cgpa"])
+                                ],
+                                {
+                                    '1': Table(t_name='Student',
+                                                step='1',
+                                                col_names=["sid, firstName, email, cgpa"],
+                                                tuples=[
+                                                    ('1', 'Martin', 'martin@mail.com', '3.4'),
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0'),
+                                                    ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
+                                                    ('4', 'James', 'james@mail.com', '2.8')]
+                                                ),
+                                    '2': Table(t_name='2',
+                                                step='2',
+                                                col_names=["sid, firstName, email, cgpa"],
+                                                tuples=[
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                                                ),
+                                    '3': Table(t_name='3',
+                                                step='3',
+                                                col_names=["cgpa"],
+                                                tuples=[
+                                                    ('4.0')]
+                                                )
+                                }, "SELECT cgpa FROM Student WHERE sid=4")
+                            }),
+                        1: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4"],
+                            {"cgpa > (SELECT cgpa FROM Student WHERE sid=4": 
+                                ParsedQuery(
+                                [
+                                    QueryStep('1', 'FROM Student', [], 'Student',
+                                        executable_sql="SELECT * FROM Student",
+                                        namespace=["Student: sid, firstName, email, cgpa"]),
+                                    QueryStep('2', 'WHERE sid=4', ['Student'], '2',
+                                        executable_sql="SELECT * FROM Student WHERE sid=4",
+                                        namespace=["Student: sid, firstName, email, cgpa"]),
+                                    QueryStep('3', 'SELECT cgpa', ['2'], '3',
+                                        executable_sql="SELECT cgpa FROM Student WHERE sid=4",
+                                        namespace=["Student: cgpa"])
+                                ],
+                                {
+                                    '1': Table(t_name='Student',
+                                                step='1',
+                                                col_names=["sid, firstName, email, cgpa"],
+                                                tuples=[
+                                                    ('1', 'Martin', 'martin@mail.com', '3.4'),
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0'),
+                                                    ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
+                                                    ('4', 'James', 'james@mail.com', '2.8')]
+                                                ),
+                                    '2': Table(t_name='2',
+                                                step='2',
+                                                col_names=["sid, firstName, email, cgpa"],
+                                                tuples=[
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                                                ),
+                                    '3': Table(t_name='3',
+                                                step='3',
+                                                col_names=["cgpa"],
+                                                tuples=[
+                                                    ('4.0')]
+                                                )
+                                }, "SELECT cgpa FROM Student WHERE sid=4")
+                            }),
+                        2: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4"],
+                            {"cgpa > (SELECT cgpa FROM Student WHERE sid=4": 
+                                ParsedQuery(
+                                [
+                                    QueryStep('1', 'FROM Student', [], 'Student',
+                                        executable_sql="SELECT * FROM Student",
+                                        namespace=["Student: sid, firstName, email, cgpa"]),
+                                    QueryStep('2', 'WHERE sid=4', ['Student'], '2',
+                                        executable_sql="SELECT * FROM Student WHERE sid=4",
+                                        namespace=["Student: sid, firstName, email, cgpa"]),
+                                    QueryStep('3', 'SELECT cgpa', ['2'], '3',
+                                        executable_sql="SELECT cgpa FROM Student WHERE sid=4",
+                                        namespace=["Student: cgpa"])
+                                ],
+                                {
+                                    '1': Table(t_name='Student',
+                                                step='1',
+                                                col_names=["sid, firstName, email, cgpa"],
+                                                tuples=[
+                                                    ('1', 'Martin', 'martin@mail.com', '3.4'),
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0'),
+                                                    ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
+                                                    ('4', 'James', 'james@mail.com', '2.8')]
+                                                ),
+                                    '2': Table(t_name='2',
+                                                step='2',
+                                                col_names=["sid, firstName, email, cgpa"],
+                                                tuples=[
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                                                ),
+                                    '3': Table(t_name='3',
+                                                step='3',
+                                                col_names=["cgpa"],
+                                                tuples=[
+                                                    ('4.0')]
+                                                )
+                                }, "SELECT cgpa FROM Student WHERE sid=4")
+                            })
+                    }),
+
+                    
         '3': Table(t_name='3',
                     step='3',
                     col_names=['Student.sid', 'Student.firstName'],
@@ -1038,21 +1121,21 @@ def generate_complex_subquery_in_where_not_repeated():
 
     DESIRED_ASTS['complex_subquery_in_where_not_repeated'] =\
         [
-            [ 'SELECT', ['sid','firstName'] ],
-            [ 'FROM', ['Student'] ],
-            [ 'WHERE', [ 'cgpa', '>',
+            [ 'SELECT', [['sid'], ['firstName']] ],
+            [ 'FROM', [['Student'] ]],
+            [ 'WHERE', [[ 'cgpa', '>',
                             [
-                                [ 'SELECT', ['cgpa'] ],
+                                [ 'SELECT', [['cgpa']] ],
                                 [ 'FROM', [['Student']] ],
                                 [ 'WHERE', [['sid', '=', '4']] ],
                             ]
-                        ] ],
+                        ]] ],
         ]
 
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
+# ============= FIXED ================
 ''' A query with a subquery in the WHERE that's repeated for each row '''
 def generate_complex_subquery_in_where_repeated():
     query_text =\
@@ -1064,12 +1147,42 @@ def generate_complex_subquery_in_where_repeated():
     '     WHERE o2.oid <> o1.oid)'
 
     steps = [
-        QueryStep('1', 'FROM Offering o1', ['Offering'], '1', # t_name = 'o1'
+        QueryStep('1', 'FROM Offering o1', [], 'o1', # t_name = 'o1'
+            executable_sql="SELECT * FROM Offering o1"
             namespace=["o1: oid, dept, cNum, instructor"]),
 
-        QueryStep('2', 'WHERE EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)', ['1'], '2',
-            reasons = {
-                1: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
+        QueryStep('2', 'WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
+            ['o1'], '2',
+            executable_sql="SELECT * FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)",
+            namespace=["o1: oid, dept, cNum, instructor"]),
+
+        QueryStep('3', 'SELECT instructor', ['2'], '3',
+            executable_sql="SELECT instructor FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)",
+            namespace=["o1: instructor"])
+        ]
+
+    tables = {
+
+        '1': Table(t_name='1',
+                    step='1',
+                    col_names=["oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('1', 'csc', '209', 'K. Reid'),
+                        ('2', 'csc', '343', 'D. Horton'),
+                        ('3', 'mat', '137', 'J. Kamnitzer'),
+                        ('4', 'ger', '100', 'E. Luzi')
+                    ]),
+
+        '2': Table(t_name='2',
+                    step='2',
+                    col_names=["oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('1', 'csc', '209', 'K. Reid'),
+                        ('2', 'csc', '343', 'D. Horton'),
+                        ('3', 'mat', '137', 'J. Kamnitzer'),
+                        ('4', 'ger', '100', 'E. Luzi')],
+                    reasons = {
+                        1: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
                         {
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
                             ParsedQuery(
@@ -1243,54 +1356,31 @@ def generate_complex_subquery_in_where_repeated():
                                     ),
                                 },
                                 "SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid")
-                        }),
-            }),
-
-        QueryStep('3', 'SELECT instructor', ['2'], '3'),
-    ]
-
-    tables = {
-        '1': Table(t_name='o1',
-                    step='1',
-                    col_names=['o1.oid', 'o1.dept', 'o1.cNum', 'o1.instructor'],
-                    tuples=[
-                            ('1', 'csc', '209', 'K. Reid'),
-                            ('2', 'csc', '343', 'D. Horton'),
-                            ('3', 'mat', '137', 'J. Kamnitzer'),
-                            ('4', 'ger', '100', 'E. Luzi')]
+                        }) }
                     ),
-        '2': Table(t_name='2',
-                    step='2',
-                    col_names=['o1.oid', 'o1.dept', 'o1.cNum', 'o1.instructor'],
-                    tuples=[
-                            ('1', 'csc', '209', 'K. Reid'),
-                            ('2', 'csc', '343', 'D. Horton'),
-                            ('3', 'mat', '137', 'J. Kamnitzer'),
-                            ('4', 'ger', '100', 'E. Luzi')]
-                    ),
+
         '3': Table(t_name='3',
                     step='3',
-                    col_names=['o1.instructor'],
+                    col_names=["instructor"],
                     tuples=[
-                            ('K. Reid'),
-                            ('D. Horton'),
-                            ('J. Kamnitzer'),
-                            ('E. Luzi')]
-                    ),
-    }
-
+                        ('K. Reid'),
+                        ('D. Horton'),
+                        ('J. Kamnitzer'),
+                        ('E. Luzi')
+                    ])
+        }
 
     DESIRED_ASTS['complex_subquery_in_where_repeated'] =\
         [
-            [ 'SELECT', ['instructor'] ],
+            [ 'SELECT', [['instructor']] ],
             [ 'FROM', [['Offering', 'o1']] ],
-            [ 'WHERE', [ 'EXISTS',
+            [ 'WHERE', [[ 'EXISTS',
                             [
-                                [ 'SELECT', ['o2.oid'] ],
+                                [ 'SELECT', [['o2.oid']] ],
                                 [ 'FROM', [['Offering', 'o2']] ],
                                 [ 'WHERE', [['o2.oid', '<>', 'o1.oid']] ],
                             ]
-                        ]
+                        ]]
             ],
         ]
 
@@ -1693,27 +1783,68 @@ def generate_diane_where_exists():
     '      instructor = Off1.instructor );'
 
     steps = [
-        QueryStep('1', '', [''], '', namespace=[]),
-    ]
+
+        QueryStep('1', 'FROM Offering Offl', [], 'Offering',
+            executable_sql="SELECT * FROM Offering Off1",
+            namespace=["Offl: oid, dept, cNum, instructor"]),
+
+        QueryStep('2', 
+            "WHERE NOT EXISTS (SELECT * FROM Offering WHERE oid <> Offl.oid AND instructor = Offl.instructor)",
+            ['Offering'], '2',
+            executable_sql="SELECT * FROM Offering Offl WHERE NOT EXISTS (SELECT * FROM Offering \
+                WHERE oid <> Offl.oid AND instructor = Offl.instructor",
+            namespace=["Offl: oid, dept, cNum, instructor"]),
+
+        QueryStep('3', 'SELECT instructor', ['2'], '3',
+            executable_sql="SELECT instructor FROM Offering Offl WHERE NOT EXISTS (SELECT * FROM Offering \
+                WHERE oid <> Offl.oid AND instructor = Offl.instructor",
+            namespace=["Offl: instructor"])
+        ]
+
 
     tables = {
-        '1': Table(t_name='1',
+        '1': Table(t_name='Offering',
                     step='1',
-                    col_names=[],
-                    tuples=[]
+                    col_names=['oid', 'dept', 'cNum', 'instructor'],
+                    tuples=[
+                            ('1', 'csc', '209', 'K. Reid'),
+                            ('2', 'csc', '343', 'D. Horton'),
+                            ('3', 'mat', '137', 'J. Kamnitzer'),
+                            ('4', 'ger', '100', 'E. Luzi')]
                     ),
-    }
-
+        '2': Table(t_name='2',
+                   step='2',
+                   col_names=['oid', 'dept', 'cNum', 'instructor'],
+                    tuples=[
+                            ('1', 'csc', '209', 'K. Reid'),
+                            ('2', 'csc', '343', 'D. Horton'),
+                            ('3', 'mat', '137', 'J. Kamnitzer'),
+                            ('4', 'ger', '100', 'E. Luzi')],
+                    reasons= {
+                        0: ["not exists (SELECT * FROM Offering where oid <> Offl.oid"]
+                    }
+                    ),
+        '3': Table(t_name='Student',
+                   step='3',
+                   col_names=['instructor'],
+                   tuples=[
+                           ('K. Reid'),
+                           ('D. Horton'),
+                           ('J. Kamnitzer'),
+                           ('E. Luzi'),
+                    ]
+                   )
+        }
 
     DESIRED_ASTS['diane_where_exists'] =\
         [
-            [ 'SELECT', ['instructor'] ],
+            [ 'SELECT', [['instructor']] ],
             [ 'FROM',   [['Offering', 'Off1']] ],
             [ 'WHERE',  [['NOT', 'EXISTS',
                             [
                                 [ 'SELECT', ['*'] ],
                                 [ 'FROM',   [['Offering']] ],
-                                [ 'WHERE',  [['oid', '<>', 'Off1.oid'], 'AND', ['instructor', '=', 'Off1.instructor']] ],
+                                [ 'WHERE',  [[['oid', '<>', 'Off1.oid'], 'AND', ['instructor', '=', 'Off1.instructor']] ]],
                         ]]]
             ]
         ]
