@@ -123,17 +123,24 @@ def generate_simple_cross_product_query():
     ' FROM Student, Took'
 
     steps = [
-        QueryStep('1', 'FROM Student, Took', [], '1', 'SELECT * FROM Student, Took',
+        QueryStep('1', 'FROM Student, Took', [], '1',
+            executable_sql="SELECT * FROM Student, Took",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade"]),
-        QueryStep('1.1', 'Student', [], 'Student', 'SELECT * FROM Student',
+        QueryStep('1.1', 'Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
             namespace=[ "Student: sid, firstName, email, cgpa"]),
-        QueryStep('1.2', 'Took', [], 'Took', 'SELECT * FROM Took',
+        QueryStep('1.2', 'Took', [], 'Took',
+            executable_sql="SELECT * FROM Took",
             namespace=[ "Took: sid, ofid, grade"]),
-        QueryStep('1.3', 'Student, Took', ['Student', 'Took'], '1', 'SELECT * FROM Student, Took',
+        QueryStep('1.3', 'Student, Took', ['Student', 'Took'], '1',
+            executable_sql="SELECT * FROM Student, Took",
             namespace=[ "Student: sid, firstName, email, cgpa",
                         "Took: sid, ofid, grade"]),
-        QueryStep('2', 'SELECT Student.sid, Student.email, Took.grade', ['1'], '2', 'SELECT Student.sid, Student.email, Took.grade FROM Student, Took')
+        QueryStep('2', 'SELECT Student.sid, Student.email, Took.grade', ['1'], '2', 
+            executable_sql='SELECT Student.sid, Student.email, Took.grade FROM Student, Took',
+            namespace=["Student: sid, email",
+                        "Took: grade"])
         ]
 
     tables = {
@@ -554,7 +561,6 @@ def generate_simple_subquery():
 
     steps = [
         QueryStep('1', 'FROM (SELECT oid, dept FROM Offering) AS LimitedCols', ['Offering'], '1',
-                
                 executable_sql="SELECT * FROM (SELECT oid, dept FROM Offering) AS LimitedCols",
                 namespace=["LimitedCols: oid, dept"]),
 
@@ -847,8 +853,7 @@ def generate_complex_renaming():
 
             QueryStep('1.2', 'Offering o', ['Offering'], '1.2', # t_name = 'o'
                 executable_sql="SELECT * FROM Offering",
-                namespace=["t: sid, ofid, grade",
-                            "o: oid, dept, cNum, instructor"]),
+                namespace=["o: oid, dept, cNum, instructor"]),
 
             QueryStep('1.3', 'Took t, Offering o', ['1.1', '1.2'], '1',
                 executable_sql="SELECT * FROM Took t, Offering o",
@@ -857,8 +862,8 @@ def generate_complex_renaming():
 
         QueryStep('2', 'SELECT t.sid, o.oid', ['1'], '2',
             executable_sql="SELECT t.sid, o.oid FROM Took t, Offering o",
-            namespace=["t: sid, ofid, grade",
-                        "o: oid, dept, cNum, instructor"]),
+            namespace=["t: sid",
+                        "o: oid"]),
     ]
 
     tables = {
@@ -966,8 +971,8 @@ def generate_complex_subquery_in_where_not_repeated():
             namespace=["Student: sid, firstName, email, cgpa"]),
 
         QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['Student'], '2',
-            executable_sql="SELECT * FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)",
-            namespace=["Student: sid, firstName, email, cgpa"]),
+            executable_sql="SELECT * FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)"
+            ),
 
         QueryStep('3', 'SELECT sid, firstName', ['2'], '3',
             executable_sql="SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4",
@@ -1165,8 +1170,8 @@ def generate_complex_subquery_in_where_repeated():
 
         QueryStep('2', 'WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
             ['o1'], '2',
-            executable_sql="SELECT * FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)",
-            namespace=["o1: oid, dept, cNum, instructor"]),
+            executable_sql="SELECT * FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)"
+        )
 
         QueryStep('3', 'SELECT instructor', ['2'], '3',
             executable_sql="SELECT instructor FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)",
@@ -1191,10 +1196,14 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
+                                        executable_sql="SELECT * FROM Offering o2",
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dept, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
+                                        executable_sql="SELECT * FROM Offering o2 WHERE o2.oid <> o1.oid"),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        executable_sql="SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid",
+                                        namespace=["o2: oid"]),
                                 ],
                                 {
                                     '1': Table(t_name='o2',
@@ -1238,10 +1247,14 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
+                                        executable_sql="SELECT * FROM Offering o2",
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dpet, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2'),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
+                                        executable_sql="SELECT * FROM Offering o2 WHERE o2.oid <> o1.oid"),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        executable_sql="SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid",
+                                        namespace=["o2: oid"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -1285,10 +1298,14 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
+                                        executable_sql="SELECT * FROM Offering o2",
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dpet, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2'),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
+                                        executable_sql="SELECT * FROM Offering o2 WHERE o2.oid <> o1.oid"),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        executable_sql="SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid",
+                                        namespace=["o2: oid"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -1332,10 +1349,14 @@ def generate_complex_subquery_in_where_repeated():
                             ParsedQuery(
                                 [
                                     QueryStep('1', 'FROM Offering o2', [], '1',
+                                        executable_sql="SELECT * FROM Offering o2",
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dpet, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2'),
-                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
+                                        executable_sql="SELECT * FROM Offering o2 WHERE o2.oid <> o1.oid"),
+                                    QueryStep('3', 'SELECT o2.oid', ['2'], '3',
+                                        executable_sql="SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid",
+                                        namespace=["o2: oid"]),
                                 ],
                                 {
                                     '1': Table(t_name='1',
@@ -1411,8 +1432,6 @@ def generate_complex_subquery_in_where_repeated():
     parsed_query = ParsedQuery(steps, tables, query_text)
     return {"global_tables": global_tables, "all_queries": [parsed_query]}
 
-
-
 # ============= FIXED ================
 ''' Multiple queries which don't reference each other '''
 def generate_multiple_queries_unrelated():
@@ -1422,11 +1441,11 @@ def generate_multiple_queries_unrelated():
 
     steps1 = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student: sid, firstName, email, cgpa"],
-            executable_sql="SELECT * FROM Student"),
+            executable_sql="SELECT * FROM Student",
+            namespace=["Student: sid, firstName, email, cgpa"]),
         QueryStep('2', 'SELECT email', ['1'], '2',
-            namespace=["Student: email"],
-            executable_sql="SELECT email FROM Student"),
+            executable_sql="SELECT email FROM Student",
+            namespace=["Student: email"])
     ]
 
     tables1 = {
@@ -1464,11 +1483,11 @@ def generate_multiple_queries_unrelated():
 
     steps2 = [
         QueryStep('1', 'FROM Offering', [], '1',
-            namespace=["Offering: oid, dept, cNum, instructor"],
-            executable_sql="SELECT * FROM Offering"),
+            executable_sql="SELECT * FROM Offering",
+            namespace=["Offering: oid, dept, cNum, instructor"]),
         QueryStep('2', 'SELECT oid', ['1'], '2',
-            namespace=["Offering: oid"],
-            executable_sql="SELECT oid FROM Offering")
+            executable_sql="SELECT oid FROM Offering",
+            namespace=["Offering: oid"])
     ]
 
     tables2 = {
@@ -1503,7 +1522,6 @@ def generate_multiple_queries_unrelated():
     parsed_query2 = ParsedQuery(steps2, tables2, query_text2)
     return {"global_tables": global_tables, "all_queries": [parsed_query1, parsed_query2]}
 
-
 # ============= FIXED ================
 ''' Multiple queries which do reference each other '''
 def generate_multiple_queries_related():
@@ -1515,23 +1533,23 @@ def generate_multiple_queries_related():
 
     steps1 = [
         QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza',
+            executable_sql="CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa < 3",
             namespace=["pizza: sid, email, cgpa"],
-            executable_sql="CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3"),
-
+            ),
             QueryStep('1.1', 'FROM Student', [], '1.1',
+                executable_sql="SELECT * FROM Student",
                 namespace=["Student: sid, firstName, email, cgpa"],
-                executable_sql="SELECT * FROM Student"),
-
+                ),
             QueryStep('1.2', 'WHERE cgpa<3', ['1.1'], '1.2',
-                      executable_sql="SELECT * FROM Student WHERE cgpa <3"),
+                executable_sql="SELECT * FROM Student WHERE cgpa < 3"),
 
             QueryStep('1.3', 'SELECT sid, email, cgpa', ['1.2'], '1.3',
+                executable_sql="SELECT sid, email, cgpa FROM Student",
                 namespace=["Student: sid, email, cgpa"],
-                executable_sql="SELECT sid, email, cgpa FROM Student"),
-
+                ),
             QueryStep('1.4', 'CREATE VIEW pizza', ['1.3'], 'pizza',
-                namespace=["pizza: sid, email, cgpa"],
-                executable_sql="SELECT * FROM pizza"),
+                executable_sql="CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa < 3",
+                namespace=["pizza: sid, email, cgpa"])
     ]
 
     tables1 = {
@@ -1584,8 +1602,11 @@ def generate_multiple_queries_related():
 
     steps2 = [
         QueryStep('1', 'FROM pizza', ['pizza'], '1',
+            executable_sql="SELECT * FROM pizza",
             namespace=["pizza: sid, email, cgpa"]),
-        QueryStep('2', 'SELECT email', ['1'], '2'),
+        QueryStep('2', 'SELECT email', ['1'], '2',
+            executable_sql="SELECT email FROM pizza",
+            namespace=["pizza: email"]),
     ]
 
     tables2 = {
