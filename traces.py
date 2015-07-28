@@ -1183,16 +1183,7 @@ def generate_complex_subquery_in_where_repeated():
                         ('2', 'csc', '343', 'D. Horton'),
                         ('3', 'mat', '137', 'J. Kamnitzer'),
                         ('4', 'ger', '100', 'E. Luzi')
-                    ]),
-
-        '2': Table(t_name='2',
-                    step='2',
-                    col_names=["oid, dept, cNum, instructor"],
-                    tuples=[
-                        ('1', 'csc', '209', 'K. Reid'),
-                        ('2', 'csc', '343', 'D. Horton'),
-                        ('3', 'mat', '137', 'J. Kamnitzer'),
-                        ('4', 'ger', '100', 'E. Luzi')],
+                    ],
                     reasons = {
                         1: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
                         {
@@ -1213,14 +1204,6 @@ def generate_complex_subquery_in_where_repeated():
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                                            ('4', 'ger', '100', 'E. Luzi')]
-                                    ),
-                                    '2': Table(t_name='o2',
-                                    step='2',
-                                    col_names=['o2.oid', 'o2.dept', 'o2.cNum', 'o2.instructor'],
-                                    tuples=[
-                                            ('2', 'csc', '343', 'D. Horton'),
-                                            ('3', 'mat', '137', 'J. Kamnitzer'),
                                             ('4', 'ger', '100', 'E. Luzi')],
                                     reasons={
                                         0: Reason(["o2.oid <> o1.oid"]),
@@ -1228,6 +1211,14 @@ def generate_complex_subquery_in_where_repeated():
                                         2: Reason(["o2.oid <> o1.oid"]),
                                         3: Reason(["o2.oid <> o1.oid"])
                                         }
+                                    ),
+                                    '2': Table(t_name='o2',
+                                    step='2',
+                                    col_names=['o2.oid', 'o2.dept', 'o2.cNum', 'o2.instructor'],
+                                    tuples=[
+                                            ('2', 'csc', '343', 'D. Horton'),
+                                            ('3', 'mat', '137', 'J. Kamnitzer'),
+                                            ('4', 'ger', '100', 'E. Luzi')]
                                     ),
                                     '3': Table(t_name='o2',
                                     step='3',
@@ -1240,7 +1231,7 @@ def generate_complex_subquery_in_where_repeated():
                                 },
                                 "SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid")
                         }),
-
+                
                 2: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
                         {
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
@@ -1260,14 +1251,6 @@ def generate_complex_subquery_in_where_repeated():
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                                            ('4', 'ger', '100', 'E. Luzi')]
-                                    ),
-                                    '2': Table(t_name='2',
-                                    step='2',
-                                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
-                                    tuples=[
-                                            ('1', 'csc', '209', 'K. Reid'),
-                                            ('3', 'mat', '137', 'J. Kamnitzer'),
                                             ('4', 'ger', '100', 'E. Luzi')],
                                     reasons={
                                         0: Reason(["o2.oid <> o1.oid"]),
@@ -1275,6 +1258,14 @@ def generate_complex_subquery_in_where_repeated():
                                         2: Reason(["o2.oid <> o1.oid"]),
                                         3: Reason(["o2.oid <> o1.oid"])
                                         }
+                                    ),
+                                    '2': Table(t_name='2',
+                                    step='2',
+                                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                                    tuples=[
+                                            ('1', 'csc', '209', 'K. Reid'),
+                                            ('3', 'mat', '137', 'J. Kamnitzer'),
+                                            ('4', 'ger', '100', 'E. Luzi')]
                                     ),
                                     '3': Table(t_name='3',
                                     step='3',
@@ -1287,7 +1278,7 @@ def generate_complex_subquery_in_where_repeated():
                                 },
                                 "SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid")
                         }),
-
+                
                 3: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
                         {
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
@@ -1307,14 +1298,6 @@ def generate_complex_subquery_in_where_repeated():
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                                            ('4', 'ger', '100', 'E. Luzi')]
-                                    ),
-                                    '2': Table(t_name='2',
-                                    step='2',
-                                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
-                                    tuples=[
-                                            ('1', 'csc', '209', 'K. Reid'),
-                                            ('2', 'csc', '343', 'D. Horton'),
                                             ('4', 'ger', '100', 'E. Luzi')],
                                     reasons={
                                         0: Reason(["o2.oid <> o1.oid"]),
@@ -1322,6 +1305,14 @@ def generate_complex_subquery_in_where_repeated():
                                         2: Reason(["o2.oid <> o1.oid"]),
                                         3: Reason(["o2.oid <> o1.oid"])
                                         }
+                                    ),
+                                    '2': Table(t_name='2',
+                                    step='2',
+                                    col_names=['Offering.oid', 'Offering.dept', 'Offering.cNum', 'Offering.instructor'],
+                                    tuples=[
+                                            ('1', 'csc', '209', 'K. Reid'),
+                                            ('2', 'csc', '343', 'D. Horton'),
+                                            ('4', 'ger', '100', 'E. Luzi')]
                                     ),
                                     '3': Table(t_name='3',
                                     step='3',
@@ -1334,7 +1325,7 @@ def generate_complex_subquery_in_where_repeated():
                                 },
                                 "SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid")
                         }),
-
+                
                 4: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
                         {
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
@@ -1354,7 +1345,13 @@ def generate_complex_subquery_in_where_repeated():
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                                            ('4', 'ger', '100', 'E. Luzi')]
+                                            ('4', 'ger', '100', 'E. Luzi')],
+                                    reasons={
+                                        0: Reason(["o2.oid <> o1.oid"]),
+                                        1: Reason(["o2.oid <> o1.oid"]),
+                                        2: Reason(["o2.oid <> o1.oid"]),
+                                        3: Reason(["o2.oid <> o1.oid"])
+                                        }
                                     ),
                                     '2': Table(t_name='2',
                                     step='2',
@@ -1362,13 +1359,7 @@ def generate_complex_subquery_in_where_repeated():
                                     tuples=[
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
-                                            ('3', 'mat', '137', 'J. Kamnitzer')],
-                                    reasons={
-                                        0: Reason(["o2.oid <> o1.oid"]),
-                                        1: Reason(["o2.oid <> o1.oid"]),
-                                        2: Reason(["o2.oid <> o1.oid"]),
-                                        3: Reason(["o2.oid <> o1.oid"])
-                                        }
+                                            ('3', 'mat', '137', 'J. Kamnitzer')]
                                     ),
                                     '3': Table(t_name='3',
                                     step='3',
@@ -1380,7 +1371,16 @@ def generate_complex_subquery_in_where_repeated():
                                     ),
                                 },
                                 "SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid")
-                        }) }
+                            }) }),
+
+        '2': Table(t_name='2',
+                    step='2',
+                    col_names=["oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('1', 'csc', '209', 'K. Reid'),
+                        ('2', 'csc', '343', 'D. Horton'),
+                        ('3', 'mat', '137', 'J. Kamnitzer'),
+                        ('4', 'ger', '100', 'E. Luzi')]
                     ),
 
         '3': Table(t_name='3',
@@ -1542,19 +1542,19 @@ def generate_multiple_queries_related():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sopia', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]
+                            ('4', 'James', 'james@mail.com', '2.8')],
+                    reasons={
+                        0: Reason(["cgpa<3"]),
+                        3: Reason(["cgpa<3"]),
+                        4: Reason(["cgpa<3"])
+                        }
                     ),
         '1.2': Table(t_name='1.2',
                     step='1.2',
                     col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
                     tuples=[
                             ('3', 'Martin', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')],
-                    reasons={
-                        0: Reason(["cgpa<3"]),
-                        1: Reason(["cgpa<3"]),
-                        2: Reason(["cgpa<3"])
-                        }
+                            ('4', 'James', 'james@mail.com', '2.8')]
                     ),
         '1.3': Table(t_name='1.3',
                     step='1.3',
