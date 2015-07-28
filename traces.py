@@ -846,7 +846,7 @@ def generate_complex_renaming():
                 namespace=["t: sid, ofid, grade"]),
 
             QueryStep('1.2', 'Offering o', ['Offering'], '1.2', # t_name = 'o'
-                executable_sql="SELECT * FROM Offering"
+                executable_sql="SELECT * FROM Offering",
                 namespace=["t: sid, ofid, grade",
                             "o: oid, dept, cNum, instructor"]),
 
@@ -990,7 +990,7 @@ def generate_complex_subquery_in_where_not_repeated():
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
-                    ]
+                    ],
                     reasons={
                         0: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4"],
                             {"cgpa > (SELECT cgpa FROM Student WHERE sid=4": 
@@ -1020,7 +1020,11 @@ def generate_complex_subquery_in_where_not_repeated():
                                                 step='2',
                                                 col_names=["sid, firstName, email, cgpa"],
                                                 tuples=[
-                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')],
+                                                reasons={
+                                                    0: Reason(["sid=4"]),
+                                                    1: Reason(["sid=4"])
+                                                    }
                                                 ),
                                     '3': Table(t_name='3',
                                                 step='3',
@@ -1058,7 +1062,11 @@ def generate_complex_subquery_in_where_not_repeated():
                                                 step='2',
                                                 col_names=["sid, firstName, email, cgpa"],
                                                 tuples=[
-                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')],
+                                                reasons={
+                                                    0: Reason(["sid=4"]),
+                                                    1: Reason(["sid=4"])
+                                                    }
                                                 ),
                                     '3': Table(t_name='3',
                                                 step='3',
@@ -1096,7 +1104,11 @@ def generate_complex_subquery_in_where_not_repeated():
                                                 step='2',
                                                 col_names=["sid, firstName, email, cgpa"],
                                                 tuples=[
-                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')]
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')],
+                                                reasons={
+                                                    0: Reason(["sid=4"]),
+                                                    1: Reason(["sid=4"])
+                                                    }
                                                 ),
                                     '3': Table(t_name='3',
                                                 step='3',
@@ -1148,7 +1160,7 @@ def generate_complex_subquery_in_where_repeated():
 
     steps = [
         QueryStep('1', 'FROM Offering o1', [], 'o1', # t_name = 'o1'
-            executable_sql="SELECT * FROM Offering o1"
+            executable_sql="SELECT * FROM Offering o1",
             namespace=["o1: oid, dept, cNum, instructor"]),
 
         QueryStep('2', 'WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
@@ -1190,10 +1202,7 @@ def generate_complex_subquery_in_where_repeated():
                                     QueryStep('1', 'FROM Offering o2', [], '1',
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dept, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
-                                        reasons = {
-                                            0: Reason(["o2.oid <> o1.oid"])
-                                        }),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',),
                                     QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
@@ -1212,7 +1221,13 @@ def generate_complex_subquery_in_where_repeated():
                                     tuples=[
                                             ('2', 'csc', '343', 'D. Horton'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                                            ('4', 'ger', '100', 'E. Luzi')]
+                                            ('4', 'ger', '100', 'E. Luzi')],
+                                    reasons={
+                                        0: Reason(["o2.oid <> o1.oid"]),
+                                        1: Reason(["o2.oid <> o1.oid"]),
+                                        2: Reason(["o2.oid <> o1.oid"]),
+                                        3: Reason(["o2.oid <> o1.oid"])
+                                        }
                                     ),
                                     '3': Table(t_name='o2',
                                     step='3',
@@ -1234,10 +1249,7 @@ def generate_complex_subquery_in_where_repeated():
                                     QueryStep('1', 'FROM Offering o2', [], '1',
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dpet, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
-                                        reasons = {
-                                            0: Reason(["o2.oid <> o1.oid"])
-                                        }),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2'),
                                     QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
@@ -1256,7 +1268,13 @@ def generate_complex_subquery_in_where_repeated():
                                     tuples=[
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                                            ('4', 'ger', '100', 'E. Luzi')]
+                                            ('4', 'ger', '100', 'E. Luzi')],
+                                    reasons={
+                                        0: Reason(["o2.oid <> o1.oid"]),
+                                        1: Reason(["o2.oid <> o1.oid"]),
+                                        2: Reason(["o2.oid <> o1.oid"]),
+                                        3: Reason(["o2.oid <> o1.oid"])
+                                        }
                                     ),
                                     '3': Table(t_name='3',
                                     step='3',
@@ -1278,10 +1296,7 @@ def generate_complex_subquery_in_where_repeated():
                                     QueryStep('1', 'FROM Offering o2', [], '1',
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dpet, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
-                                        reasons = {
-                                            0: Reason(["o2.oid <> o1.oid"])
-                                        }),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2'),
                                     QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
@@ -1300,7 +1315,13 @@ def generate_complex_subquery_in_where_repeated():
                                     tuples=[
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
-                                            ('4', 'ger', '100', 'E. Luzi')]
+                                            ('4', 'ger', '100', 'E. Luzi')],
+                                    reasons={
+                                        0: Reason(["o2.oid <> o1.oid"]),
+                                        1: Reason(["o2.oid <> o1.oid"]),
+                                        2: Reason(["o2.oid <> o1.oid"]),
+                                        3: Reason(["o2.oid <> o1.oid"])
+                                        }
                                     ),
                                     '3': Table(t_name='3',
                                     step='3',
@@ -1322,10 +1343,7 @@ def generate_complex_subquery_in_where_repeated():
                                     QueryStep('1', 'FROM Offering o2', [], '1',
                                         namespace=["o1: oid, dept, cNum, instructor",
                                                     "o2: oid, dpet, cNum, instructor"]),
-                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2',
-                                        reasons = {
-                                            0: Reason(["o2.oid <> o1.oid"])
-                                        }),
+                                    QueryStep('2', 'WHERE o2.oid <> o1.oid', ['1'], '2'),
                                     QueryStep('3', 'SELECT o2.oid', ['2'], '3'),
                                 ],
                                 {
@@ -1344,7 +1362,13 @@ def generate_complex_subquery_in_where_repeated():
                                     tuples=[
                                             ('1', 'csc', '209', 'K. Reid'),
                                             ('2', 'csc', '343', 'D. Horton'),
-                                            ('3', 'mat', '137', 'J. Kamnitzer')]
+                                            ('3', 'mat', '137', 'J. Kamnitzer')],
+                                    reasons={
+                                        0: Reason(["o2.oid <> o1.oid"]),
+                                        1: Reason(["o2.oid <> o1.oid"]),
+                                        2: Reason(["o2.oid <> o1.oid"]),
+                                        3: Reason(["o2.oid <> o1.oid"])
+                                        }
                                     ),
                                     '3': Table(t_name='3',
                                     step='3',
@@ -1389,6 +1413,7 @@ def generate_complex_subquery_in_where_repeated():
 
 
 
+# ============= FIXED ================
 ''' Multiple queries which don't reference each other '''
 def generate_multiple_queries_unrelated():
     query_text1 =\
@@ -1397,8 +1422,11 @@ def generate_multiple_queries_unrelated():
 
     steps1 = [
         QueryStep('1', 'FROM Student', [], '1',
-            namespace=["Student: sid, firstName, email, cgpa"]),
-        QueryStep('2', 'SELECT email', ['1'], '2'),
+            namespace=["Student: sid, firstName, email, cgpa"],
+            executable_sql="SELECT * FROM Student"),
+        QueryStep('2', 'SELECT email', ['1'], '2',
+            namespace=["Student: email"],
+            executable_sql="SELECT email FROM Student"),
     ]
 
     tables1 = {
@@ -1436,8 +1464,11 @@ def generate_multiple_queries_unrelated():
 
     steps2 = [
         QueryStep('1', 'FROM Offering', [], '1',
-            namespace=["Offering: oid, dept, cNum, instructor"]),
-        QueryStep('2', 'SELECT oid', ['1'], '2'),
+            namespace=["Offering: oid, dept, cNum, instructor"],
+            executable_sql="SELECT * FROM Offering"),
+        QueryStep('2', 'SELECT oid', ['1'], '2',
+            namespace=["Offering: oid"],
+            executable_sql="SELECT oid FROM Offering")
     ]
 
     tables2 = {
@@ -1473,6 +1504,7 @@ def generate_multiple_queries_unrelated():
     return {"global_tables": global_tables, "all_queries": [parsed_query1, parsed_query2]}
 
 
+# ============= FIXED ================
 ''' Multiple queries which do reference each other '''
 def generate_multiple_queries_related():
     query_text1 =\
@@ -1483,20 +1515,23 @@ def generate_multiple_queries_related():
 
     steps1 = [
         QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza',
-            namespace=["pizza: sid, email, cgpa"]),
+            namespace=["pizza: sid, email, cgpa"],
+            executable_sql="CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3"),
 
             QueryStep('1.1', 'FROM Student', [], '1.1',
-                namespace=["Student: sid, firstName, email, cgpa"]),
+                namespace=["Student: sid, firstName, email, cgpa"],
+                executable_sql="SELECT * FROM Student"),
 
             QueryStep('1.2', 'WHERE cgpa<3', ['1.1'], '1.2',
-                reasons = {
-                    0: Reason(["cgpa<3"]),
-                }),
+                      executable_sql="SELECT * FROM Student WHERE cgpa <3"),
 
-            QueryStep('1.3', 'SELECT sid, email, cgpa', ['1.2'], '1.3'),
+            QueryStep('1.3', 'SELECT sid, email, cgpa', ['1.2'], '1.3',
+                namespace=["Student: sid, email, cgpa"],
+                executable_sql="SELECT sid, email, cgpa FROM Student"),
 
             QueryStep('1.4', 'CREATE VIEW pizza', ['1.3'], 'pizza',
-                namespace=["pizza: sid, email, cgpa"]),
+                namespace=["pizza: sid, email, cgpa"],
+                executable_sql="SELECT * FROM pizza"),
     ]
 
     tables1 = {
@@ -1514,7 +1549,12 @@ def generate_multiple_queries_related():
                     col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
                     tuples=[
                             ('3', 'Martin', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]
+                            ('4', 'James', 'james@mail.com', '2.8')],
+                    reasons={
+                        0: Reason(["cgpa<3"]),
+                        1: Reason(["cgpa<3"]),
+                        2: Reason(["cgpa<3"])
+                        }
                     ),
         '1.3': Table(t_name='1.3',
                     step='1.3',
