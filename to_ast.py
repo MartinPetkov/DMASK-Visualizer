@@ -195,33 +195,17 @@ whereCondition  =   Group(
                         | (token + (ISNULL_ | NOTNULL_))
                         | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
                     )
-                    # Optional(Suppress(")"))
+                    # + Optional(Suppress(")"))
                     )
 
-'''
+whereNested     =  nestedExpr("(", ")", whereCondition)
 
-whereCondition  =   Group(
-                    Optional(Suppress("(")) 
-                    + (
-                        (token + BINOP + (((ANY_ | ALL_) + subquery) | columnRval)) 
-                        | (token + IN_ + subquery)
-                        | (token + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
-                        | (EXISTS_ + subquery)
-                        | (token + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_))) 
-                        | (token + (ISNULL_ | NOTNULL_))
-                        | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
-                    ) 
-                    + Optional(Suppress(")"))
-                    )
-'''
-
-
-whereClause     <<   operatorPrecedence(
-                        whereCondition,
+whereClause     <<  (whereNested | operatorPrecedence(
+                        whereNested | whereCondition,
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
-                    )
+                    ))
 
 #==========HAVING CLAUSE ===========
 havingCondition = Group(

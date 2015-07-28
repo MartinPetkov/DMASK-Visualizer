@@ -23,6 +23,7 @@ class TestSQL(unittest.TestCase):
         output = ast("select sid, cgpa from Student where cgpa > 3;")
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_01_simple_dotcol(self):
         ''' TEST SIMPLE SELECT-FROM USING TABLE.COL FORMAT:
@@ -39,6 +40,7 @@ class TestSQL(unittest.TestCase):
         output = ast("select Student.sid from Student")
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_02a_select_constant(self):
@@ -57,6 +59,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select \'foo\' from Student')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_02b_select_concatenatedcolumns(self):
         ''' TEST CONCATENATED COLUMNS
@@ -73,6 +76,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select dept || cnum from Student')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_02c_select_constant_and_column(self):
         ''' TEST SELECT COLUMN AND A CONSTANT:
@@ -89,6 +93,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, 2 from Student as S')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_03_rename_column_without_as(self):
 
@@ -106,6 +111,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select cnum course from Courses')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
     
     def test_04_rename_column_with_as(self):
         ''' TEST RENAMING A COLUMN WITH AS:
@@ -122,6 +128,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select cnum as course from Courses')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_05_rename_table_without_as(self):
         ''' TEST RENAME TABLE WITHOUT AS:
@@ -138,6 +145,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, grade from Took T JOIN Offering')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_06_rename_table_with_as(self):
 
@@ -155,6 +163,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, grade from Took as T JOIN Offering')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_07_crossproduct_comma(self):
         ''' TEST CROSS PRODUCT ",":
@@ -172,6 +181,7 @@ class TestSQL(unittest.TestCase):
         output = ast(testquery)
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_08_crossproduct_join(self):
 
@@ -189,6 +199,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select student.sid, student.email, took.grade from Student join Took')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_09_natural_join_1(self):
         ''' TEST NATURAL JOIN:
@@ -205,6 +216,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, email, cgpa from Student natural join Took')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_10_natural_join_2(self):
 
@@ -224,6 +236,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, email, cgpa from Student natural join Took natural join Offering')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_11_left_join(self):
     
@@ -241,6 +254,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, grade, instructor from Took left join Offering on Took.oid=Offering.oid')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_12_full_outer_join(self):
 
@@ -259,6 +273,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, grade from Took full outer join Offering')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_13_create_view(self):
@@ -279,6 +294,7 @@ class TestSQL(unittest.TestCase):
         output = ast('create view students (select email from Student)')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_14_compound_cond_and(self):
 
@@ -297,6 +313,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select email, cgpa from Student where cgpa > 3 and firstName=\'Martin\'')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_15_compound_cond_or(self):
@@ -316,6 +333,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select email, cgpa from Student as S where cgpa > 3 or firstName like \'%Mart$\'')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_16a_compound_cond_andor_nobrackets(self):
 
@@ -325,16 +343,17 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']] ],
                     [ 'FROM',   [['Student']] ],
-                    [ 'WHERE',  [ [[['cgpa', '>', '3'], 'AND', ['firstName', '=', 'Martin'] ],
-                                    'OR', ['firstName', 'LIKE', '%Kat%'] ] ]]
+                    [ 'WHERE',  [ [['cgpa', '>', '3'], 'AND', ['firstName', '=', 'Martin'] ],
+                                    'OR', ['firstName', 'LIKE', '%Kat%'] ] ]
                 ]
         '''
         print('TEST COMPOUND CONDITION: AND + OR, NO BRACKETS')
         print('A query with an AND and OR in its WHERE statement. Left evaluation, no brackets.')
-        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[[['cgpa', '>', '3'], 'AND', ['firstName', '=', \"'Martin'\"]], 'OR', ['firstName', 'LIKE', \"'%Kat$'\"]]]]]"
+        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[['cgpa', '>', '3'], 'AND', ['firstName', '=', \"'Martin'\"]], 'OR', ['firstName', 'LIKE', \"'%Kat$'\"]]]]"
         output = ast('select email, cgpa from Student where cgpa > 3 and firstName=\'Martin\' or firstName like \'%Kat%\'')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_16b_compound_condition_andor_withbrackets(self):
 
@@ -353,9 +372,10 @@ class TestSQL(unittest.TestCase):
         print('TEST COMPOUND CONDITION: AND + OR, WITH BRACKETS')
         print('A query with an AND and OR in its WHERE statement. With brackets.')
         expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[['cgpa', '>', '3'], 'AND', [['firstName', '=', \"'Martin'\"], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]]]]]]"
-        output = ast('select email, cgpa from Student where cgpa > 3 and (firstName=\'Martin\' or firstName like \'%Kat%\'')
+        output = ast('select email, cgpa from Student where cgpa > 3 and (firstName=\'Martin\' or firstName like \'%Kat%\')')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_17_compound_condition_not_and(self):
         ''' TEST COMPOUND CONDITION: NOT (cond AND cond)
@@ -373,6 +393,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, cgpa from Student where not sid > 0 and cgpa >= 3.5')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_18_compound_condition_2and_1or(self):
 
@@ -383,19 +404,20 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']]],
                     [ 'FROM',   [['Student']]],
-                    [ 'WHERE',  [ [[[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 
+                    [ 'WHERE',  [ [[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 
                                     'OR', ['firstName', 'LIKE', '%Kat%']],
-                                    'AND', ['sid', '!=', '0']]]
+                                    'AND', ['sid', '!=', '0']]
                     ]
                 ]
 
         '''
         print('TEST COMPOUND CONDITION: 2 AND + 1 OR')
         print('A query with two ANDS and an OR in its WHERE statement. Multiple compounded conditions.')
-        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[[[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]], 'AND', ['sid', '!=', '0']]]]]"
+        expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]], 'AND', ['sid', '!=', '0']]]]"
         output = ast('select email, cgpa from Student where cgpa < 1.5 and cgpa > 3 or firstName like \'%Kat%\' and sid != 0')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_19a_subquery_from(self):
         ''' TEST SUBQUERY IN FROM CLAUSE:
@@ -417,6 +439,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid from (select distinct instructor from Course) H')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_19b_subquery_from(self):
@@ -443,6 +466,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, dept || cnum course, grade from Took, (select * from Offering where instructor=\'Horton\') H where Took.oid = H.oid;')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_20a_subquery_where(self):
@@ -464,6 +488,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select pizza from Student where cgpa in (select cgpa from Took);')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_20b_subquery_where(self):
         ''' TEST SUBQUERY IN WHERE CONDITION (COMPLEX):
@@ -483,6 +508,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select pizza from Student where cgpa in (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor)')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_21_subquery_select(self):
@@ -503,6 +529,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select (select only from Took) H from Offering')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_22a_union(self):
 
@@ -526,6 +553,7 @@ class TestSQL(unittest.TestCase):
         output = ast('(select sid from Student) union (select sid from Took);')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_22b_union_orderby(self):
 
@@ -550,6 +578,7 @@ class TestSQL(unittest.TestCase):
         output = ast('(select sid from Student) union (select sid from Took) order by sid;')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_22c_two_unions(self):
         ''' TEST TWO UNIONS 
@@ -577,6 +606,7 @@ class TestSQL(unittest.TestCase):
         output = ast('((select sid from Student) union all (select sid from Took)) union (select sid from University);')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_23_any_subquery(self):
         ''' TEST ANY
@@ -599,6 +629,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid from Student where gpa > ANY (select gpa from Student NATURAL JOIN Took where grade > 100);')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_24_in_subquery(self):
@@ -622,6 +653,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join offering natural join Student where surname = \'Lakemeyer\');')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_25a_not_exists_subquery(self):
         ''' TEST NOT EXISTS
@@ -643,6 +675,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select instructor from Offering as Offl where not exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
         print('Subquery')
         expected2 = "[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]"
@@ -670,6 +703,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select instructor from Offering as Offl where exists (select * from Offering where oid <> Offl.oid and instructor = Offl.instructor);')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
         print('Subquery')
         expected2 = "[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]"
@@ -694,6 +728,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select distinct * from Took')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_27_limit(self):
         ''' TEST LIMIT
@@ -711,6 +746,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid from Took limit 10')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_28_limit_offset(self):
         ''' TEST LIMIT AND OFFSET
@@ -729,6 +765,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sid from Took limit 10 offset 4')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_29_aggregate_function_only(self):
         ''' TEST AGGREGATE FUNCTION ONLY
@@ -745,6 +782,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select max(sid) from Student')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
  
     def test_30_group_by(self):
         ''' TEST GROUP BY
@@ -762,6 +800,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select max(cgpa), sid from Student group by sid')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
 
     def test_31_having(self):
@@ -780,6 +819,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select max(cgpa) H from Student having max(cgpa) >= 3.5')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_32_having_notinselect(self):
         ''' TEST HAVING CONDITION NOT IN SELECT CLAUSE
@@ -798,6 +838,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select sum(salary) from Department join Employee on dept = did group by dept having min(salary) >= 100')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_33_order_by(self):
         ''' TEST ORDER BY
@@ -815,6 +856,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select country, population from Countries as C order by country')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_34_is_null(self):
         ''' TEST ISNULL
@@ -851,6 +893,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select country from Countries where gpa notnull')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_36_between(self):
         ''' TEST BETWEEN
@@ -868,6 +911,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select gpa from Countries where gpa between x and y')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_37_positional_parameter(self):
         ''' TEST POSITIONAL PARAMETER
@@ -885,6 +929,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select gpa from Countries where gpa = $1')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_38_scalar_subquery(self):
         ''' TEST SCALAR SUBQUERY
@@ -907,6 +952,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select name, (select max(pop) from Cities where cities.state = states.name) from States;')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_39_column_operations(self):
         ''' TEST COLUMN OPERATIONS 
@@ -923,6 +969,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select a, b + c from Table1')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
 
     def test_40_arithmeticop(self):
         ''' TEST ARITHMETIC OPERATIONS
@@ -938,6 +985,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select 3 * 4')
         print(expected)
         print(output)
+        self.assertEqual(len(expected), len(output))
         
 
         
