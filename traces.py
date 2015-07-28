@@ -1660,71 +1660,116 @@ def generate_diane_subquery_in_from():
     '   (SELECT *' +\
     '   FROM Offering' +\
     '   WHERE instructor="Horton") H' +\
-    ' WHERE Took.oid = H.oid;'
+    ' WHERE Took.ofid = H.oid;'
 
     steps = [
-        QueryStep('1', 'FROM Took, (SELECT * FROM Offering WHERE instructor="Horton") H', ['Took'], '1', namespace=["Took: oid, dept, cNum, instructor", "H: oid, dept, cNum, instructor"]),
+        QueryStep('1', 'FROM Took, (SELECT * FROM Offering WHERE instructor=\'Horton\') H', ['Took'], '1', 
+            executable_sql="SELECT * FROM Took, (SELECT * FROM Offering WHERE instructor='Horton') H",
+            namespace=[ "Took: oid, dept, cNum, instructor", 
+                        "H: oid, dept, cNum, instructor"]),
 
-            QueryStep('1.1', 'Took', ['Took'], '1.1', namespace=["Took: oid, dept, cNum, instructor"]),
-            QueryStep('1.2', '(SELECT * FROM Offering WHERE instructor="Horton") H', [], '1.2', namespace=["Took: oid, dept, cNum, instructor", "H: oid, dept, cNum, instructor"]),
-                QueryStep('1.2.1', 'FROM Offering', ['Offering'], '1.2.1', namespace=["Took: oid, dept, cNum, instructor", "Offering: 'oid', 'dept', 'cNum', 'instructor'"]),
-                QueryStep('1.2.2', 'WHERE instructor="Horton"', ['1.2.1'], '1.2.2',
-                    reasons={
-                        0: Reason(['instructor="Horton"'])
-                    }),
-                QueryStep('1.2.3', 'SELECT *', ['1.2.2'], '1.2'),
-            QueryStep('1.3', 'Took, (SELECT * FROM Offering WHERE instructor="Horton") H', ['1.1','1.2'], '1'),
+        QueryStep('1.1', 'Took', [], 'Took', 
+            executable_sql="SELECT * FROM Took",
+            namespace=["Took: sid, ofid, grade"]),
+        
+        QueryStep('1.2', '(SELECT * FROM Offering WHERE instructor="Horton") H', [], '1.2', 
+            executable_sql="SELECT * FROM (SELECT * FROM Offering WHERE instructor='Horton') H",
+            namespace=["H: oid, dept, cNum, instructor"]),
+        
+        QueryStep('1.2.1', 'FROM Offering', ['Offering'], '1.2.1', 
+            executable_sql="SELECT * FROM Offering",
+            namespace=["Offering: oid, dept, cNum, instructor"]),
 
+        QueryStep('1.2.2', 'WHERE instructor="Horton"', ['1.2.1'], '1.2',
+            executable_sql="SELECT * FROM Offering WHERE instructor='Horton'"),
 
-        QueryStep('2', 'WHERE Took.oid = H.oid', ['1'], '2',
-            reasons={
-                0: Reason(["Took.oid = H.oid"])
-            }),
+        QueryStep('1.3', 'Took, (SELECT * FROM Offering WHERE instructor=\'Horton\') H', ['1.1', '1.2'], '1.3',
+            executable_sql="SELECT * FROM Took, (SELECT * FROM Offering WHERE instructor=\'Horton\') H",
+            namespace=["Took: sid, ofid, grade",
+                        "H: oid, dept, cNum, instructor"]),
 
-        QueryStep('3', 'SELECT sid, dept||cnum as course, grade', ['2'], '3'),
+        QueryStep('2', 'WHERE Took.oid = H.oid', ['1']. '2',
+            executable_sql="SELECT * FROM Took, (SELECT * FROM Offering WHERE instructor=\'Horton\') H WHERE Took.ofid = H.oid"),
+
+        QueryStep('3', 'SELECT sid, dept || cnNum as course, grade', ['2'], '3',
+            executable_sql="SELECT sid, dept || cNum as course, grade FROM Took, (SELECT * FROM Offering WHERE instructor=\'Horton\') H WHERE Took.ofid = H.oid",
+            namespace=["Took: dept, cNum",
+                        "H: sid, grade"])
     ]
 
     tables = {
         '1': Table(t_name='1',
                     step='1',
-                    col_names=[],
-                    tuples=[]
+                    col_names=["sid, ofid, grade, oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('1', '2', '87', '2', 'csc', '343', 'Horton'),
+                        ('1', '4', '73', '2', 'csc', '343', 'Horton'),
+                        ('2', '2', '92', '2', 'csc', '343', 'Horton'),
+                        ('3', '1', '80', '2', 'csc', '343', 'Horton'),
+                        ('4', '1', '60', '2', 'csc', '343', 'Horton')]
                     ),
 
         '1.1': Table(t_name='1.1',
                     step='1.1',
-                    col_names=[],
-                    tuples=[]
+                    col_names=["sid, ofid, grade"],
+                    tuples=[
+                        ('1', '2', '87'),
+                        ('1', '4', '73'),
+                        ('2', '2', '92'),
+                        ('3', '1', '80'),
+                        ('4', '1', '60')]
                     ),
 
         '1.2': Table(t_name='H',
                     step='1.2',
-                    col_names=[],
-                    tuples=[]
+                    col_names=["oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('2', 'csc', '343', 'Horton')]
                     ),
 
         '1.2.1': Table(t_name='1.2.1',
                     step='1.2.1',
-                    col_names=[],
-                    tuples=[]
+                    col_names=["oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('1', 'csc', '209', 'Reid'),
+                        ('2', 'csc', '343', 'Horton'),
+                        ('3', 'mat', '137', 'Kamnitzer'),
+                        ('4', 'ger', '100', 'Luzi')]
                     ),
 
-        '1.2.2': Table(t_name='1.2.2',
-                    step='1.2.2',
-                    col_names=[],
-                    tuples=[]
+        '1.2.2': Table(t_name='H',
+                    step='1.2',
+                    col_names=["oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('2', 'csc', '343', 'Horton')]
+                    ),
+
+        '1.3': Table(t_name='1.3',
+                    step='1.3',
+                    col_names=["sid, ofid, grade, oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('1', '2', '87', '2', 'csc', '343', 'Horton'),
+                        ('1', '4', '73', '2', 'csc', '343', 'Horton'),
+                        ('2', '2', '92', '2', 'csc', '343', 'Horton'),
+                        ('3', '1', '80', '2', 'csc', '343', 'Horton'),
+                        ('4', '1', '60', '2', 'csc', '343', 'Horton')]
                     ),
 
         '2': Table(t_name='2',
                     step='2',
-                    col_names=[],
-                    tuples=[]
+                    col_names=["sid, ofid, grade, oid, dept, cNum, instructor"],
+                    tuples=[
+                        ('1', '2', '87', '2', 'csc', '343', 'Horton'),
+                        ('2', '2', '92', '2', 'csc', '343', 'Horton')]
                     ),
 
         '3': Table(t_name='3',
                     step='3',
-                    col_names=[],
-                    tuples=[]
+                    col_names=["sid, course, grade"],
+                    tuples=[
+                        ('1', 'csc343', '87'),
+                        ('2', 'csc343', '92')
+                    ]
                     ),
 
     }
@@ -1732,12 +1777,12 @@ def generate_diane_subquery_in_from():
 
     DESIRED_ASTS['diane_subquery_in_from'] =\
         [
-            [ 'SELECT', ['sid', [['dept', '||', 'cnum'], 'course'], 'grade'] ],
-            [ 'FROM', ['Took', ',',
+            [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']] ],
+            [ 'FROM', [['Took'], ',',
                 [[
 
                     [ 'SELECT', ['*'] ],
-                    [ 'FROM', ['Offering'] ],
+                    [ 'FROM', [['Offering']] ],
                     [ 'WHERE', [['instructor','=','Horton']] ],
 
                 ], 'H']
@@ -1882,7 +1927,7 @@ def generate_diane_where_exists():
                             ('3', 'mat', '137', 'J. Kamnitzer'),
                             ('4', 'ger', '100', 'E. Luzi')],
                     reasons= {
-                        0: ["not exists (SELECT * FROM Offering where oid <> Offl.oid"]
+                        0: ["NOT EXISTS (SELECT * FROM Offering where oid <> Offl.oid"]
                     }
                     ),
         '3': Table(t_name='Student',
