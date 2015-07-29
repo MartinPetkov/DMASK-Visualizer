@@ -577,7 +577,7 @@ def generate_simple_subquery():
                 namespace=["Offering: oid, dept"]),
 
             QueryStep('1.2', 'AS LimitedCols', ['1.1'], '1',
-                executable_sql="SELECT * FROM (SELECT oid, dept FROM Offering) AS LimitedCols "
+                executable_sql="SELECT * FROM (SELECT oid, dept FROM Offering) AS LimitedCols ",
                 namespace=["LimitedCols: oid, dept"]),
 
         QueryStep('2', 'SELECT LimitedCols.oid', ['1'], '2',
@@ -670,18 +670,18 @@ def generate_simple_and_query():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]
+                            ('4', 'James', 'james@mail.com', '2.8')],
+                    reasons= {
+                                0: Reason(["cgpa > 3", "firstName='Martin'"]),
+                                1: Reason(["cgpa > 3", "firstName='Martin'"])
+                            }
                     ),
 
         '2': Table(t_name='Student',
                     step='2',
                     col_names=['sid', 'firstName', 'email', 'cgpa'],
                     tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4')],
-                    reasons= {
-                                0: Reason(["cgpa > 3", "firstName='Martin'"]),
-                                1: Reason(["cgpa > 3", "firstName='Martin'"])
-                            }
+                            ('1', 'Martin', 'martin@mail.com', '3.4')]
                     ),
         '3': Table(t_name='Student',
                     step='3',
@@ -731,7 +731,13 @@ def generate_simple_or_query():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]
+                            ('4', 'James', 'james@mail.com', '2.8')],
+                    reasons = {
+                                0: Reason(["cgpa > 2", "firstname=\'Sophia\'"]),
+                                1: Reason(["cgpa > 2"]),
+                                2: Reason(["cgpa > 2"]),
+                                3: Reason(["firstName=\'Sophia\'"])
+                            }
                     ),
 
         '2': Table(t_name='Student',
@@ -740,13 +746,7 @@ def generate_simple_or_query():
                     tuples=[
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
-                            ('3', 'Sophia', 'not_martin@mail.com', '1.7')],
-                    reasons = {
-                                0: Reason(["cgpa > 2", "firstname=\'Sophia\'"]),
-                                1: Reason(["cgpa > 2"]),
-                                2: Reason(["cgpa > 2"]),
-                                3: Reason(["firstName=\'Sophia\'"])
-                            }
+                            ('3', 'Sophia', 'not_martin@mail.com', '1.7')]
                     ),
 
         '3': Table(t_name='Student',
@@ -987,15 +987,7 @@ def generate_complex_subquery_in_where_not_repeated():
                             ('1', 'Martin', 'martin@mail.com', '3.4'),
                             ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                             ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]
-                    ),
-        '2': Table(t_name='2',
-                    step='2',
-                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
-                    tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0'),
-                    ],
+                            ('4', 'James', 'james@mail.com', '2.8')],
                     reasons={
                         0: Reason(["cgpa > (SELECT cgpa FROM Student WHERE sid=4"],
                             {"cgpa > (SELECT cgpa FROM Student WHERE sid=4": 
@@ -1061,17 +1053,17 @@ def generate_complex_subquery_in_where_not_repeated():
                                                     ('1', 'Martin', 'martin@mail.com', '3.4'),
                                                     ('2', 'Kathy', 'kathy@mail.com', '4.0'),
                                                     ('3', 'Sophia', 'not_martin@mail.com', '1.7'),
-                                                    ('4', 'James', 'james@mail.com', '2.8')]
+                                                    ('4', 'James', 'james@mail.com', '2.8')],
+                                                reasons={
+                                                    0: Reason(["sid=4"]),
+                                                    2: Reason(["sid=4"])
+                                                    }
                                                 ),
                                     '2': Table(t_name='2',
                                                 step='2',
                                                 col_names=["sid, firstName, email, cgpa"],
                                                 tuples=[
-                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')],
-                                                reasons={
-                                                    0: Reason(["sid=4"]),
-                                                    1: Reason(["sid=4"])
-                                                    }
+                                                    ('2', 'Kathy', 'kathy@mail.com', '4.0')]
                                                 ),
                                     '3': Table(t_name='3',
                                                 step='3',
@@ -1124,6 +1116,14 @@ def generate_complex_subquery_in_where_not_repeated():
                                 }, "SELECT cgpa FROM Student WHERE sid=4")
                             })
                     }),
+        
+        '2': Table(t_name='2',
+                    step='2',
+                    col_names=['Student.sid', 'Student.firstName', 'Student.email', 'Student.cgpa'],
+                    tuples=[
+                            ('1', 'Martin', 'martin@mail.com', '3.4'),
+                            ('2', 'Kathy', 'kathy@mail.com', '4.0'),
+                    ]),
 
                     
         '3': Table(t_name='3',
@@ -1171,7 +1171,7 @@ def generate_complex_subquery_in_where_repeated():
         QueryStep('2', 'WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
             ['o1'], '2',
             executable_sql="SELECT * FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)"
-        )
+        ),
 
         QueryStep('3', 'SELECT instructor', ['2'], '3',
             executable_sql="SELECT instructor FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)",
@@ -1190,6 +1190,7 @@ def generate_complex_subquery_in_where_repeated():
                         ('4', 'ger', '100', 'E. Luzi')
                     ],
                     reasons = {
+                        0: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"]),
                         1: Reason(["EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)"],
                         {
                         'EXISTS (SELECT oid FROM Offering o2 WHERE o2.oid <> o1.oid)':
@@ -1216,9 +1217,9 @@ def generate_complex_subquery_in_where_repeated():
                                             ('4', 'ger', '100', 'E. Luzi')],
                                     reasons={
                                         0: Reason(["o2.oid <> o1.oid"]),
-                                        1: Reason(["o2.oid <> o1.oid"]),
                                         2: Reason(["o2.oid <> o1.oid"]),
-                                        3: Reason(["o2.oid <> o1.oid"])
+                                        3: Reason(["o2.oid <> o1.oid"]),
+                                        4: Reason(["o2.oid <> o1.oid"])
                                         }
                                     ),
                                     '2': Table(t_name='o2',
@@ -1268,8 +1269,8 @@ def generate_complex_subquery_in_where_repeated():
                                     reasons={
                                         0: Reason(["o2.oid <> o1.oid"]),
                                         1: Reason(["o2.oid <> o1.oid"]),
-                                        2: Reason(["o2.oid <> o1.oid"]),
-                                        3: Reason(["o2.oid <> o1.oid"])
+                                        3: Reason(["o2.oid <> o1.oid"]),
+                                        4: Reason(["o2.oid <> o1.oid"])
                                         }
                                     ),
                                     '2': Table(t_name='2',
@@ -1320,7 +1321,7 @@ def generate_complex_subquery_in_where_repeated():
                                         0: Reason(["o2.oid <> o1.oid"]),
                                         1: Reason(["o2.oid <> o1.oid"]),
                                         2: Reason(["o2.oid <> o1.oid"]),
-                                        3: Reason(["o2.oid <> o1.oid"])
+                                        4: Reason(["o2.oid <> o1.oid"])
                                         }
                                     ),
                                     '2': Table(t_name='2',
@@ -1688,7 +1689,7 @@ def generate_diane_subquery_in_from():
             namespace=["Took: sid, ofid, grade",
                         "H: oid, dept, cNum, instructor"]),
 
-        QueryStep('2', 'WHERE Took.oid = H.oid', ['1']. '2',
+        QueryStep('2', 'WHERE Took.oid = H.oid', ['1'], '2',
             executable_sql="SELECT * FROM Took, (SELECT * FROM Offering WHERE instructor=\'Horton\') H WHERE Took.ofid = H.oid"),
 
         QueryStep('3', 'SELECT sid, dept || cnNum as course, grade', ['2'], '3',
@@ -1916,7 +1917,10 @@ def generate_diane_where_exists():
                             ('1', 'csc', '209', 'K. Reid'),
                             ('2', 'csc', '343', 'D. Horton'),
                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                            ('4', 'ger', '100', 'E. Luzi')]
+                            ('4', 'ger', '100', 'E. Luzi')],
+                    reasons= {
+                        0: Reason(["NOT EXISTS (SELECT * FROM Offering where oid <> Offl.oid"])
+                    }
                     ),
         '2': Table(t_name='2',
                    step='2',
@@ -1925,10 +1929,7 @@ def generate_diane_where_exists():
                             ('1', 'csc', '209', 'K. Reid'),
                             ('2', 'csc', '343', 'D. Horton'),
                             ('3', 'mat', '137', 'J. Kamnitzer'),
-                            ('4', 'ger', '100', 'E. Luzi')],
-                    reasons= {
-                        0: ["NOT EXISTS (SELECT * FROM Offering where oid <> Offl.oid"]
-                    }
+                            ('4', 'ger', '100', 'E. Luzi')]
                     ),
         '3': Table(t_name='Student',
                    step='3',
