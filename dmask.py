@@ -14,6 +14,7 @@ from table import *
 
 import sql_parser
 import ra_parser
+import copy
 
 
 # TODO: Figure out how to handle the database connection
@@ -160,14 +161,17 @@ def get_reasons(conditions, subqueries, input_step, dmask):
     input_query = input_step.executable_sql
     input_table = input_step.result_table
     input_tuples = input_table.tuples
-    reasons = {}
+    reasons = {0:Reason([])}
     
     connection = psycopg2.connect(dmask.conn_params)
     cursor = connection.cursor()
     
     # Execute all of the conditions
     for condition in conditions:
+        reasons[0].conditions_matched.append(condition)
+        
         condition_sql = input_query + " WHERE " + condition
+        
         # Execute the query
         cursor.execute(condition_sql)
         
@@ -178,44 +182,83 @@ def get_reasons(conditions, subqueries, input_step, dmask):
         tuples = []
         for row in cursor:
             tuples.append(row)
-            
-        # if a row in the input step's resulting table is in the results, add a reason
-        # if the condition has a subquery, get those steps and tables
-        # ---- What do you do if it's correlated? We need a way to do any substitutions (ex. o2.oid)  
                     
         # Execute the corresponding subquery, getting its steps and tables
         if condition in subqueries:
             subquery = subqueries[condition]
             
             # Check if the subquery is correlated
-            # ---- Get a list of all attributes that are called upon in the subquery (ex. 'oid')
-            # ---- Get the subquery's namespace (requires "SELECT * FROM <from clause of subquery>" and getting the column names + prefixing things + keeping track of all the tables in the FROM clause)
-            # ---- For every attribute, if it appears in the namespace, remove it.
-            # ---- If the list is empty at the end, it's uncorrelated.
+            correlated = get_correlated_elements(subquery)
             
-            # If it is, prepare it for substitution for execution at each row
-            # (Keep a dictionary of everything that needs to be substituted in
-            # the AST (ex. every instance of "o2.oid"). When traversing each tuple,
-            # substitute all instances of that value in the AST (o2.oid -> 5).)
-            # ---- To be done recursively (aka traverse the list, replace the value, if item is a list, recurse)
-            # ---- for each item that needs substituting.
-            # If there's anything that cannot be substituted, raise an error. ( so sad )
-            
-            # If it's not, execute the subquery and store it in the reasons[0]
-            steps = sql_parser.sql_ast_to_steps(subquery, dmask.base_tables)
-            tables = dmask.steps_to_tables(subquery)
-            parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(subquery)))
+            if correlated:
+                # If it is, prepare it for substitution for execution at each row
+                pq = PreparedQuery(subquery, correlated)
+            else:
+                # If it's not, execute the subquery and store it in the reasons[0]
+                steps = sql_parser.sql_ast_to_steps(subquery, dmask.base_tables)
+                tables = dmask.steps_to_tables(subquery)
+                parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(subquery)))
+                reasons[0].subqueries[condition] = parsed_query
         
         # Go through each row and add a reason
         for i in range(0, len(input_tuples)):
-            if input_tubles[i] in tuples:
+            
+            # Substitute and execute the correlated subquery
+            if correlated:
+                # Get the items to substitute
+                # Depends on: substituted_query.substitutable
+                #             the row itself (and your columns)
+                #             parent table (for aggregate functions)
+                # ---- Create namespace for the current table (function used in get_correlated_elements?)
+                # ---- Go through and add those to the dictionary for substitutions
+                # ---- If something does not appear in the namespace (ex. "count(oid)"), run it through the parent
+                # -------- table (SELECT <that item> FROM <from clause>)
+                
+                # Substitute them in the query
+                substituted_query = pq.substitute()
+                
+                # Create the parsed query
+                steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.base_tables)
+                tables = dmask.steps_to_tables(substituted_subquery)
+                parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)))
+                
+            # If the input tuple is in the returned list of tuples, it passed the condition
+            kept = input_tuples[i] in tuples
+            
+            # If the tuple was kept or if there was a correlated subquery, add it as a reason
+            if kept or correlated:
                 if i+1 in reasons:
                     reasons[i+1].conditions_matched.append(condition)
                 else:
                     reasons[i+1] = Reason(conditions_matched.append(condition))
                 
+                # If there was a correlated subquery, add the parsed query and, if the condition
+                # passed, add it to the list of passed subqueries
+                if correlated:
+                    reasons[i+1].subqueries[condition] = parsed_query
+                    if kept:
+                        reasons[i+1].passed_subqueries.append(condition)
                 
-        
+                
+def get_correlated_elements(subquery):
+    # subquery is an AST representing the subquery
+    # get all attributes (aka anything that is not a keyword)
+    # and the table names that are brought in (via the FROM statement)
+    # get the namespaces for those tables
+    # remove any elements that are not in the namespace
+    # return the list of remaining attributes
+    # --> if it's empty, then the query is uncorrelated
+    
+    
+    # ---- Get a list of all attributes that are called upon in the subquery (ex. 'oid')
+    # ---- Get the subquery's namespace (requires "SELECT * FROM <from clause of subquery>" and getting the column names + prefixing things + keeping track of all the tables in the FROM clause)
+    # ---- For every attribute, if it appears in the namespace, remove it.
+    # ---- If the list is empty at the end, it's uncorrelated.    
+    pass
+    
+
+def get_namespace():
+    pass
 
 def get_table_name(exsqltable):
     # Given an executable SQL statement, return the table's name
@@ -267,3 +310,33 @@ def flatten_list(l):
         else:
             ret_val.extend(flatten_list(item))
     return ret_val
+
+
+class PreparedQuery:
+    def __init__(self, query, substitutable):
+        self.query = query
+        self.substitutable = {}
+        for item in substitutable:
+            self.substitutable[item] = item
+    
+    def substitute(self, substitutes):
+        # check to make sure everything that needs to be substituted is present
+        for key in self.substitutable:
+            if key not in substitutes:
+                return
+        
+        # make a deep copy of the AST
+        query_copy = copy.deepcopy(query)
+        
+        def replace(query, substitutes):
+            for i in range(len(query)):
+                element = query[i]
+                
+                if isinstance(element, list):
+                    replace(element, substitutes)
+                elif element in substitutes:
+                    query[i] = substitutes[element]
+                    
+        replace(query_copy, substitutes)
+        return query_copy
+    
