@@ -165,7 +165,11 @@ def parse_where(ast_node, step_number=''):
     current_step_number = step_number + "." + str(local_step_number)
     sql_chunk = ' '.join(flatten(args))
     executable_sql = "SELECT * " + sql_chunk
-    input_tables = []
+
+    # Input tables: comes from previous clause number
+    prev_step = current_step_number[:-1] + str(int(current_step_number[-1]) - 1)
+    input_tables = [prev_step]
+
     result_table = [current_step_number]
     where_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
     steps.append(where_step)
@@ -178,7 +182,6 @@ def parse_where(ast_node, step_number=''):
 def parse_group_by(ast_node, step_number=''):
     # TODO: 
     # - executable sql, get from previous step
-    # - input tables
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -189,7 +192,7 @@ def parse_group_by(ast_node, step_number=''):
         return
 
     #If at least three elements, check which element is GROUP BY clause
-    for clause_number in range(2, 4):
+    for clause_number in range(2, SQL_EXEC_ORDER['GROUP BY'] + 1): # 'GROUP BY': 3
         found = False
         if len(ast_node) > clause_number:
             args = ast_node[clause_number]
@@ -206,7 +209,11 @@ def parse_group_by(ast_node, step_number=''):
         current_step_number = step_number + "." + str(local_step_number)
         sql_chunk = ' '.join(flatten(args))
         executable_sql = "SELECT * " + sql_chunk
-        input_tables = []
+
+        # Input tables: comes from previous clause number
+        prev_step = current_step_number[:-1] + str(int(current_step_number[-1]) - 1)
+        input_tables = [prev_step]
+
         result_table = [current_step_number]
         groupby_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
         steps.append(groupby_step)
@@ -218,20 +225,83 @@ def parse_group_by(ast_node, step_number=''):
 
 
 def parse_having(ast_node, step_number=''):
-    # TODO: Implement
+    # TODO: 
+    # - get executable_sql from previous chunk
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
-    pass
+    # If there is a HAVING clause, must be at least three elements
+    if len(ast_node) <= 2:
+        print("No HAVING clause")
+        return
+
+    #If at least three elements, check which element is HAVING clause
+    for clause_number in range(2, SQL_EXEC_ORDER['HAVING'] + 1): # HAVING: 4
+        found = False
+        if len(ast_node) > clause_number:
+            args = ast_node[clause_number]
+            if len(args) < 1:
+                print("No HAVING clause")
+            elif args[0] == "HAVING":
+                found = True
+                break
+
+    if found: # ast_node[clause_number] is the GROUP BY clause 
+
+        # Create first step
+        local_step_number = clause_number
+        current_step_number = step_number + "." + str(local_step_number)
+        sql_chunk = ' '.join(flatten(args))
+        executable_sql = "SELECT * " + sql_chunk
+        
+        # Input tables: comes from previous clause number
+        prev_step = current_step_number[:-1] + str(int(current_step_number[-1]) - 1)
+        input_tables = [prev_step]
+
+        result_table = [current_step_number]
+        having_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+        steps.append(having_step)
+
+    else:
+        print("No HAVING clause")
+
+    return steps
 
 def parse_select(ast_node, step_number=''):
-    # TODO: Implement
+    # TODO: 
+    # - get executable_sql from previous chunk
+    # - ignore DISTINCT
+    # - namespace
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
-    pass
+    args = ast_node[0]
+    if len(args) < 1:
+        print("No arguments to SELECT clause")
+        return
+
+    clause_number = len(ast_node)
+
+    # Create first step
+    local_step_number = clause_number
+    current_step_number = step_number + "." + str(local_step_number)
+    sql_chunk = ' '.join(flatten(args))
+    executable_sql = "SELECT * " + sql_chunk
+    
+    # Input tables: comes from previous clause number
+    prev_step = current_step_number[:-1] + str(int(current_step_number[-1]) - 1)
+    input_tables = [prev_step]
+
+    result_table = [current_step_number]
+
+    namespace = ''
+
+    select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
+    steps.append(select_step)
+
+    return steps
 
 def parse_distinct(ast_node, step_number=''):
     # TODO: Implement
