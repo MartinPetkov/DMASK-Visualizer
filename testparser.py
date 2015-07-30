@@ -1,4 +1,4 @@
-from sql_parser import parse_where, parse_from, parse_group_by
+from sql_parser import parse_where, parse_from, parse_group_by, parse_select, parse_distinct
 from to_ast import ast
 
 def printout(l):
@@ -7,12 +7,15 @@ def printout(l):
 		for step in l:
 			print(step.step_number)
 			print(step.sql_chunk)
+			print(step.input_tables)
 			print(step.executable_sql)
 	else:
 		print("No clause found")
 
 if __name__ == "__main__":
 
+	''' 
+	# ======== TESTING PARSE_WHERE AND PARSE_GROUP_BY ==========
 	a = ast('select sid from Took')
 	x = ast('select sid from Student where sid = 0')
 	y = ast('select sid from Student where (sid = 0 and firstName like \'Kathy\');')
@@ -38,3 +41,10 @@ if __name__ == "__main__":
 	printout(g1step)
 	printout(g2step)
 	printout(g3step)
+	'''
+
+	a = ast('select distinct name, max(sid), grade from Took where sid in (select sid from Took)')
+	asteps = parse_select(a, '1')
+	bsteps = parse_distinct(a, '1')
+	printout(asteps)
+	printout(bsteps)
