@@ -146,16 +146,76 @@ def parse_where(ast_node, step_number=''):
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
-    pass
+    # If there is a WHERE clause, must be at least three elements
+    if len(ast_node) <= 2:
+        print("No WHERE clause")
+        return
+
+    # If at least three elements, check that the third element is WHERE clause
+    clause_number = 2
+    args = ast_node[clause_number]
+
+    if len(args) < 1 or args[0] != 'WHERE':
+        print("No WHERE clause")
+        return
+
+
+    # Create the first step
+    local_step_number = clause_number
+    current_step_number = step_number + "." + str(local_step_number)
+    sql_chunk = ' '.join(flatten(args))
+    executable_sql = "SELECT * " + sql_chunk
+    input_tables = []
+    result_table = [current_step_number]
+    where_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    steps.append(where_step)
+
+    # TODO: check for subquery and create ParsedQuery from this.
+
+    return steps
 
 
 def parse_group_by(ast_node, step_number=''):
-    # TODO: Implement
+    # TODO: 
+    # - executable sql, get from previous step
+    # - input tables
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
-    pass
+    # If there is a GROUP BY clause, must be at least three elements
+    if len(ast_node) <= 2:
+        print("No GROUP BY clause")
+        return
+
+    #If at least three elements, check which element is GROUP BY clause
+    for clause_number in range(2, 4):
+        found = False
+        if len(ast_node) > clause_number:
+            args = ast_node[clause_number]
+            if len(args) < 1:
+                print("No GROUP BY clause")
+            elif args[0] == "GROUP BY":
+                found = True
+                break
+
+    if found: # ast_node[clause_number] is the GROUP BY clause 
+
+        # Create first step
+        local_step_number = clause_number
+        current_step_number = step_number + "." + str(local_step_number)
+        sql_chunk = ' '.join(flatten(args))
+        executable_sql = "SELECT * " + sql_chunk
+        input_tables = []
+        result_table = [current_step_number]
+        groupby_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+        steps.append(groupby_step)
+
+    else:
+        print("No GROUP BY clause")
+
+    return steps
+
 
 def parse_having(ast_node, step_number=''):
     # TODO: Implement
