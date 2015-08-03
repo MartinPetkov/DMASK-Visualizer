@@ -15,8 +15,8 @@ VIEW            =   KEYWORD("VIEW", caseless=True)
 AS              =   KEYWORD("AS", caseless=True)
 DISTINCT        =   KEYWORD("DISTINCT", caseless=True)
 ON              =   KEYWORD("ON", caseless=True)
-ASC             =   KEYWORD("ASC", caseless=True)
-DESC            =   KEYWORD("DESC", caseless=True)
+ASC_             =  KEYWORD("ASC", caseless=True)
+DESC_            =  KEYWORD("DESC", caseless=True)
 USING           =   KEYWORD("USING", caseless=True)
 LIMIT           =   KEYWORD("LIMIT", caseless=True)
 OFFSET          =   KEYWORD("OFFSET", caseless=True)
@@ -47,7 +47,7 @@ NOTNULL_        =   KEYWORD("NOTNULL", caseless=True)
 BETWEEN_        =   KEYWORD("BETWEEN", caseless=True)
 
 KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
-                    CREATE | VIEW | AS | DISTINCT | ON | ASC | DESC | USING | 
+                    CREATE | VIEW | AS | DISTINCT | ON | ASC_ | DESC_ | USING | 
                     LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
                     ANY_ | SOME_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
                     JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
@@ -182,7 +182,7 @@ fromClause      =   (tableOnBlock + ZeroOrMore(joins + tableOnBlock))
 # ========= WHERE CLAUSE ===========
 
 whereCondition  =   Group(
-                    # Optional(Suppress("("))
+                    # Optional(Suppress("(")) + 
                     (
                         (token + BINOP + ( 
                             columnRval 
@@ -237,7 +237,7 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Optional( Group( WHERE + Group( whereClause )))
                     + Optional( Group( Combine( GROUP + " " + BY) + (tokenList)))
                     + Optional( Group( HAVING + Group(havingClause)))
-                    + Optional( Group( Combine( ORDER + " " + BY) + (tokenList)))
+                    + Optional( Group( Combine( ORDER + " " + BY) + (tokenList) + Optional(ASC_ | DESC_) ))
                     + Optional( Group( LIMIT + Group(columnRval)))
                     + Optional( Group( OFFSET + Group(columnRval)))
                     )
@@ -264,4 +264,4 @@ query           <<  (selectCalculator | sqlStmt | setOp | createView) + Optional
 # ============= TESTING TRACES ===============
 
 def ast(string):
-    return query.parseString(string).__str__()
+    return query.parseString(string)
