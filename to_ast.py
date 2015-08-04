@@ -15,8 +15,8 @@ VIEW            =   KEYWORD("VIEW", caseless=True)
 AS              =   KEYWORD("AS", caseless=True)
 DISTINCT        =   KEYWORD("DISTINCT", caseless=True)
 ON              =   KEYWORD("ON", caseless=True)
-ASC             =   KEYWORD("ASC", caseless=True)
-DESC            =   KEYWORD("DESC", caseless=True)
+ASC_             =  KEYWORD("ASC", caseless=True)
+DESC_            =  KEYWORD("DESC", caseless=True)
 USING           =   KEYWORD("USING", caseless=True)
 LIMIT           =   KEYWORD("LIMIT", caseless=True)
 OFFSET          =   KEYWORD("OFFSET", caseless=True)
@@ -27,6 +27,7 @@ IN_             =   KEYWORD("IN", caseless=True)
 EXISTS_         =   KEYWORD("EXISTS", caseless=True)
 NOT_            =   KEYWORD("NOT", caseless=True)
 ANY_            =   KEYWORD("ANY", caseless=True)
+SOME_           =   KEYWORD("SOME", caseless=True)
 ALL_            =   KEYWORD("ALL", caseless=True)
 UNION_          =   KEYWORD("UNION", caseless=True)
 INTERSECT_      =   KEYWORD("INTERSECT", caseless=True)
@@ -46,9 +47,9 @@ NOTNULL_        =   KEYWORD("NOTNULL", caseless=True)
 BETWEEN_        =   KEYWORD("BETWEEN", caseless=True)
 
 KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
-                    CREATE | VIEW | AS | DISTINCT | ON | ASC | DESC | USING | 
+                    CREATE | VIEW | AS | DISTINCT | ON | ASC_ | DESC_ | USING | 
                     LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
-                    ANY_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
+                    ANY_ | SOME_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
                     JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
                     NULL_ | ISNULL_ | NOTNULL_ | BETWEEN_)
 
@@ -81,7 +82,7 @@ def precedence(num):
             while i < len(t):
                 ret = ParseResults([ret] + t[i:i+incr])
                 i+= incr
-            return ParseResults([ret])
+            return ParseResults(ret)
     return pa
 
 # ========== Define column values/operations ================
@@ -181,11 +182,11 @@ fromClause      =   (tableOnBlock + ZeroOrMore(joins + tableOnBlock))
 # ========= WHERE CLAUSE ===========
 
 whereCondition  =   Group(
-                    Optional(Suppress("("))
-                    + (
+                    # Optional(Suppress("(")) + 
+                    (
                         (token + BINOP + ( 
                             columnRval 
-                            | ((ANY_ | ALL_) + subquery)))
+                            | ((ANY_ | SOME_ | ALL_) + subquery)))
                         | (token + IN_ + (
                             (Suppress("(") + delimitedList(columnRval) + Suppress(")"))
                             | subquery))
@@ -194,54 +195,40 @@ whereCondition  =   Group(
                         | (token + (ISNULL_ | NOTNULL_))
                         | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
                     )
-                    + Optional(Suppress(")"))
+                    # + Optional(Suppress(")"))
                     )
 
-'''
+whereNested     =  nestedExpr("(", ")", whereCondition)
 
-whereCondition  =   Group(
-                    Optional(Suppress("(")) 
-                    + (
-                        (token + BINOP + (((ANY_ | ALL_) + subquery) | columnRval)) 
-                        | (token + IN_ + subquery)
-                        | (token + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
-                        | (EXISTS_ + subquery)
-                        | (token + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_))) 
-                        | (token + (ISNULL_ | NOTNULL_))
-                        | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
-                    ) 
-                    + Optional(Suppress(")"))
-                    )
-'''
-
-
-whereClause     <<   operatorPrecedence(
-                        whereCondition,
+whereClause     <<  (whereNested | operatorPrecedence(
+                        whereNested | whereCondition,
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
-                    )
+                    ))
 
 #==========HAVING CLAUSE ===========
 havingCondition = Group(
-                    Optional(Suppress("("))
-                    + (
-                        (aggregatefns + BINOP + (((ANY_ | ALL_) + subquery) | columnRval))
+                    #Optional(Suppress("("))
+                    (
+                        (aggregatefns + BINOP + (((ANY_ | SOME_ | ALL_) + subquery) | columnRval))
                         | (aggregatefns + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
                         | (aggregatefns + IN_ + subquery)
                         | (aggregatefns + Combine(IS_ + Suppress(" ") + (NULL_ | NOTNULL_)))
                         | (aggregatefns + (ISNULL_ | NOTNULL_))
                         | (aggregatefns + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
                     )
-                    + Optional(Suppress(")"))
+                    #+ Optional(Suppress(")"))
                     )
 
-havingClause    =   operatorPrecedence(
-                        havingCondition,
+havingNested    = nestedExpr("(", ")", havingCondition)
+
+havingClause    =   (havingNested | operatorPrecedence(
+                        havingNested | havingCondition,
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
-                    )
+                    ))
 
 #=========== SQL STATEMENT =========
 # Define the grammar for SQL query.
@@ -250,13 +237,13 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Optional( Group( WHERE + Group( whereClause )))
                     + Optional( Group( Combine( GROUP + " " + BY) + (tokenList)))
                     + Optional( Group( HAVING + Group(havingClause)))
-                    + Optional( Group( Combine(ORDER + " " + BY) + (tokenList)))
-                    + Optional( Group(LIMIT + Group(columnRval)))
-                    + Optional( Group(OFFSET + Group(columnRval)))
+                    + Optional( Group( Combine( ORDER + " " + BY) + (tokenList) + Optional(ASC_ | DESC_) ))
+                    + Optional( Group( LIMIT + Group(columnRval)))
+                    + Optional( Group( OFFSET + Group(columnRval)))
                     )
 
 
-subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")") + Optional(Suppress(";"))
+subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")")
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 
@@ -264,19 +251,17 @@ createView      <<  (Combine( CREATE + " " + VIEW)
                     + subquery
                     )
 
-setOp           <<  (
-                    ((subquery) 
-                    + (UNION_ | INTERSECT_ | EXCEPT_) 
-                    + (subquery)
-                    )
-                    + Optional( Group( Combine(ORDER + " "  + BY) + (tokenList)))
-                    + Optional( Group(LIMIT + Group(columnRval)))
-                    + Optional( Group(OFFSET + Group(columnRval)))
+setOp           <<  (operatorPrecedence(
+                        (subquery),
+                        [( (UNION_ | INTERSECT_ | EXCEPT_) + Optional(ALL_), 2, opAssoc.LEFT, )]
+                    )   + Optional(Group (Combine (ORDER + " " + BY) + tokenList))
+                        + Optional(Group(LIMIT + Group(columnRval )))
+                        + Optional(Group(OFFSET + Group(columnRval)))
                     )
 
-query           <<  (selectCalculator | sqlStmt | setOp | createView)
+query           <<  (selectCalculator | sqlStmt | setOp | createView) + Optional(Suppress(";"))
 
 # ============= TESTING TRACES ===============
 
 def ast(string):
-    return query.parseString(string).__str__()
+    return query.parseString(string)

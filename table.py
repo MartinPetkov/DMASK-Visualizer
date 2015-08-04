@@ -61,14 +61,16 @@ class Reason:
     :param conditions_matched: a list of strings of conditions that matched; each one has an entry in the map
     :param subqueries: a map of string conditions to their corresponding subqueries (will be empty usually)
     """
-    def __init__(self, conditions_matched, subqueries={}):
+    def __init__(self, conditions_matched, subqueries={}, passed_subqueries=[]):
         self.conditions_matched = conditions_matched
-        self.subqueries = subqueries;
+        self.subqueries = subqueries
+        self.passed_subqueries = passed_subqueries
 
     def to_json(self):
         json_dict = {
             "conditions_matched": self.conditions_matched,
-            "subqueries": {condition: subquery.to_json() for condition,subquery in self.subqueries.items()}
+            "subqueries": {condition: subquery.to_json() for condition,subquery in self.subqueries.items()},
+            "passed_subqueries": self.passed_subqueries
         }
 
         return json.dumps(json_dict)

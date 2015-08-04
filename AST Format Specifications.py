@@ -16,7 +16,7 @@ LEGEND:
 
 <sql_query>         = [ <sql_statement> ... ]
 
-<sql_statement>     =       [ "SELECT",     [ <select_arg> ... ]],
+<sql_statement>     =       [ "SELECT",     [ '*' |  <select_arg> ... ]],
                             [ "FROM",       [ <from_arg>, (<from_connector>?) ... ] ],
                             ([ "WHERE",     [ <where_arg> (<where_connector>?) ... ] ])?,
                             ([ "GROUP BY",  [ 'col_name' ... ] ])?,
@@ -30,15 +30,19 @@ LEGEND:
 
 # For SELECT
 <select_arg>        = ['col_name']
-                        |   [ ('col_name'
-                            | <col_equation>
-                            | <aggregate_fn>
-                            | <val> ), <as>, 'new_name']
+                        |   [ [ 'col_name'
+                                | <val>
+                                | <col_equation>], (<as>, 'new_name')? 
+                            ]
 
 
-<col_equation>      = ['col_name', (<operator>, 'col_name')+ ]
+<col_equation>      = [<col_val>, (<operator>, <col_val> )+ ]
+
+<col_val>           = 'col_name' | <aggregate_fn> | <val> | <col_operation>
 
 <aggregate_fn>      = function('col_name')
+
+<col_operation>     = [ <col_val>, <operator>, <col_val>] 
 
 <operator>          = "+" | "-" | "*" | "/" | "||"
 
