@@ -29,7 +29,12 @@ def flatten(lst):
     result = []
     for elem in lst:
         if hasattr(elem, "__iter__") and not isinstance(elem, basestring):
-            result.extend(flatten(elem))
+            if (elem[0][0] == 'SELECT'):
+                result.append('(')
+                result.extend(flatten(elem))
+                result.append(')')
+            else:
+                result.extend(flatten(elem))
         else:
             result.append(elem)
     return result
@@ -82,7 +87,7 @@ def sql_ast_to_steps(ast, schema):
     first_statement = first_ast_node[0].upper()
     second_statement = first_ast_node[1].upper()
     if first_statement == 'CREATE VIEW':
-        steps = parse_create_view(first_ast_node)
+        steps = parse_create_view(ast)
     elif second_statement in SET_OPERATIONS:
         steps = parse_union(first_ast_node)
     else:
@@ -388,4 +393,22 @@ def parse_create_view(ast_node, step_number=''):
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
-    pass
+    if len(ast_node) < 2:
+        print("Not enough arguments for CREATE VIEW clause: CREATE VIEW AS? <query>")
+        return
+
+    current_step_number = '1'
+    sql_chunk = ' '.join(flatten(ast_node))
+
+    input_tables = []
+    result_table = current_step_number
+    executable_sql = sql_chunk
+
+    create_view_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    steps.append(create_view_step)
+
+    query = parse_sql_query(ast_node[-1], current_step_number + '.1')
+
+    steps += query
+
+    return steps

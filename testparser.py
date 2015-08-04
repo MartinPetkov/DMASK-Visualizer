@@ -17,32 +17,17 @@ def printout(l):
 
 if __name__ == "__main__":
 
-	x = ast('select distinct sid, max(grade) from Student where sid = 0 group by sid having max(grade) > 40 order by firstname limit 5;')
-	z = parse_sql_query(x)
-	printout(z)
 
-	a = ast('(select sid from Student) union (select sid from Took) order by firstName')
-	print(a)
-
-	b = ast('(select sid from Student) INTERSECT (select sid from Took)')
-	d = parse_union(b[0], '1', '1')
-
-	printout(d)
-
-	c = ast('select cNum || dept as course from Took')
-	printout(parse_sql_query(c))
-
-	''' 
 	# ======== TESTING PARSE_WHERE AND PARSE_GROUP_BY ==========
 	a = ast('select sid from Took')
 	x = ast('select sid from Student where sid = 0')
 	y = ast('select sid from Student where (sid = 0 and firstName like \'Kathy\');')
 	z = ast('select sid from Student where sid in (select sid from Took)')
 
-	astep = parse_where(a, '1')
-	xstep = parse_where(x, '2')
-	ystep = parse_where(y, '1')
-	zstep = parse_where(z, '1')
+	astep = parse_sql_query(a, '1')
+	xstep = parse_sql_query(x, '2')
+	ystep = parse_sql_query(y, '1')
+	zstep = parse_sql_query(z, '1')
 
 	printout(astep)
 	printout(xstep)
@@ -52,14 +37,15 @@ if __name__ == "__main__":
 	g1 = ast('select sid, max(sid) from Took group by sid')
 	g2 = ast('select sid from Took where sid > 10 group by sid')
 
-	g1step = parse_group_by(g1, '1')
-	g2step = parse_group_by(g2, '1')
-	g3step = parse_group_by(x, '1')
+	g1step = parse_sql_query(g1, '1')
+	g2step = parse_sql_query(g2, '1')
+	g3step = parse_sql_query(x, '1')
 
 	printout(g1step)
 	printout(g2step)
 	printout(g3step)
-	
+
+	'''
 	# ========= TESTING SELECT AND DISTINCT =================
 	a = ast('select distinct name, max(sid), grade from Took where sid in (select sid from Took)')
 	asteps = parse_select(a, '1')
@@ -79,7 +65,23 @@ if __name__ == "__main__":
 	printout(groupby)
 	printout(having)
 	printout(select)
-	printout(distinct)
+	printout(distinct)	
+
+	x = ast('select distinct sid, max(grade) from Student where sid = 0 group by sid having max(grade) > 40 order by firstname limit 5;')
+	z = parse_sql_query(x)
+	printout(z)
+
+	a = ast('(select sid from Student) union (select sid from Took) order by firstName')
+	print(a)
+
+	b = ast('(select sid from Student) INTERSECT (select sid from Took)')
+	d = parse_union(b[0], '1', '1')
+
+	printout(d)
+
+	c =  ast('create view name (select * from Took)')
+	e = parse_create_view(c, '1')
+	printout(e)
 	'''
 
 
