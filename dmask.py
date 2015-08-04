@@ -83,15 +83,15 @@ class DMASK:
 
 
     def steps_to_tables(self, steps):
-        # TODO: Implement
         # Turns the QuerySteps given into Table objects by executing their queries on the database given by
         # self.conn_params and with the base tables given by self.base_tables
         tables = {}
         
-        # TODO: Import psycopg2? Modify this so we can get the connection
         # Create a connection and cursor (PSQL)
         connection = psycopg2.connect(self.conn_params)
         cursor = connection.cursor()
+        self.connection = connection
+        self.cursor = cursor
         
         for step in steps:
             if str(step.result_table) not in tables:
@@ -110,6 +110,7 @@ class DMASK:
                     tuples.append(row)
                 
                 # If the sql chunk is a where clause, get the reasons
+                # TODO: Adjust this to work for RA as well
                 if (step.sql_chunk.split()[0].lower() == "where"):
                     # Get all of the conditions (and the ASTs of their corresponding subqueries)
                     (conditions, subqueries) = get_all_conditions(step.sql_chunk)
@@ -130,6 +131,7 @@ class DMASK:
 def get_all_conditions(sql_chunk):
     # Get the AST for the WHERE clause
     ast = sql_parser.sql_to_ast(sql_chunk)[1:]
+    
     # Given an AST for the WHERE clause, return a tuple containing 2 items:
     # The first is a list of all the conditions in the where clause (ex. ["grade >= 80", "cnum in SELECT ..."])
     # The second is a dictionary mapping a condition to its AST {"condition": [AST]}
@@ -173,8 +175,8 @@ def get_reasons(conditions, subqueries, input_step, dmask):
     # of the original query)
     namespace = get_namespace(sql_parser.sql_to_ast(input_query), dmask)
     
-    connection = psycopg2.connect(dmask.conn_params)
-    cursor = connection.cursor()
+    connection = dmask.connection
+    cursor = dmask.cursor
     
     # Execute all of the conditions
     for condition in conditions:
@@ -355,11 +357,12 @@ def get_namespace(subquery, dmask):
             on_using = True
     
     main_table = " ".join(flatten_list(from_clause))
-    namespace = "SELECT * FROM " + main_table # TODO: execute this + get the columns (store in namespace as [column], [column]
+    
+    namespace = [[column] for column in get_columns("SELECT * FROM " + main_table, dmask)]
     
     # Traverse the list of tables, adding all of the columns to the namespace
     for table in tables:
-        columns = "SELECT * FROM " + table[0] # TODO: execute this + get the columns
+        columns = get_columns("SELECT * FROM " + table[0], dmask)
         prefix = table[1]
         for column in columns:
             for name in namespace:
@@ -368,6 +371,15 @@ def get_namespace(subquery, dmask):
                     break
 
     return namespace
+
+def get_columns(query, dmask):
+    cursor = dmask.cursor
+    
+    # Execute the query
+    cursor.execute(query + " LIMIT 0")
+    
+    # Get the columns
+    return [desc[0] for desc in cursor.description]
 
 def matches_alias(namespace, attribute, to_match):
     # Given a namespace, attribute (ex. "sid") and someting to match (ex. "Took.sid")
