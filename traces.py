@@ -280,33 +280,28 @@ def generate_simple_natural_join_query():
                        ("Took", ["sid", "ofid", "grade"]),
                        ("Course", ["dept", "cNum", "name"])]),
 
-        QueryStep('1.1', 'Student NATURAL JOIN Took', [], '1.1',
-            executable_sql="SELECT * FROM Student NATURAL JOIN Took",
-            namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
-                       ("Took", ["sid", "ofid", "grade"])]),
-
-        QueryStep('1.1.1', 'Student', [], 'Student',
-            executable_sql="SELECT * FROM Student",
-            namespace=[("Student", ["sid", "firstName", "email", "cgpa"])]),
-
-        QueryStep('1.1.2', 'Took', [], 'Took',
-            executable_sql="SELECT * FROM Took",
-            namespace=[("Took", ["sid", "ofid", "grade"])]),
-
-        QueryStep('1.1.3', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.1',
-            executable_sql="SELECT * FROM Student NATURAL JOIN Took",
-            namespace=[ ("Student", ["sid", "firstName", "email", "cgpa"]),
-                        ("Took", ["sid", "ofid", "grade"])]),
-
-        QueryStep('1.2', 'Course', [], 'Course',
-            executable_sql="SELECT * FROM Course",
-            namespace=[ ("Course", ["dept", "cNum", "name"])]),
-
-        QueryStep('1.3', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.1', 'Course'], '1',
-            executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
-            namespace=[ ("Student", ["sid", "firstName", "email", "cgpa"]),
-                        ("Took", ["sid", "ofid", "grade"]),
-                        ("Course", ["dept", "cNum", "name"])]),
+        QueryStep('1.1', 'Student', [], 'Student',
+                  executable_sql="SELECT * FROM Student",
+                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"])]),
+        
+        QueryStep('1.2', 'Took', [], 'Took',
+                  executable_sql="SELECT * FROM Took",
+                  namespace=[("Took", ["sid", "ofid", "grade"])]),
+        
+        QueryStep('1.3', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.3',
+                  executable_sql="SELECT * FROM Student NATURAL JOIN Took",
+                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
+                             ("Took", ["sid", "ofid", "grade"])]),
+        
+        QueryStep('1.4', 'Course', [], 'Course',
+                  executable_sql="SELECT * FROM Course",
+                  namespace=[("Course", ["dept", "cNum", "name"])]),
+        
+        QueryStep('1.5', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.3', 'Course'], '1',
+                  executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
+                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
+                             ("Took", ["sid", "ofid", "grade"]),
+                             ("Course", ["dept", "cNum", "name"])]),
 
         QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2',
             executable_sql="SELECT sid, email, cgpa FROM Student NATURAL JOIN Took NATURAL JOIN Course",
@@ -351,88 +346,16 @@ def generate_simple_natural_join_query():
 
                     ),
 
-        '1.1': Table(t_name='Student NATURAL JOIN Took',
-                    step='1.1',
-                    col_names = ['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade'],
-                    tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4', '2', '87'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4', '4', '73'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',   '2', '92'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7', '1', '80'),
-                            ('4', 'James', 'james@mail.com', '2.8',   '1', '60')]),
-
-        '1.1.1': Table(t_name='Student',
-                    step='1.1.1',
-                    col_names = ['sid', 'firstName', 'email', 'cgpa'],
-                    tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7'),
-                            ('4', 'James', 'james@mail.com', '2.8')]),
-
-        '1.1.2': Table(t_name='Took',
-                    step='1.1.2',
-                    col_names = ['sid, ofid, grade'],
-                    tuples=[
-                            ('1', '2', '87'),
-                            ('1', '4', '73'),
-                            ('2', '2', '92'),
-                            ('3', '1', '80'),
-                            ('4', '1', '60')]),
-
-        '1.1.3': Table(t_name='Student NATURAL JOIN Took',
-                    step='1.1.3',
-                    col_names = ['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade'],
-                    tuples=[
-                            ('1', 'Martin', 'martin@mail.com', '3.4', '2', '87'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4', '4', '73'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',   '2', '92'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7', '1', '80'),
-                            ('4', 'James', 'james@mail.com', '2.8',   '1', '60')]),
-
-        '1.2': Table(t_name='Course',
-                    step='1.2',
-                    col_names = ['dept', 'cNum', 'name'],
-                    tuples=[
-                            ('csc', '148', 'Intro to Computer Science'),
-                            ('csc', '209', 'Systems Programming'),
-                            ('csc', '343', 'Intro to Databases'),
-                            ('mat', '137', 'Calculus'),
-                            ('ger', '100', 'Intro to German')]),
-
-        '1.3': Table(t_name='Student NATURAL JOIN Took NATURAL JOIN Course',
+        '1.3': Table(t_name='Student NATURAL JOIN Took',
                     step='1.3',
-                    col_names=['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade', 'dept', 'cNum', 'name'],
-                    tuples = [
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '148', 'Intro to Computer Science'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'csc', '148', 'Intro to Computer Science'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'csc', '148', 'Intro to Computer Science'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'csc', '148', 'Intro to Computer Science'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'csc', '148', 'Intro to Computer Science'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '209', 'Systems Programming'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'csc', '209', 'Systems Programming'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'csc', '209', 'Systems Programming'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'csc', '209', 'Systems Programming'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'csc', '209', 'Systems Programming'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'csc', '343', 'Intro to Databases'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'csc', '343', 'Intro to Databases'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'csc', '343', 'Intro to Databases'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'csc', '343', 'Intro to Databases'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'csc', '343', 'Intro to Databases'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'mat', '137', 'Calculus'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'mat', '137', 'Calculus'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'mat', '137', 'Calculus'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'mat', '137', 'Calculus'),
-                            ('4', 'James', 'james@mail.com', '2.8',     '1', '60', 'mat', '137', 'Calculus'),
-
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '2', '87', 'ger', '100', 'Intro to German'),
-                            ('1', 'Martin', 'martin@mail.com', '3.4',   '4', '73', 'ger', '100', 'Intro to German'),
-                            ('2', 'Kathy', 'kathy@mail.com', '4.0',     '2', '92', 'ger', '100', 'Intro to German'),
-                            ('3', 'Sophia', 'sophia@mail.com', '1.7',   '1', '80', 'ger', '100', 'Intro to German')]),
-
+                    col_names = ['sid', 'firstName', 'email', 'cgpa', 'ofid', 'grade'],
+                    tuples=[
+                            ('1', 'Martin', 'martin@mail.com', '3.4', '2', '87'),
+                            ('1', 'Martin', 'martin@mail.com', '3.4', '4', '73'),
+                            ('2', 'Kathy', 'kathy@mail.com', '4.0',   '2', '92'),
+                            ('3', 'Sophia', 'sophia@mail.com', '1.7', '1', '80'),
+                            ('4', 'James', 'james@mail.com', '2.8',   '1', '60')]),
+        
         '2': Table(t_name='Student NATURAL JOIN Took NATURAL JOIN Course',
                     step='2',
                     col_names=['sid', 'email', 'cgpa'],
