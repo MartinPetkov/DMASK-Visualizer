@@ -16,11 +16,12 @@ SQL_EXEC_ORDER = {
     "HAVING": 4,
     "SELECT": 5,
     "DISTINCT": 6,
-    "UNION": 7,
-    "ORDER BY": 8,
-    "LIMIT": 9,
-    "OFFSET": 10
+    "ORDER BY": 7,
+    "LIMIT": 8,
+    "OFFSET": 9
 }
+
+SET_OPERATIONS = ['UNION', 'INTERSECT', 'EXCEPT']
 
 import collections
 basestring = (str, bytes)
@@ -60,17 +61,38 @@ def reorder_sql_statements(sql_statements):
 
     # If selected columns DISTINCT
     if len(sql_statements[0]) > 2:
+        sql_statements[0].pop(1)
         sql_statements.append(['DISTINCT'])
 
     return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0]])
-
-
 
 last_table = '';
 last_executable_sql = '';
 """ Convert a single SQL AST into a list of QueryStep objects """
 # TODO: Implement
 def sql_ast_to_steps(ast, schema):
+
+    steps = []
+
+    if len(ast) < 1:
+        print("No ast nodes found")
+        return
+
+    first_ast_node = ast[0]
+    first_statement = first_ast_node[0].upper()
+    second_statement = first_ast_node[1].upper()
+    if first_statement == 'CREATE VIEW':
+        steps = parse_create_view(first_ast_node)
+    elif second_statement in SET_OPERATIONS:
+        steps = parse_union(first_ast_node)
+    else:
+        steps = parse_sql_query(ast)
+
+    return steps
+
+
+def parse_sql_query(ast, parent_number=''):
+ 
     STATEMENT_HANDLERS = {
         "CREATE VIEW": parse_create_view,
         "FROM": parse_from,
@@ -85,60 +107,58 @@ def sql_ast_to_steps(ast, schema):
         "OFFSET": parse_offset
     }
 
-    steps = []
-    # Reorder the statements in the correct order, then parse beginning to end
-    ast = reorder_sql_statements(ast)
-    if len(ast) < 1:
-        print("No ast nodes found")
-        return
-
-    first_ast_node = ast[0]
-    first_statement = first_ast_node[0].upper()
-    if first_statement == 'CREATE VIEW':
-        steps = parse_create_view(first_ast_node)
-    elif second_statement == 'UNION':
-        steps = parse_union(first_ast_node)
-    else:
-        steps = parse_sql_query(ast)
-
-    return steps
-
-
-def parse_sql_query(ast, step_number=''):
     # A list of steps for just this sql query, would be appended to a bigger list if we're many levels deep
     steps = []
 
-    local_step_number = 1;
+    local_step_number = 1
+
+    # entire query
+
+    current_step_number = local_step_number
+    if parent_number:
+        current_step_number = parent_number
+
+    sql_chunk = ' '.join(flatten(ast))
+    input_tables = []
+    result_table = current_step_number
+    executable_sql = sql_chunk + ';'
+
+    query = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    steps.append(query)
+
+    ast = reorder_sql_statements(ast)
     while local_step_number <= len(ast):
         ast_node = ast[local_step_number-1]
         statement = ast_node[0] # Statement name has to be the first element in this list
 
         # Each statement has a handler that will generate its own steps and substeps, and those get appended to the overall list of steps
-        new_step = STATEMENT_HANDLERS[statement](ast_node, str(local_step_number), steps)
-        if new_step not None:
+        new_step = STATEMENT_HANDLERS[statement](ast_node, str(local_step_number), parent_number, steps)
+        if new_step != []:
             steps += new_step 
             local_step_number += 1
 
     return steps
 
-def parse_clause(ast_node, step_number, prev_steps):
+def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
 
-    current_step_number = step_number
-    prev_step_number = int(current_step_number - 1)
+    if parent_number:
+        parent_number += '.'
+
+    current_step_number = parent_number + step_number
+    prev_step_number = parent_number + str(int(step_number)- 1)
 
     sql_chunk = ' '.join(flatten(ast_node))
-    prev_chunk = prev_steps[prev_step_number].executable_sql
-    executable_sql = prev_chunk + " " + sql_chunk
+    prev_chunk = prev_steps[-1].executable_sql
+    executable_sql = prev_chunk[:-1] + " " + sql_chunk + ';'
 
     input_tables = [str(prev_step_number)]
-    result_table = [current_step_number]
+    result_table = current_step_number
 
-    step = QueryStep(current_step_number, sql_chunk, input_tables, result_tables, executable_sql)
+    step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
 
     return step
 
-
-def parse_from(ast_node, step_number='', prev_steps):
+def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -171,8 +191,10 @@ def parse_from(ast_node, step_number='', prev_steps):
     for arg in args:
         pass
 
+    return steps
 
-def parse_where(ast_node, step_number='', prev_steps):
+
+def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO: 
     # - check for subquery and create ParsedQuery from this
 
@@ -184,13 +206,13 @@ def parse_where(ast_node, step_number='', prev_steps):
         return
 
     # === QueryStep attributes ===
-    where_step = parse_clause(ast_node, step_number, prev_steps)
+    where_step = parse_clause(ast_node, step_number, parent_number, prev_steps)
     steps.append(where_step)
 
     return steps
 
 
-def parse_group_by(ast_node, step_number='', prev_steps):
+def parse_group_by(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -199,13 +221,13 @@ def parse_group_by(ast_node, step_number='', prev_steps):
         print("No GROUP BY clause")
         return
 
-    groupby_step = parseclause(ast_node, step_number, prev_steps)
+    groupby_step = parse_clause(ast_node, step_number, parent_number, prev_steps)
     steps.append(groupby_step)
 
     return steps
 
 
-def parse_having(ast_node, step_number='', prev_steps):
+def parse_having(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -214,12 +236,12 @@ def parse_having(ast_node, step_number='', prev_steps):
         print("No HAVING clause")
         return
 
-    having_step = parse_clause(ast_node, step_number, prev_steps)
+    having_step = parse_clause(ast_node, step_number, parent_number, prev_steps)
     steps.append(having_step)
 
     return steps
 
-def parse_select(ast_node, step_number='', prev_steps):
+def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO: 
     # - ignore DISTINCT
     # - namespace
@@ -231,29 +253,32 @@ def parse_select(ast_node, step_number='', prev_steps):
         print("No arguments to SELECT clause")
         return
 
-    # Create first step
-    current_step_number = step_number
-    prev_step_number = int(current_step_number - 1)
+    if parent_number and parent_number[-1] != '.':
+        parent_number += '.'
+
+    current_step_number = parent_number + step_number
+    prev_step_number = parent_number + str(int(step_number) - 1)
     input_tables = [str(prev_step_number)]
-    result_table = [current_step_number]
+    result_table = current_step_number
     namespace = ''
     
+    prev_step = prev_steps[-1]
+
     # Check if selecting DISTINCT
     if len(ast_node) > 2:
-        select_node = ast_node[0] + ast_node[-1]
-        sql_chunk = ' '.join(flatten(select_node))
-        executable_sql = sql_chunk + " " + prev_chunk[9:]
+        sql_chunk = 'SELECT ' + ' '.join(flatten(ast_node[-1]))
+        executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1] + ';'
     else:
         
         sql_chunk = ' '.join(flatten(ast_node))
-        executable_sql = sql_chunk + " " + prev_chunk[9:]
+        executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1] + ';'
 
     select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(select_step)
 
     return steps
 
-def parse_distinct(ast_node, step_number='', prev_steps):
+def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO: Implement
 
     steps = []
@@ -262,29 +287,56 @@ def parse_distinct(ast_node, step_number='', prev_steps):
         print("Query does not select DISTINCT entries")
         return
 
-    current_step_number = step_number
-    prev_step_number = int(step_number) - 1
-    input_tables = [prev_step_number]
-    result_table = [current_step_number]
+    if parent_number and parent_number[-1] != '.':
+        parent_number += '.'
 
-    prev_step = prev_steps[prev_step_number]
-    sql_chunk = 'SELECT DISTINCT ' + prev_step.sql_chunk[7:]
-    executable_sql = "SELECT DISTINCT " + prev_step.executable_sql[7:]
+    current_step_number = parent_number + step_number
+    prev_step_number = parent_number + str(int(step_number) - 1)
+    input_tables = [str(prev_step_number)]
+    result_table = current_step_number
+
+    prev_step = prev_steps[-1]
+    sql_chunk = 'SELECT DISTINCT ' + prev_step.sql_chunk[7:] 
+    executable_sql = "SELECT DISTINCT " + prev_step.executable_sql[7:-1] + ';'
 
     distinct_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
     steps.append(distinct_step)
 
     return steps
 
-def parse_union(ast_node, step_number=''):
+def parse_union(ast_node, step_number='', parent_number=''):
     # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
-    pass
+    if len(ast_node) < 3:
+        print("Not enough arguments for UNION clause: <query1> UNION <query2>")
+        return
 
-def parse_order_by(ast_node, step_number='', prev_steps):
+    # UNION step
+    current_step_number = step_number
+    sql_chunk = ' '.join(flatten(ast_node))
+
+    input_num1 = parent_number + '.1'
+    input_num2 = parent_number + '.2'
+    input_tables = [input_num1, input_num2]
+    result_table = current_step_number
+    executable_sql = sql_chunk
+
+    union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    steps.append(union_step)
+
+    query1 = parse_sql_query(ast_node[0], input_num1)
+    query2 = parse_sql_query(ast_node[2], input_num2)
+
+    steps += query1
+    steps += query2
+
+
+    return steps
+
+def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -294,12 +346,13 @@ def parse_order_by(ast_node, step_number='', prev_steps):
         print("No ORDER BY clause")
         return
 
-        orderby_step = parse_clause(ast_node, step_number, prev_steps)
+    orderby_step = parse_clause(ast_node, step_number, parent_number, prev_steps)
     steps.append(orderby_step)
+    print(orderby_step)
 
     return steps
 
-def parse_limit(ast_node, step_number='', prev_steps):
+def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -309,12 +362,12 @@ def parse_limit(ast_node, step_number='', prev_steps):
         print("No LIMIT clause")
         return
 
-    limit_step = parse_clause(ast_node, step_number, prev_steps)
+    limit_step = parse_clause(ast_node, step_number, parent_number, prev_steps)
     steps.append(limit_step)
 
     return steps
 
-def parse_offset(ast_node, step_number='', prev_steps):
+def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -324,7 +377,7 @@ def parse_offset(ast_node, step_number='', prev_steps):
         print("No OFFSET clause")
         return
 
-    offset_step = parse_clause(ast_node, step_number, prev_steps)
+    offset_step = parse_clause(ast_node, step_number, parent_number, prev_steps)
     steps.append(offset_step)
 
     return steps
