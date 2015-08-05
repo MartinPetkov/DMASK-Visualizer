@@ -53,7 +53,7 @@ def split_sql_queries(sql_queries):
 """ Convert a single SQL query into an AST """
 def sql_to_ast(query):
     # TODO: Implement
-    return ast(query) 
+    return ast(query)
 
 
 def reorder_sql_statements(sql_statements):
@@ -121,7 +121,7 @@ def parse_sql_query(ast, step_number=''):
         # Each statement has a handler that will generate its own steps and substeps, and those get appended to the overall list of steps
         new_step = STATEMENT_HANDLERS[statement](ast_node, str(local_step_number), steps)
         if new_step not None:
-            steps += new_step 
+            steps += new_step
             local_step_number += 1
 
     return steps
@@ -176,12 +176,36 @@ def parse_from(ast_node, step_number='', prev_steps):
         return
 
     # TODO: Create and add the remaining substeps, if any
-    for arg in args:
-        pass
+    i = 1
+    while i+1 < len(args):
+        from_connector = args[i]
+        from_arg = args[i+1]
+        local_step_number += 1
+        current_step_number = step_number + str(local_step_number)
+
+        if len(from_arg) == 1:
+            # Simple table select
+            # TODO: Handle case
+            pass
+
+        else:
+            from_arg_connector = from_arg[1]
+            if from_arg_connector == "ON":
+                # TODO: Handle case
+                reason = from_arg[2]
+
+                pass
+            elif from_arg_connector == "AS" or from_arg_connector == "":
+                # TODO: Handle case
+                new_name = from_arg[2]
+
+                pass
+
+        i += 2 # Going by twos, collecting the connector and the next table
 
 
 def parse_where(ast_node, step_number='', prev_steps):
-    # TODO: 
+    # TODO:
     # - check for subquery and create ParsedQuery from this
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -228,7 +252,7 @@ def parse_having(ast_node, step_number='', prev_steps):
     return steps
 
 def parse_select(ast_node, step_number='', prev_steps):
-    # TODO: 
+    # TODO:
     # - ignore DISTINCT
     # - namespace
 
@@ -245,14 +269,14 @@ def parse_select(ast_node, step_number='', prev_steps):
     input_tables = [str(prev_step_number)]
     result_table = [current_step_number]
     namespace = ''
-    
+
     # Check if selecting DISTINCT
     if len(ast_node) > 2:
         select_node = ast_node[0] + ast_node[-1]
         sql_chunk = ' '.join(flatten(select_node))
         executable_sql = sql_chunk + " " + prev_chunk[9:]
     else:
-        
+
         sql_chunk = ' '.join(flatten(ast_node))
         executable_sql = sql_chunk + " " + prev_chunk[9:]
 
