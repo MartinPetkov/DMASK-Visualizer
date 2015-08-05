@@ -186,7 +186,7 @@ whereCondition  =   Group(
                     (
                         (token + BINOP + ( 
                             columnRval 
-                            | ((ANY_ | SOME_ | ALL_) + subquery)))
+                            | (Optional(ANY_ | SOME_ | ALL_) + subquery)))
                         | (token + IN_ + (
                             (Suppress("(") + delimitedList(columnRval) + Suppress(")"))
                             | subquery))
