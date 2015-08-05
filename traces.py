@@ -508,7 +508,7 @@ def generate_simple_subquery():
                 executable_sql="SELECT * FROM (SELECT oid, dept FROM Offering) AS LimitedCols ",
                 namespace=[("LimitedCols", ["oid", "dept"])]),
 
-        QueryStep('2', 'SELECT LimitedCols.oid', ['LimitedCols'], '2',
+        QueryStep('2', 'SELECT LimitedCols.oid', ['1'], '2',
                 executable_sql="SELECT LimitedCols.oid FROM (SELECT oid, dept FROM Offering) AS LimitedCols"),
     ]
 
@@ -558,15 +558,17 @@ def generate_simple_subquery():
     DESIRED_ASTS['simple_subquery'] =\
         [
             [ 'SELECT', [['LimitedCols.oid']] ],
-            [ 'FROM', [
+            ['FROM',
                 [
                     [
-                        [ 'SELECT', [['oid'], ['dept']] ],
-                        [ 'FROM', [['Offering']] ]
+                        [
+                            [ 'SELECT', [['oid'], ['dept']] ],
+                            [ 'FROM', [['Offering']] ]
+                        ]
+                        , 'AS'
+                        , 'LimitedCols'
                     ]
                 ]
-                , 'AS'
-                , 'LimitedCols' ]
             ]
         ]
 
