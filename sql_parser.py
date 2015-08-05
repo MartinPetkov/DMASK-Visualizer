@@ -69,6 +69,35 @@ def sql_to_ast(query):
 
 def reorder_sql_statements(sql_statements):
 
+    # If there are set operations, all of them will be contained in the first element, followed by things like 'LIMIT'
+    # and 'ORDER BY'. Successive set operations are nested deeper instead of being serialized in sequence.
+    if len(sql_statements[0]) == 3 and not isinstance(sql_statements[0][1],list) and sql_statements[0][1].upper() in SET_OPERATIONS:
+        # Handle set operation reordering
+        set_operation = sql_statements[0]
+        first_sql_query = set_operation[0]
+        operator = set_operation[1]
+        second_sql_query = set_operation[2]
+
+        final_statements = [
+                            [
+                                operator,
+                                reorder_sql_statements(first_sql_query),
+                                reorder_sql_statements(second_sql_query)
+                            ]
+                           ]
+        final_statements += sql_statements[1:]
+        return final_statements
+
+    # For inner set operations, do different things
+    if len(sql_statements) == 3 and not isinstance(sql_statements[1],list) and sql_statements[1].upper() in SET_OPERATIONS:
+        # Handle set operation reordering
+        first_sql_query = sql_statements[0]
+        operator = sql_statements[1]
+        second_sql_query = sql_statements[2]
+
+        return [operator, reorder_sql_statements(first_sql_query), reorder_sql_statements(second_sql_query)]
+
+
     # If selected columns DISTINCT
     if len(sql_statements[0]) > 2:
         sql_statements[0].pop(1)
@@ -76,7 +105,7 @@ def reorder_sql_statements(sql_statements):
 
     # TODO: handle union and create view
 
-    return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0]])
+    return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0].upper()])
 
 last_table = ''
 last_executable_sql = ''
