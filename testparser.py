@@ -45,7 +45,7 @@ if __name__ == "__main__":
 	printout(g2step)
 	printout(g3step)
 
-	'''
+	
 	# ========= TESTING SELECT AND DISTINCT =================
 	a = ast('select distinct name, max(sid), grade from Took where sid in (select sid from Took)')
 	asteps = parse_select(a, '1')
@@ -82,7 +82,5 @@ if __name__ == "__main__":
 	c =  ast('create view name (select * from Took)')
 	e = parse_create_view(c, '1')
 	printout(e)
-	'''
-
-
+	
 

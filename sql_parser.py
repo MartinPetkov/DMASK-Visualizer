@@ -64,7 +64,6 @@ def split_sql_queries(sql_queries):
 
 """ Convert a single SQL query into an AST """
 def sql_to_ast(query):
-    # TODO: Implement
     return ast(query)
 
 
@@ -75,13 +74,15 @@ def reorder_sql_statements(sql_statements):
         sql_statements[0].pop(1)
         sql_statements.append(['DISTINCT'])
 
+    # TODO: handle union and create view
+
     return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0]])
 
 last_table = ''
 last_executable_sql = ''
 namespace = ''
+
 """ Convert a single SQL AST into a list of QueryStep objects """
-# TODO: Implement
 def sql_ast_to_steps(ast, schema):
 
     steps = []
@@ -330,8 +331,6 @@ def extract_from_arg_table_name(from_arg):
 
 
 def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
-    # TODO:
-    # - check for subquery and create ParsedQuery from this
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -378,7 +377,6 @@ def parse_having(ast_node, step_number='', parent_number='', prev_steps=[]):
 
 def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO:
-    # - ignore DISTINCT
     # - namespace
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -414,7 +412,6 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
-    # TODO: Implement
 
     steps = []
 
@@ -440,7 +437,6 @@ def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 def parse_union(ast_node, step_number='', parent_number=''):
-    # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -472,7 +468,6 @@ def parse_union(ast_node, step_number='', parent_number=''):
     return steps
 
 def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[]):
-    # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -488,7 +483,6 @@ def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[]):
-    # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -503,7 +497,6 @@ def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[]):
-    # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -518,7 +511,6 @@ def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 def parse_create_view(ast_node, step_number=''):
-    # TODO: Implement
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
