@@ -47,36 +47,17 @@ function onPageLoad(){
     $(document).on("click", "#next", stepNext);
     $(document).on("click", "#stepin", stepIn);
 
-    
-//    parseAndLoad(parsedquery);
-
-    // add event handlers
-    // -- ToC Handlers (Collapsing, clicking on steps)
-
-
-    // -- Navigation handlers (stepping through)
-
-/*
-    // -- Table handlers
-    $("#inbox, #modal-inbox").on("click", ".tablecontainer", function(e){
-        var id = e.target.closest(".tablecontainer").id;
-        var stepid = getStepIDFromTable(id);
-        if (currentWindow.steps_dictionary[toKey(stepid)])
-            loadStep(stepid);
-    });
-*/
-
     // -- 'Reasons' box handler
-    $(document).on("click", ".outbox .output-row", function(e){
+    $(document).on("click", ".inbox .output-row", function(e){
         var id = e.target.closest(".output-row").id;
-        var reasons = getReasons(id);
+        var reasons = $("#" + current_window.generateElemID("inbox") + " #" + id).val();
         var tooltip = $("#tooltip");
         // ---
-        if (reasons != ""){
+        if (reasons){
             tooltip.css( {position:"absolute", top:e.pageY, left: e.pageX});
-            tooltip.html("<p class='tooltipheader'>Reasons</p>" + getReasons(id));
+            tooltip.html("<p class='tooltipheader'>Reasons</p>" + reasons.toDisplay());
             tooltip.show();
-            tooltip.val(id);
+            tooltip.val(reasons);
             
         } else{
             tooltip.hide();
@@ -86,9 +67,12 @@ function onPageLoad(){
     // -- Subquery onclick handler
     $(document).on("click", ".subquery", function(e){
         var tooltip = $("#tooltip");
-        var id = tooltip.val();
-        var reason = getReasonsEntry(id)[0];
-        openModalWindow(reason.subquery);
+        var reasons = tooltip.val();
+        var reason = e.target.textContent;
+        var subquery = reasons.getSubquery(reason);
+        openModalWindow("modal");
+        loadQueries([subquery]);
+        sizeContent();
     });
 
     $(document).on("click", ".shadow", closeModalWindow);
@@ -99,23 +83,5 @@ function onPageLoad(){
     Adjusts the hovertext display
 */
 function hoverText(newtext){
-    $(currentWindow.namebox).text(newtext);
+    $("#" + current_window.generateElemID("namebox")).text(newtext);
 }
-
-/*
-    Input: An array of parsedqueries
-*/
-function parseAndLoad(parsedquery){
-    // Parse the JSON content and load them into the ToC
-    var i = 0;
-    for (i = 0; i < parsedquery.length; i++){
-        currentWindow.steps_dictionary = stepsToDict(parsedquery[i].steps);
-        currentWindow.step_keys = Object.keys(currentWindow.steps_dictionary).sort();
-        parseTablesToDict(global_tables);
-        parseTablesToDict(parsedquery[i].tables);
-        generateReasons();
-        loadQuery(parsedquery[i].query_text);
-        loadSteps(currentWindow.steps_dictionary);
-    }
-}
-

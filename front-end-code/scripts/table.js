@@ -65,6 +65,7 @@ function addReasons(reasons, table){
     var num_reasons = reasons.length;
     var i;
     var all_reasons = JSON.parse(reasons[0].conditions_matched).conditions_matched;
+    
     // add the reasons
     for (i = 1; i < num_reasons; i++){
         // read the information

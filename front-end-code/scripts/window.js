@@ -55,5 +55,6 @@ function closeModalWindow(){
     $("#" + current_window.generateElemID("shadow")).remove();
     current_window = parent;
     $("#tooltip").hide();
+    sizeContent();
 }
 
