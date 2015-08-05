@@ -21,10 +21,19 @@ schema = {
 
 
 if __name__ == '__main__':
-    print(sql)
-    print("----------------------------------------------")
-    pprint(split_sql_queries(sql))
-    print("----------------------------------------------")
+    #print(sql)
+    #print("----------------------------------------------")
+    #pprint(split_sql_queries(sql))
+    #print("----------------------------------------------")
 
-    ast = DESIRED_ASTS['simple_query']
-    pprint(sql_ast_to_steps(ast, schema))
+    #ast = DESIRED_ASTS['simple_query']
+    #pprint(sql_ast_to_steps(ast, schema))
+
+    from_test = [ 'FROM', [
+                            ['Student'],
+                            'NATURAL JOIN', ['Took'],
+                            'NATURAL JOIN', ['Course']
+                          ]
+                ]
+    from_steps = parse_from(from_test)
+    pprint(from_steps)

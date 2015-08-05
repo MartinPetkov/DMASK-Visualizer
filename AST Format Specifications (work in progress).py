@@ -16,9 +16,9 @@ LEGEND:
 
 <sql_query>         = [ <sql_statement> ... ]
 
-<sql_statement>     =       [ "SELECT",     [ '*' |  <select_arg> ... ]],
-                            [ "FROM",       [ <from_arg>, (<from_connector>?) ... ] ],
-                            ([ "WHERE",     [ <where_arg> (<where_connector>?) ... ] ])?,
+<sql_statement>     =       [ "SELECT",     [ <select_arg> ... ]],
+                            [ "FROM",       [ <from_arg>, (<from_connector>, <from_arg>?) ... ] ],
+                            ([ "WHERE",     [ <where_arg> (<where_connector>, <where_arg>?) ... ] ])?,
                             ([ "GROUP BY",  [ 'col_name' ... ] ])?,
                             ([ "HAVING",    [ <aggregate_fn>, <comparator>, <val> ]])?,
                             ([ "ORDER BY",  [ 'col_name' ... ] ])?,
@@ -30,19 +30,15 @@ LEGEND:
 
 # For SELECT
 <select_arg>        = ['col_name']
-                        |   [ [ 'col_name'
-                                | <val>
-                                | <col_equation>], (<as>, 'new_name')? 
-                            ]
+                        |   [ ('col_name'
+                            | <col_equation>
+                            | <aggregate_fn>
+                            | <val> ), <as>, 'new_name']
 
 
-<col_equation>      = [<col_val>, (<operator>, <col_val> )+ ]
-
-<col_val>           = 'col_name' | <aggregate_fn> | <val> | <col_operation>
+<col_equation>      = ['col_name', (<operator>, 'col_name')+ ]
 
 <aggregate_fn>      = function('col_name')
-
-<col_operation>     = [ <col_val>, <operator>, <col_val>] 
 
 <operator>          = "+" | "-" | "*" | "/" | "||"
 
@@ -70,12 +66,13 @@ LEGEND:
 
 <where_connector>   = "AND" | "OR"
 
-<reason>            = 'col_name', <comparator>, <val>
+<reason>            = ['col_name', <comparator>, <val>
                         | 'col_name', "IN", <val>
                         | 'col_name', ("IN" | (<comparator>, ("ANY" | "ALL"))), <sql_query>
                         | "EXISTS", <sql_query>
                         | 'col_name', (("IS", ("NULL" | "NOTNULL")) | "ISNULL")
                         | 'col_name', ("NOT"),? "BETWEEN", <val>, "AND", <val>
+                       ]
 
 
 <as>                = " " | "AS"

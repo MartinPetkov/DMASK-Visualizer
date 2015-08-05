@@ -17,6 +17,9 @@ class ParsedQuery:
         self.tables = tables
         self.query_text = query_text
 
+    def __repr__(self):
+        return "[steps: {0}\ntables: {1}\nquery_text: {2}]\n".format(self.steps, self.tables, self.query_text)
+
     def to_json(self):
         json_dict = {
             "query_text": self.query_text,
