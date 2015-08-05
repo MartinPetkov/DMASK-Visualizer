@@ -119,5 +119,20 @@ function updateNamespace(step){
 
     var namespacebody = $("#" + current_window.generateElemID("namespacebody"));
     namespacebody.empty();
-    namespacebody.append(namespace.join("<br>"));
+    namespacebody.append(namespaceToString(namespace));
+}
+
+function namespaceToString(namespace){
+    // Given a namespace in the format [(name, [columns]), (...)], return
+    // the string equivalent ("Name: columns")
+    var i;
+    namespace_list = [];
+    for (i = 0; i < namespace.length; i++){
+        item = namespace[i];
+        table_name = item[0];
+        columns = item[1];
+        string = table_name + ": " + (columns.join(", "));
+        namespace_list.push(string);
+    }
+    return namespace_list.join("<br>");
 }

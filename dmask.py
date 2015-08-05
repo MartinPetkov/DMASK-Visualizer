@@ -12,9 +12,10 @@ from parsed_query import *
 from query_step import *
 from table import *
 
-#import sql_parser
-#import ra_parser
+import sql_parser
+import ra_parser
 import copy
+
 
 
 # TODO: Figure out how to handle the database connection
@@ -26,17 +27,20 @@ class DMASK:
 
     :param conn_params: The database connection parameters
     """
-    def __init__(self, conn_params):
+    def __init__(self, conn_params, base_tables):
         # TODO: Implement the database connection parameters
         self.conn_params = conn_params
         self.base_tables = base_tables
-
-
-    def set_connection(conn_params):
+    
+    def set_connection(self, schema):
         # TODO: Implement connecting to a database
-        self.conn_params = conn_params
+        self.connection = psycopg2.connect(self.conn_params)
+        self.cursor = self.connection.cursor()
+        
+        #TODO: Remove the below (which sets the schema)
+        self.cursor.execute("SET search_path TO "+schema)
 
-    def set_base_tables(base_tables):
+    def set_base_tables(self, base_tables):
         # TODO: Implement
         self.base_tables = base_tables
 
@@ -83,15 +87,13 @@ class DMASK:
 
 
     def steps_to_tables(self, steps):
-        # TODO: Implement
         # Turns the QuerySteps given into Table objects by executing their queries on the database given by
         # self.conn_params and with the base tables given by self.base_tables
         tables = {}
         
-        # TODO: Import psycopg2? Modify this so we can get the connection
         # Create a connection and cursor (PSQL)
-        connection = psycopg2.connect(self.conn_params)
-        cursor = connection.cursor()
+        connection = self.connection;
+        cursor = self.cursor;
         
         for step in steps:
             if str(step.result_table) not in tables:
@@ -110,6 +112,7 @@ class DMASK:
                     tuples.append(row)
                 
                 # If the sql chunk is a where clause, get the reasons
+                # TODO: Adjust this to work for RA as well
                 if (step.sql_chunk.split()[0].lower() == "where"):
                     # Get all of the conditions (and the ASTs of their corresponding subqueries)
                     (conditions, subqueries) = get_all_conditions(step.sql_chunk)
@@ -122,7 +125,7 @@ class DMASK:
                             
                     tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, self)
                 
-                t = Table(name, step.step_number, columns, tuples, reasons)
+                t = Table(name, step.step_number, columns, tuples, {})
                 tables[str(step.result_table)] = t
         return tables
 
@@ -130,6 +133,7 @@ class DMASK:
 def get_all_conditions(sql_chunk):
     # Get the AST for the WHERE clause
     ast = sql_parser.sql_to_ast(sql_chunk)[1:]
+    
     # Given an AST for the WHERE clause, return a tuple containing 2 items:
     # The first is a list of all the conditions in the where clause (ex. ["grade >= 80", "cnum in SELECT ..."])
     # The second is a dictionary mapping a condition to its AST {"condition": [AST]}
@@ -173,8 +177,8 @@ def get_reasons(conditions, subqueries, input_step, dmask):
     # of the original query)
     namespace = get_namespace(sql_parser.sql_to_ast(input_query), dmask)
     
-    connection = psycopg2.connect(dmask.conn_params)
-    cursor = connection.cursor()
+    connection = dmask.connection
+    cursor = dmask.cursor
     
     # Execute all of the conditions
     for condition in conditions:
@@ -355,11 +359,12 @@ def get_namespace(subquery, dmask):
             on_using = True
     
     main_table = " ".join(flatten_list(from_clause))
-    namespace = "SELECT * FROM " + main_table # TODO: execute this + get the columns (store in namespace as [column], [column]
+    
+    namespace = [[column] for column in get_columns("SELECT * FROM " + main_table, dmask)]
     
     # Traverse the list of tables, adding all of the columns to the namespace
     for table in tables:
-        columns = "SELECT * FROM " + table[0] # TODO: execute this + get the columns
+        columns = get_columns("SELECT * FROM " + table[0], dmask)
         prefix = table[1]
         for column in columns:
             for name in namespace:
@@ -368,6 +373,15 @@ def get_namespace(subquery, dmask):
                     break
 
     return namespace
+
+def get_columns(query, dmask):
+    cursor = dmask.cursor
+    
+    # Execute the query
+    cursor.execute(query + " LIMIT 0")
+    
+    # Get the columns
+    return [desc[0] for desc in cursor.description]
 
 def matches_alias(namespace, attribute, to_match):
     # Given a namespace, attribute (ex. "sid") and someting to match (ex. "Took.sid")
@@ -393,7 +407,7 @@ def get_table_name(exsqltable):
     
     # Traverse the AST until the FROM clause is found
     for node in ast:
-        if node[0].lower() == "FROM":
+        if node[0].lower() == "from":
             # The second element in the node [FROM, [...]] holds the table's name
             from_ast = node[1]
             name = []
@@ -464,3 +478,57 @@ class PreparedQuery:
         replace(query_copy, substitutes)
         return query_copy
     
+# TODO: REMOVE -- this function is for sophia's testing purposes and is here because
+# she doesn't want to rewrite this every single time
+import psycopg2
+
+def sophia_test():
+    conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'"
+    dmask = DMASK(conn_string, [])
+    dmask.set_connection("sophiadmask")
+    
+    # get_namespace works
+    print(get_namespace(
+        [
+            [ 'SELECT', [['sid'], ['email'], ['cgpa']] ],
+            [ 'FROM',   [['Student'], 'NATURAL JOIN', ['Took'],
+                            'NATURAL JOIN', ['Course']] ],
+        ], dmask))
+    
+    tables = dmask.steps_to_tables(steps = [
+        QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', [], '1',
+            executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
+            namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
+                       ("Took", ["sid", "ofid", "grade"]),
+                       ("Course", ["dept", "cNum", "name"])]),
+
+        QueryStep('1.1', 'Student', [], 'Student',
+                  executable_sql="SELECT * FROM Student",
+                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"])]),
+        
+        QueryStep('1.2', 'Took', [], 'Took',
+                  executable_sql="SELECT * FROM Took",
+                  namespace=[("Took", ["sid", "ofid", "grade"])]),
+        
+        QueryStep('1.3', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.3',
+                  executable_sql="SELECT * FROM Student NATURAL JOIN Took",
+                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
+                             ("Took", ["sid", "ofid", "grade"])]),
+        
+        QueryStep('1.4', 'Course', [], 'Course',
+                  executable_sql="SELECT * FROM Course",
+                  namespace=[("Course", ["dept", "cNum", "name"])]),
+        
+        QueryStep('1.5', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.3', 'Course'], '1',
+                  executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
+                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
+                             ("Took", ["sid", "ofid", "grade"]),
+                             ("Course", ["dept", "cNum", "name"])]),
+
+        QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2',
+            executable_sql="SELECT sid, email, cgpa FROM Student NATURAL JOIN Took NATURAL JOIN Course",
+            namespace=[ ("Student", ["sid", "email", "cgpa"]),
+                        ("Took", ["sid"])])
+    ])
+    
+    return tables
