@@ -598,7 +598,8 @@ def generate_simple_and_query():
                             ('4', 'James', 'james@mail.com', '2.8')],
                     reasons= {
                                 0: Reason(["cgpa > 3", "firstName='Martin'"]),
-                                1: Reason(["cgpa > 3", "firstName='Martin'"])
+                                1: Reason(["cgpa > 3", "firstName='Martin'"]),
+                                2: Reason(["cgpa > 3"])
                             }
                     ),
 
@@ -900,7 +901,7 @@ def generate_complex_subquery_in_where_not_repeated():
             ),
 
         QueryStep('3', 'SELECT sid, firstName', ['2'], '3',
-            executable_sql="SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4",
+            executable_sql="SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)",
             namespace=[("Student", ["sid", "firstName"])])
         ]
 

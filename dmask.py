@@ -115,15 +115,15 @@ class DMASK:
                 # TODO: Adjust this to work for RA as well
                 if (step.sql_chunk.split()[0].lower() == "where"):
                     # Get all of the conditions (and the ASTs of their corresponding subqueries)
-                    (conditions, subqueries) = get_all_conditions(step.sql_chunk)
+                    (conditions, subqueries) = get_all_conditions(step.executable_sql)
                     
                     # Add the reasons for the input table
                     input_step = None
                     for s in steps:
-                        if s.step_number == tables[step.input_tables[0]].step_number:
+                        if s.step_number == tables[step.input_tables[0]].step:
                             input_step = s
                             
-                    tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, self)
+                    tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
                 
                 t = Table(name, step.step_number, columns, tuples, {})
                 tables[str(step.result_table)] = t
@@ -132,12 +132,18 @@ class DMASK:
 
 def get_all_conditions(sql_chunk):
     # Get the AST for the WHERE clause
-    ast = sql_parser.sql_to_ast(sql_chunk)[1:]
+    ast = sql_parser.sql_to_ast(sql_chunk).asList()
+    
+    for node in ast:
+        if node[0].lower() == "where":
+            return conditions_helper(node[1])
+
+    return ([], {})
     
     # Given an AST for the WHERE clause, return a tuple containing 2 items:
     # The first is a list of all the conditions in the where clause (ex. ["grade >= 80", "cnum in SELECT ..."])
     # The second is a dictionary mapping a condition to its AST {"condition": [AST]}
-    return conditions_helper(ast)
+
 
 def conditions_helper(ast):
     # If the first item in a list is a string, then that list contains a
@@ -164,18 +170,19 @@ def find_subquery(ast):
         if isinstance(item, list):
             return item    
     
-def get_reasons(conditions, subqueries, input_step, dmask):
+def get_reasons(conditions, subqueries, input_step, tables, dmask):
     # Given a list of conditions, subqueries, the input step and dmask object,
     # return the Reasons
     
     input_query = input_step.executable_sql
-    input_table = input_step.result_table
+    input_table = tables[input_step.result_table]
     input_tuples = input_table.tuples
     reasons = {0:Reason([])}
     
     # Get the namespace of the entire query (only really need the FROM clause
     # of the original query)
-    namespace = get_namespace(sql_parser.sql_to_ast(input_query), dmask)
+    ast = sql_parser.sql_to_ast(input_query).asList()
+    namespace = get_namespace(ast, dmask)
     
     connection = dmask.connection
     cursor = dmask.cursor
@@ -197,6 +204,8 @@ def get_reasons(conditions, subqueries, input_step, dmask):
         for row in cursor:
             tuples.append(row)
                     
+        correlated = []
+        
         # Execute the corresponding subquery, getting its steps and tables
         if condition in subqueries:
             subquery = subqueries[condition]
@@ -250,7 +259,7 @@ def get_reasons(conditions, subqueries, input_step, dmask):
                 if i+1 in reasons:
                     reasons[i+1].conditions_matched.append(condition)
                 else:
-                    reasons[i+1] = Reason(conditions_matched.append(condition))
+                    reasons[i+1] = Reason([condition])
                 
                 # If there was a correlated subquery, add the parsed query and, if the condition
                 # passed, add it to the list of passed subqueries
@@ -356,7 +365,7 @@ def get_namespace(subquery, dmask):
                 tables.append((name, alias))
             on_using = False
         elif item.lower() in ["on", "using"]:
-            on_using = True
+                on_using = True
     
     main_table = " ".join(flatten_list(from_clause))
     
@@ -488,47 +497,19 @@ def sophia_test():
     dmask.set_connection("sophiadmask")
     
     # get_namespace works
-    print(get_namespace(
-        [
-            [ 'SELECT', [['sid'], ['email'], ['cgpa']] ],
-            [ 'FROM',   [['Student'], 'NATURAL JOIN', ['Took'],
-                            'NATURAL JOIN', ['Course']] ],
-        ], dmask))
     
     tables = dmask.steps_to_tables(steps = [
-        QueryStep('1', 'FROM Student NATURAL JOIN Took NATURAL JOIN Course', [], '1',
-            executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
-            namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
-                       ("Took", ["sid", "ofid", "grade"]),
-                       ("Course", ["dept", "cNum", "name"])]),
+        QueryStep('1', 'FROM Student', [], 'Student',
+            executable_sql="SELECT * FROM Student",
+            namespace=[("Student", ["sid", "firstName", "email", "cgpa"])]),
 
-        QueryStep('1.1', 'Student', [], 'Student',
-                  executable_sql="SELECT * FROM Student",
-                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"])]),
-        
-        QueryStep('1.2', 'Took', [], 'Took',
-                  executable_sql="SELECT * FROM Took",
-                  namespace=[("Took", ["sid", "ofid", "grade"])]),
-        
-        QueryStep('1.3', 'Student NATURAL JOIN Took', ['Student', 'Took'], '1.3',
-                  executable_sql="SELECT * FROM Student NATURAL JOIN Took",
-                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
-                             ("Took", ["sid", "ofid", "grade"])]),
-        
-        QueryStep('1.4', 'Course', [], 'Course',
-                  executable_sql="SELECT * FROM Course",
-                  namespace=[("Course", ["dept", "cNum", "name"])]),
-        
-        QueryStep('1.5', 'Student NATURAL JOIN Took NATURAL JOIN Course', ['1.3', 'Course'], '1',
-                  executable_sql="SELECT * FROM Student NATURAL JOIN Took NATURAL JOIN Course",
-                  namespace=[("Student", ["sid", "firstName", "email", "cgpa"]),
-                             ("Took", ["sid", "ofid", "grade"]),
-                             ("Course", ["dept", "cNum", "name"])]),
+        QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['Student'], '2',
+            executable_sql="SELECT * FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)"
+            ),
 
-        QueryStep('2', 'SELECT sid, email, cgpa', ['1'], '2',
-            executable_sql="SELECT sid, email, cgpa FROM Student NATURAL JOIN Took NATURAL JOIN Course",
-            namespace=[ ("Student", ["sid", "email", "cgpa"]),
-                        ("Took", ["sid"])])
-    ])
+        QueryStep('3', 'SELECT sid, firstName', ['2'], '3',
+            executable_sql="SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)",
+            namespace=[("Student", ["sid", "firstName"])])
+        ])
     
     return tables
