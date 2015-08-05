@@ -153,15 +153,22 @@ def conditions_helper(ast):
     for item in ast:
         if isinstance(item, list):
             if isinstance(item[0], str):
-                key = " ".join(flatten_list(item))
-                conditions.append(key)
                 subquery = find_subquery(item)
+                
+                key = " ".join(flatten_list(item))
+                if subquery:
+                    subquery_string = " ".join(flatten_list(subquery))
+                    key = key.replace(subquery_string, "("+subquery_string+")") 
+                
+                conditions.append(key)
+                
                 if subquery:
                     subqueries[key] = subquery
             else:
                 results = conditions_helper(item)
                 conditions.extend(results[0])
                 subqueries.update(results[1])
+    
     return (conditions, subqueries)
 
 def find_subquery(ast):
@@ -191,7 +198,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
     for condition in conditions:
         reasons[0].conditions_matched.append(condition)
         
-        condition_sql = input_query + " WHERE " + condition
+        condition_sql = input_query.strip(';') + " WHERE " + condition
         
         # Execute the query
         cursor.execute(condition_sql)
@@ -211,7 +218,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
             subquery = subqueries[condition]
             
             # Check if the subquery is correlated
-            correlated = get_correlated_elements(subquery)
+            correlated = get_correlated_elements(subquery, dmask)
             
             if correlated:
                 # If it is, prepare it for substitution for execution at each row
@@ -244,7 +251,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 
                 
                 # Substitute them in the query
-                substituted_query = pq.substitute(substitutes)
+                substituted_subquery = pq.substitute(substitutes)
                 
                 # Create the parsed query
                 steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.base_tables)
@@ -270,15 +277,15 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
     return reasons
 
 
-def get_correlated_elements(query):
+def get_correlated_elements(query, dmask):
     # Given an AST representing a query, return a list of elements that do not
     # appear in the namespace of the (isolated) query.
     
     # get the namespace of the subquery
-    namespace = flatten_list(get_namespace(subquery))
+    namespace = flatten_list(get_namespace(query, dmask))
     
     # get the attributes called in the subquery
-    attributes = find_attributes(subquery)
+    attributes = find_attributes(query)
     
     # for each attribute, if it appears somewhere in the namespace, remove it
     i = 0
@@ -463,6 +470,7 @@ class PreparedQuery:
     def __init__(self, query, substitutable):
         self.query = query
         self.substitutable = {}
+        
         for item in substitutable:
             self.substitutable[item] = item
     
@@ -473,7 +481,7 @@ class PreparedQuery:
                 return
         
         # make a deep copy of the AST
-        query_copy = copy.deepcopy(query)
+        query_copy = copy.deepcopy(self.query)
         
         def replace(query, substitutes):
             for i in range(len(query)):
@@ -482,7 +490,7 @@ class PreparedQuery:
                 if isinstance(element, list):
                     replace(element, substitutes)
                 elif element in substitutes:
-                    query[i] = substitutes[element]
+                    query[i] = str(substitutes[element])
                     
         replace(query_copy, substitutes)
         return query_copy
@@ -499,17 +507,18 @@ def sophia_test():
     # get_namespace works
     
     tables = dmask.steps_to_tables(steps = [
-        QueryStep('1', 'FROM Student', [], 'Student',
-            executable_sql="SELECT * FROM Student",
-            namespace=[("Student", ["sid", "firstName", "email", "cgpa"])]),
+        QueryStep('1', 'FROM Offering o1', [], 'o1', # t_name = 'o1'
+            executable_sql="SELECT * FROM Offering o1",
+            namespace=[("o1", ["oid", "dept", "cNum", "instructor"])]),
 
-        QueryStep('2', 'WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)', ['Student'], '2',
-            executable_sql="SELECT * FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)"
-            ),
+        QueryStep('2', 'WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
+            ['o1'], '2',
+            executable_sql="SELECT * FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)"
+        ),
 
-        QueryStep('3', 'SELECT sid, firstName', ['2'], '3',
-            executable_sql="SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa FROM Student WHERE sid=4)",
-            namespace=[("Student", ["sid", "firstName"])])
+        QueryStep('3', 'SELECT instructor', ['2'], '3',
+            executable_sql="SELECT instructor FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)",
+            namespace=[("o1", ["instructor"])])
         ])
     
     return tables
