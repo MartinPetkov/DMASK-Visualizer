@@ -29,11 +29,31 @@ if __name__ == '__main__':
     #ast = DESIRED_ASTS['simple_query']
     #pprint(sql_ast_to_steps(ast, schema))
 
-    from_test = [ 'FROM', [
-                            ['Student'],
-                            'NATURAL JOIN', ['Took'],
-                            'NATURAL JOIN', ['Course']
-                          ]
-                ]
-    from_steps = parse_from(from_test)
+
+    # The simple_natural_join_query test case
+    #from_test_case = [ 'FROM', [['Student'], 'NATURAL JOIN', ['Took'], 'NATURAL JOIN', ['Course']]]
+
+    # The simple_query test case
+    #from_test_case = [ 'FROM', [['Student']] ]
+
+    # A simple rename test case
+    #from_test_case = [ 'FROM', [['Student','AS','Gooby']] ]
+
+    # The simple_subquery test case
+    from_test_case = ['FROM',
+                        [
+                            [
+                                [
+                                    [ 'SELECT', [['oid'], ['dept']] ],
+                                    [ 'FROM', [['Offering']] ]
+                                ]
+                                , 'AS'
+                                , 'LimitedCols'
+                            ]
+                        ]
+                    ]
+
+
+    # Run just the FROM test case and print results; __repr__ will ensure they print out in a readable way
+    from_steps = parse_from(from_test_case)
     pprint(from_steps)

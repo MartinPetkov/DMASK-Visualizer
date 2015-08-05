@@ -18,7 +18,7 @@ class QueryStep:
         self.sql_chunk = sql_chunk
         self.input_tables = input_tables
         self.result_table = result_table
-        self.executable_sql = executable_sql
+        self.executable_sql = executable_sql + ';'
         self.namespace = namespace
 
     def __repr__(self):
