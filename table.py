@@ -18,6 +18,9 @@ class Table:
         self.tuples = tuples
         self.reasons = reasons
 
+    def __repr__(self):
+        return "[t_name: {0}\nstep: {1}\ncol_names: {2}\ntuples: {3}\nreasons: {4}]\n".format(self.t_name, self.step, self.col_names, self.tuples, self.reasons)
+
     def to_json(self):
         json_dict = {
             "t_name": self.t_name,
@@ -65,6 +68,9 @@ class Reason:
         self.conditions_matched = conditions_matched
         self.subqueries = subqueries
         self.passed_subqueries = passed_subqueries
+
+    def __repr__(self):
+        return "[conditions_matched: {0}\nsubqueries: {1}\npassed_subqueries: {2}]\n".format(self.conditions_matched, self.subqueries, self.passed_subqueries)
 
     def to_json(self):
         json_dict = {

@@ -39,6 +39,9 @@ def flatten(lst):
             result.append(elem)
     return result
 
+def lst_to_str(lst):
+    return ' '.join(flatten(lst))
+
 
 """ Split a string containing multiple SQL queries into a list of single SQL queries """
 def remove_sql_comments(sql_queries):
@@ -127,7 +130,7 @@ def parse_sql_query(ast, parent_number=''):
     if parent_number:
         current_step_number = parent_number
 
-    sql_chunk = ' '.join(flatten(ast))
+    sql_chunk = lst_to_str(ast)
     input_tables = []
     result_table = current_step_number
     executable_sql = sql_chunk + ';'
@@ -156,7 +159,7 @@ def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
     current_step_number = parent_number + step_number
     prev_step_number = parent_number + str(int(step_number)- 1)
 
-    sql_chunk = ' '.join(flatten(ast_node))
+    sql_chunk = lst_to_str(ast_node)
     prev_chunk = prev_steps[-1].executable_sql
     executable_sql = prev_chunk[:-1] + " " + sql_chunk + ';'
 
@@ -182,9 +185,8 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         return
 
     # Create the first step
-    local_step_number = 1
-    current_step_number = step_number + str(local_step_number)
-    sql_chunk = ' '.join(flatten(ast_node))
+    current_step_number = step_number + ('.' if step_number else '') + '1'
+    sql_chunk = lst_to_str(ast_node)
     input_tables = []
     # Either going to be a combined intermediate table, or just the one table being selected if there is only one
     result_table = args[0][0] if (len(args) == 1 and len(args[0]) == 1) else current_step_number
@@ -199,35 +201,127 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     if (len(args) == 1 and len(args[0]) == 1):
         return
 
-    # TODO: Create and add the remaining substeps, if any
+
+    local_step_number = 1
+    substep_number = current_step_number + '.' + str(local_step_number)
+
+    # Create the first substep
+    sql_chunk = lst_to_str(args[0]);
+    combine_sql_chunk = sql_chunk
+    executable_sql = "SELECT * FROM " + sql_chunk
+    combine_executable_sql = executable_sql
+    output_table_name = extract_from_arg_table_name(args[0])
+    last_from_table = output_table_name
+
+    if(len(args[0]) == 3 and args[0][2] != "ON" and isinstance(args[0][0], list)):
+        # The first step is a rename of a subquery
+        subquery = args[0][0]
+
+        # Create the top step
+        top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
+        top_step_executable_sql = lst_to_str(subquery)
+        substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql, namespace)
+        steps.append(substep)
+        last_from_table = substep_number
+
+        # Gather the subquery steps
+        steps.append(parse_sql_query(subquery, substep_number))
+
+        # Advance to the next step on this level
+        local_step_number += 1
+        substep_number = current_step_number + '.' + str(local_step_number)
+
+        # Add the separate rename step
+        rename_sql_chunk = ' '.join(args[0][1:])
+        rename_new_name = args[0][2] if len(args) > 1 else current_step_number
+        rename_executable_sql = "SELECT * FROM " + top_step_sql_chunk + ' ' + rename_sql_chunk
+        substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, namespace)
+        steps.append(substep)
+
+        last_from_table = rename_new_name
+
+    else:
+        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, namespace)
+        steps.append(substep)
+
+
+    # Create and add the remaining substeps
     i = 1
     while i+1 < len(args):
         from_connector = args[i]
         from_arg = args[i+1]
         local_step_number += 1
-        current_step_number = step_number + str(local_step_number)
+        substep_number = current_step_number + '.' + str(local_step_number)
 
-        if len(from_arg) == 1:
-            # Simple table select
-            # TODO: Handle case
-            pass
+        if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and isinstance(from_arg[0], list):
+            # Case of a subquery being renamed
+            subquery = from_arg[0]
+
+            # Create the top step
+            top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
+            top_step_executable_sql = lst_to_str(subquery)
+            substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql, namespace)
+            steps.append(substep)
+            last_from_table = substep_number
+
+            # Gather the subquery steps
+            steps.append(parse_sql_query(subquery, substep_number))
+
+            # Advance to the next step on this level
+            local_step_number += 1
+            substep_number = current_step_number + '.' + str(local_step_number)
+
+            # Add the separate rename step
+            rename_sql_chunk = ' '.join(from_arg[1:])
+            rename_new_name = from_arg[2]
+            rename_executable_sql = "SELECT * FROM " + top_step_sql_chunk + ' ' + rename_sql_chunk
+            substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, namespace)
+            steps.append(substep)
+
+            last_from_table = rename_new_name
+            local_step_number += 1
+            substep_number = current_step_number + '.' + str(local_step_number)
 
         else:
-            from_arg_connector = from_arg[1]
-            if from_arg_connector == "ON":
-                # TODO: Handle case
-                reason = from_arg[2]
+            # Simple table select
 
-                pass
-            elif from_arg_connector == "AS" or from_arg_connector == "":
-                # TODO: Handle case
-                new_name = from_arg[2]
+            # Step for collecting the new table
+            sql_chunk = lst_to_str(from_arg);
+            executable_sql = "SELECT * FROM " + sql_chunk
+            output_table_name = extract_from_arg_table_name(from_arg)
+            substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, namespace)
+            steps.append(substep)
 
-                pass
+            local_step_number += 1
+            substep_number = current_step_number + '.' + str(local_step_number)
+
+        # Step for joining everything up to this point and this table
+        combine_sql_chunk += ' ' + from_connector + ' ' + lst_to_str(from_arg);
+        combine_executable_sql += ' ' + combine_sql_chunk
+        new_joined_table = output_table_name
+        output_table_name = substep_number if (i+2) != len(args) else current_step_number
+
+        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, namespace)
+        steps.append(substep)
+
+        last_from_table = output_table_name
 
         i += 2 # Going by twos, collecting the connector and the next table
 
     return steps
+
+def extract_from_arg_table_name(from_arg):
+    if len(from_arg) == 1:
+        return from_arg[0]
+    elif len(from_arg) == 3:
+        if from_arg[1] == 'ON':
+            return from_arg[0]
+        else:
+            # If it's a renamed query or table
+            return from_arg[2]
+
+    # Not correctly parsable
+    return ''
 
 
 def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
@@ -302,11 +396,11 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Check if selecting DISTINCT
     if len(ast_node) > 2:
-        sql_chunk = 'SELECT ' + ' '.join(flatten(ast_node[-1]))
+        sql_chunk = 'SELECT ' + lst_to_str(ast_node[-1])
         executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1] + ';'
     else:
 
-        sql_chunk = ' '.join(flatten(ast_node))
+        sql_chunk = lst_to_str(ast_node)
         executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1] + ';'
 
     select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
@@ -352,7 +446,7 @@ def parse_union(ast_node, step_number='', parent_number=''):
 
     # UNION step
     current_step_number = step_number
-    sql_chunk = ' '.join(flatten(ast_node))
+    sql_chunk = lst_to_str(ast_node)
 
     input_num1 = parent_number + '.1'
     input_num2 = parent_number + '.2'
@@ -429,7 +523,7 @@ def parse_create_view(ast_node, step_number=''):
         return
 
     current_step_number = '1'
-    sql_chunk = ' '.join(flatten(ast_node))
+    sql_chunk = lst_to_str(ast_node)
 
     input_tables = []
     result_table = current_step_number

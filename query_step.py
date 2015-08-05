@@ -21,6 +21,9 @@ class QueryStep:
         self.executable_sql = executable_sql
         self.namespace = namespace
 
+    def __repr__(self):
+        return "[step_number: {0}\nsql_chunk: {1}\ninput_tables: {2}\nresult_table: {3}\nexecutable_sql: {4}\nnamespace: {5}]\n".format(self.step_number, self.sql_chunk, self.input_tables, self.result_table, self.executable_sql, self.namespace)
+
     def to_json(self):
         json_dict = {
             "step_number": self.step_number,
