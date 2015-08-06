@@ -1099,12 +1099,12 @@ def generate_complex_subquery_in_where_repeated():
     '     WHERE o2.oid <> o1.oid)'
 
     steps = [
-        QueryStep('1', 'FROM Offering o1', [], 'o1', # t_name = 'o1'
+        QueryStep('1', 'FROM Offering o1', [], '1', 
             executable_sql="SELECT * FROM Offering o1",
             namespace=[("o1", ["oid", "dept", "cNum", "instructor"])]),
 
         QueryStep('2', 'WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
-            ['o1'], '2',
+            ['1'], '2',
             executable_sql="SELECT * FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)"
         ),
 
@@ -1117,7 +1117,7 @@ def generate_complex_subquery_in_where_repeated():
 
         '1': Table(t_name='1',
                     step='1',
-                    col_names=["oid, dept, cNum, instructor"],
+                    col_names=["oid", "dept", "cNum", "instructor"],
                     tuples=[
                         ('1', 'csc', '209', 'K. Reid'),
                         ('2', 'csc', '343', 'D. Horton'),
@@ -1332,7 +1332,7 @@ def generate_complex_subquery_in_where_repeated():
 
         '2': Table(t_name='2',
                     step='2',
-                    col_names=["oid, dept, cNum, instructor"],
+                    col_names=["oid", "dept", "cNum", "instructor"],
                     tuples=[
                         ('1', 'csc', '209', 'K. Reid'),
                         ('2', 'csc', '343', 'D. Horton'),
