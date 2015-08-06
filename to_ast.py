@@ -132,8 +132,8 @@ columnRval      =   (realNum | intNum | quotedString | posParam | aggregatefns |
 tokenObs        =   Group(
                     (Group(columnRval + (COLOPS) + columnRval) | columnRval)
                     + Optional((COLOPS) + columnRval)
-                    + Optional(AS) + Optional(token)
-                    | (subquery + Optional(AS) + Optional(token))
+                    + Optional((AS | space) + token)
+                    | (subquery + Optional((AS| space) + token))
                     )
 
 tokenList       =   delimitedList(tokenObs)
@@ -150,16 +150,22 @@ selectClause    =   Group(selectColumn)
 selectCalculator=   Group(SELECT + 
                     (Group( 
                         Group((intNum | realNum) + COLOPS + (intNum | realNum) 
-                            + Optional(AS) + Optional(token)))))
+                            + Optional((AS | space) + token)))))
 
 # ========== FROM CLAUSE =========== 
 
 # Grammar for JOINS
+
 joins           =   (Literal(',')
-                    | JOIN_
-                    | Combine(( NATURAL_ 
-                        | INNER_ 
-                        | CROSS_ 
+                    | Combine((NATURAL_
+                        | CROSS_) 
+                        + " " + JOIN_
+                        )
+                    )
+
+joinons           = (JOIN_
+                    | Combine((
+                        INNER_ 
                         | Combine(LEFT_ + " " + OUTER_) 
                         | Combine(RIGHT_ + " " + OUTER_)
                         | Combine(FULL_ + " " + OUTER_)
@@ -171,16 +177,22 @@ joins           =   (Literal(',')
                     )
 
 # tableBlock nested within joinBlock, includes renames
-tableBlock      =   (Group((token | subquery) 
-                    + Optional((AS | space) + token)
+tableBlock      =   Group(
+                        (token | subquery) 
+                        + Optional(( AS | space) + token)
+                    )
+                    
+
+tableOnBlock    =   Group(
+                        tableBlock + (Optional(ON + Group(token + BINOP + columnRval))
+                        | Optional(USING + Group(token))
                     ))
 
-tableOnBlock    =   Group(tableBlock 
-                    + (Optional(ON + Group(token + BINOP + columnRval))
-                    | Optional(USING + Group(token))
-                    ))
-
-fromClause      =   (tableOnBlock + ZeroOrMore(joins + tableOnBlock))
+fromClause      =   (tableBlock 
+                    + ZeroOrMore(
+                        (joins + tableBlock) 
+                        | (joinons + tableOnBlock))
+                    )
 
 # ========= WHERE CLAUSE ===========
 
