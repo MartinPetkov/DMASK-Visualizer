@@ -19,9 +19,12 @@ SQL_EXEC_ORDER = {
     "HAVING": 4,
     "SELECT": 5,
     "DISTINCT": 6,
-    "ORDER BY": 7,
-    "LIMIT": 8,
-    "OFFSET": 9
+    "UNION": 7,
+    "INTERSECT": 7,
+    "EXCEPT": 7,
+    "ORDER BY": 8,
+    "LIMIT": 9,
+    "OFFSET": 10
 }
 
 SET_OPERATIONS = ['UNION', 'INTERSECT', 'EXCEPT']
@@ -41,6 +44,14 @@ def flatten(lst):
         else:
             result.append(elem)
     return result
+
+def make_column(column_list):
+
+    columns = ''
+    for item in column_list:
+        columns += ' '.join(flatten(item)) + ', '
+
+    return columns[:-2]
 
 def lst_to_str(lst):
     return ' '.join(flatten(lst))
@@ -403,7 +414,7 @@ def parse_having(ast_node, step_number='', parent_number='', prev_steps=[]):
     steps.append(having_step)
 
     return steps
-
+    
 def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO:
     # - namespace
@@ -427,13 +438,9 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     prev_step = prev_steps[-1]
 
     # Check if selecting DISTINCT
-    if len(ast_node) > 2:
-        sql_chunk = 'SELECT ' + lst_to_str(ast_node[-1])
-        executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
-    else:
 
-        sql_chunk = lst_to_str(ast_node)
-        executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
+    sql_chunk = 'SELECT ' + make_column(ast_node[-1])
+    executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
 
     select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(select_step)
@@ -465,7 +472,7 @@ def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_union(ast_node, step_number='', parent_number=''):
+def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -474,12 +481,17 @@ def parse_union(ast_node, step_number='', parent_number=''):
         print("Not enough arguments for UNION clause: <query1> UNION <query2>")
         return
 
+    if parent_number and parent_number[-1] != '.':
+        parent_number += '.'
+
+    print(ast_node)
     # UNION step
     current_step_number = step_number
-    sql_chunk = lst_to_str(ast_node)
+    sql_reorder = [ast_node[1], ast_node[0], ast_node[2]]
+    sql_chunk = lst_to_str(sql_reorder)
 
-    input_num1 = parent_number + '.1'
-    input_num2 = parent_number + '.2'
+    input_num1 = parent_number + '1'
+    input_num2 = parent_number + '2'
     input_tables = [input_num1, input_num2]
     result_table = current_step_number
     executable_sql = sql_chunk
@@ -487,7 +499,7 @@ def parse_union(ast_node, step_number='', parent_number=''):
     union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
     steps.append(union_step)
 
-    query1 = parse_sql_query(ast_node[0], input_num1)
+    query1 = parse_sql_query(ast_node[1], input_num1)
     query2 = parse_sql_query(ast_node[2], input_num2)
 
     steps += query1
