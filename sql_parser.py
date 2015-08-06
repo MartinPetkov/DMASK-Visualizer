@@ -54,7 +54,10 @@ def make_column(column_list):
     return columns[:-2]
 
 def lst_to_str(lst):
-    return ' '.join(flatten(lst))
+    return ' '.join(clean_lst(flatten(lst)))
+
+def clean_lst(lst):
+    return [e for e in lst if e != ''] # Remove nonexistence elements
 
 
 """ Split a string containing multiple SQL queries into a list of single SQL queries """
@@ -178,7 +181,7 @@ def parse_sql_query(ast, parent_number=''):
     executable_sql = sql_chunk
 
     query = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
-    if parent_number: 
+    if parent_number:
         steps.append(query)
 
     ast = reorder_sql_statements(ast)
@@ -360,7 +363,10 @@ def extract_from_arg_table_name(from_arg):
         return from_arg[0]
     elif len(from_arg) == 3:
         if from_arg[1] == 'ON':
-            return from_arg[0]
+            if len(from_arg[0]) == 3:
+                return from_arg[0][0] + ' ' + from_arg[0][2]
+            else:
+                return from_arg[0][0]
         else:
             # If it's a renamed query or table
             return from_arg[2]

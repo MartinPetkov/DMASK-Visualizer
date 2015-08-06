@@ -469,7 +469,7 @@ def generate_simple_condition_join_query():
             [ 'SELECT', [['sid'], ['grade'], ['instructor']] ],
             [ 'FROM', [
                         ['Took'],
-                        'LEFT JOIN', ['Offering', 'ON', ['Took.ofid','=','Offering.ofid']]
+                        'LEFT JOIN', [['Offering'], 'ON', ['Took.ofid','=','Offering.ofid']]
                       ]
             ],
         ]
@@ -1099,7 +1099,7 @@ def generate_complex_subquery_in_where_repeated():
     '     WHERE o2.oid <> o1.oid)'
 
     steps = [
-        QueryStep('1', 'FROM Offering o1', [], '1', 
+        QueryStep('1', 'FROM Offering o1', [], '1',
             executable_sql="SELECT * FROM Offering o1",
             namespace=[("o1", ["oid", "dept", "cNum", "instructor"])]),
 
