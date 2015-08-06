@@ -155,13 +155,13 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['grade']]],
-                    [ 'FROM',   [['Took', 'T'], 'JOIN', ['Offering']]]
+                    [ 'FROM',   [['Took', 'T'], 'CROSS JOIN', ['Offering']]]
                 ]
         '''
         print('TEST RENAME TABLE WITHOUT AS')
         print('A query with a table rename without keyword AS')
-        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'T'], 'JOIN', ['Offering']]]]"
-        output = ast('select sid, grade from Took T JOIN Offering')
+        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'T'], 'CROSS JOIN', ['Offering']]]]"
+        output = ast('select sid, grade from Took T CROSS JOIN Offering')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
@@ -173,13 +173,13 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['grade']] ],
-                    [ 'FROM',   [['Took', 'AS', 'T'], 'JOIN', ['Offering'] ] ]
+                    [ 'FROM',   [['Took', 'AS', 'T'], 'CROSS JOIN', ['Offering'] ] ]
                 ]
         '''
         print('TEST RENAME TABLE WITH AS')
         print('A query with a table rename with keyword AS')
-        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'AS', 'T'], 'JOIN', ['Offering']]]]"
-        output = ast('select sid, grade from Took as T JOIN Offering')
+        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'AS', 'T'], 'CROSS JOIN', ['Offering']]]]"
+        output = ast('select sid, grade from Took as T CROSS JOIN Offering')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
@@ -209,13 +209,13 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']] ],
-                    [ 'FROM',   [ ['Student'], 'JOIN', ['Took'] ] ]
+                    [ 'FROM',   [ ['Student'], 'CROSS JOIN', ['Took'] ] ]
                 ]
         '''
         print('TEST JOIN:')
         print('A query with a cross product in it, using keyword JOIN.')
-        expected = "[['SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']]], ['FROM', [['Student'], 'JOIN', ['Took']]]]"
-        output = ast('select student.sid, student.email, took.grade from Student join Took')
+        expected = "[['SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']]], ['FROM', [['Student'], 'CROSS JOIN', ['Took']]]]"
+        output = ast('select student.sid, student.email, took.grade from Student cross join Took')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
