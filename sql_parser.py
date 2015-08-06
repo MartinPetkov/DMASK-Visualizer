@@ -110,12 +110,11 @@ def reorder_sql_statements(sql_statements):
     '''
 
     # If selected columns DISTINCT
-    if len(sql_statements[0]) > 2:
+    if len(sql_statements[0]) > 2 and sql_statements[1] == 'DISTINCT':
         sql_statements[0].pop(1)
         sql_statements.append(['DISTINCT'])
 
     # TODO: handle union and create view
-
     return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0].upper()])
 
 last_table = ''
@@ -123,7 +122,7 @@ last_executable_sql = ''
 namespace = ''
 
 """ Convert a single SQL AST into a list of QueryStep objects """
-def sql_ast_to_steps(ast, schema):
+def sql_ast_to_steps(ast, schema=''):
 
     steps = []
 
@@ -132,12 +131,9 @@ def sql_ast_to_steps(ast, schema):
         return
 
     first_ast_node = ast[0]
-    first_statement = first_ast_node[0].upper()
-    second_statement = first_ast_node[1].upper()
-    if first_statement == 'CREATE VIEW':
+    if isinstance(first_ast_node, str) and first_ast_node.upper() == 'CREATE VIEW':
         steps = parse_create_view(ast)
-    elif second_statement in SET_OPERATIONS:
-        steps = parse_set(first_ast_node)
+
     else:
         steps = parse_sql_query(ast)
 
@@ -155,6 +151,8 @@ def parse_sql_query(ast, parent_number=''):
         "SELECT": parse_select,
         "DISTINCT": parse_distinct,
         "UNION": parse_set,
+        "INTERSECT": parse_set,
+        "EXCEPT": parse_set,
         "ORDER BY": parse_order_by,
         "LIMIT": parse_limit,
         "OFFSET": parse_offset

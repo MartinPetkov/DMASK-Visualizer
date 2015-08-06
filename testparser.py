@@ -52,35 +52,35 @@ if __name__ == "__main__":
 	asteps = parse_sql_query(a)
 	printout(asteps)
 
-	'''
 
 
 	a = ast('select distinct name, max(sid), (select max(grade) from Took) themax from Took where exists (select sid from Took) group by name having max(sid) > 0')
-	asteps = parse_sql_query(a)
+	asteps = sql_ast_to_steps(a)
 	printout(asteps)
 
 
 	x = ast('select distinct sid, max(grade) from Student where sid = 0 group by sid having max(grade) > 40 order by firstname limit 5;')
-	z = parse_sql_query(x)
+	z = sql_ast_to_steps(x)
 	printout(z)
 	
 	a = ast('(select sid from Student) union (select sid from Took) order by firstName')
-	b = parse_sql_query(a)
+	b = sql_ast_to_steps(a)
 	printout(b)
 
 	w = ast('select sid from (select sid from Took) T')
-	wsteps = parse_sql_query(w)
+	wsteps = sql_ast_to_steps(w)
 	printout(wsteps)
 
-	'''
+	
 	b = ast('(select sid from Student) INTERSECT (select sid from Took)')
-	d = parse_union(b[0], '1', '1')
+	d = sql_ast_to_steps(b)
 
 	printout(d)
+	'''
 
 	c =  ast('create view name (select * from Took)')
-	e = parse_create_view(c, '1')
+	print(c)
+	e = sql_ast_to_steps(c)
 	printout(e)
 	
 
-	'''
