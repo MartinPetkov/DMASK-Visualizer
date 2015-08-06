@@ -155,12 +155,12 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['grade']]],
-                    [ 'FROM',   [['Took', 'T'], 'CROSS JOIN', ['Offering']]]
+                    [ 'FROM',   [['Took', '', 'T'], 'CROSS JOIN', ['Offering']]]
                 ]
         '''
         print('TEST RENAME TABLE WITHOUT AS')
         print('A query with a table rename without keyword AS')
-        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'T'], 'CROSS JOIN', ['Offering']]]]"
+        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', '', 'T'], 'CROSS JOIN', ['Offering']]]]"
         output = ast('select sid, grade from Took T CROSS JOIN Offering')
         print(expected)
         print(output)
@@ -470,13 +470,13 @@ class TestSQL(unittest.TestCase):
                         [
                             [ 'SELECT', 'DISTINCT', [['instructor']]], 
                             [ 'FROM',   [['Course']]]
-                        ], 'H']]
+                        ], '', 'H']]
                                 ]
             ]
         '''
         print('TEST SUBQUERY IN FROM CLAUSE:')
         print('A query with one subquery in the FROM clause')
-        expected = "[['SELECT', [['sid']]], ['FROM', [[[['SELECT', 'DISTINCT', [['instructor']]], ['FROM', [['Course']]]], 'H']]]]"
+        expected = "[['SELECT', [['sid']]], ['FROM', [[[['SELECT', 'DISTINCT', [['instructor']]], ['FROM', [['Course']]]], '', 'H']]]]"
         output = ast('select sid from (select distinct instructor from Course) H')
         print(expected)
         print(output)
@@ -495,7 +495,7 @@ class TestSQL(unittest.TestCase):
                                     ['FROM',    [['Offering']] ],
                                     ['WHERE',   [[['instructor', '=', '\'Horton\'']]]]
                                     ]
-                                , 'H']], 
+                                , '', 'H']], 
                     ['WHERE', [['Took.oid', '=', 'H.oid']]]
                 ]
 
@@ -503,7 +503,7 @@ class TestSQL(unittest.TestCase):
 
         print('TEST SUBQUERY IN FROM CLAUSE (COMPLEX): ')
         print('A query with one subquery in the FROM')
-        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [['Took'], ',', [[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']]], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
+        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [['Took'], ',', [[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], '', 'H']]], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
         output = ast('select sid, dept || cnum course, grade from Took, (select * from Offering where instructor=\'Horton\') H where Took.oid = H.oid;')
         print(expected)
         print(output)

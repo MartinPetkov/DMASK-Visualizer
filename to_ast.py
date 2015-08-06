@@ -1,6 +1,6 @@
 from pyparsing import (ParseResults, Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
     Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, commaSeparatedList,
-    opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr)
+    opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr, Empty, replaceWith)
 
 # ============== Define SQL KEYWORDS ========================
 SELECT          =   KEYWORD("SELECT", caseless=True)
@@ -63,6 +63,7 @@ query           =   Forward()
 createView      =   Forward()
 setOp           =   Forward()
 whereClause     =   Forward()
+whereCondition  =   Forward()
 
 # =========== PRECEDENCE FUNCTION ============
 
@@ -109,6 +110,8 @@ intNum          =   Combine( Optional(arithSign)
 
 posParam        =   Combine('$' + (realNum | intNum))
 
+space           =   Empty().addParseAction(replaceWith(''))
+
 # ============= Define Tokens ===============================
 ident           =   (~KEYWORDS 
                     + (Word(alphas, alphanums + "_$")
@@ -154,7 +157,7 @@ selectCalculator=   Group(SELECT +
 # Grammar for JOINS
 joins           =   (Literal(',')
                     | JOIN_
-                    | Combine(Optional( NATURAL_ 
+                    | Combine(( NATURAL_ 
                         | INNER_ 
                         | CROSS_ 
                         | Combine(LEFT_ + " " + OUTER_) 
@@ -169,7 +172,7 @@ joins           =   (Literal(',')
 
 # tableBlock nested within joinBlock, includes renames
 tableBlock      =   (Group((token | subquery) 
-                    + Optional(AS) + Optional(token)
+                    + Optional((AS | space) + token)
                     ))
 
 tableOnBlock    =   (tableBlock 
@@ -181,7 +184,7 @@ fromClause      =   (tableOnBlock + ZeroOrMore(joins + tableOnBlock))
 
 # ========= WHERE CLAUSE ===========
 
-whereCondition  =   Group(
+whereCondition  <<   Group(
                     # Optional(Suppress("(")) + 
                     (
                         (token + BINOP + ( 
