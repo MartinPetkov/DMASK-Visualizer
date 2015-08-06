@@ -321,7 +321,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             # Simple table select
 
             # Step for collecting the new table
-            sql_chunk = lst_to_str(from_arg)
+            sql_chunk = extract_from_arg_table_name(from_arg)
             executable_sql = "SELECT * FROM " + sql_chunk
             output_table_name = extract_from_arg_table_name(from_arg)
             substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, namespace)

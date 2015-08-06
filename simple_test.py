@@ -42,34 +42,12 @@ if __name__ == '__main__':
     # The simple_subquery test case
     #from_test_case = ['FROM',[[[[ 'SELECT', [['oid'], ['dept']] ],[ 'FROM', [['Offering']] ]], 'AS', 'LimitedCols']]]
 
+    # The simple_natural_join_query test case
+    from_test_case = [ 'FROM', [['Took'],'LEFT JOIN', ['Offering', 'ON', ['Took.ofid','=','Offering.ofid']]]]
 
     # Run just the FROM test case and print results; __repr__ will ensure they print out in a readable way
-    #from_steps = parse_from(from_test_case)
-    #pprint(from_steps)
+    from_steps = parse_from(from_test_case)
+    pprint(from_steps)
 
-    reorder_test =  [
-                        [
-                            [
-                                [
-                                    ['select', ['sid']],
-                                    ['from', 'Took']
-                                ],
-                                'union',
-
-                                [
-                                    ['select', ['sid']],
-                                    ['from', ['Student']]
-                                ]
-                            ],
-
-                            'union',
-
-                            [
-                                ['select', ['*']],
-                                ['from', ['Course']]
-                            ]
-                        ],
-                        ['ORDER BY', ['sid']],
-                        ['LIMIT', '100']
-                    ]
-    pprint(reorder_sql_statements(reorder_test))
+    #reorder_test =  [[[[['select', ['sid']],['from', 'Took']],'union',[['select', ['sid']],['from', ['Student']]]],'union',[['select', ['*']],['from', ['Course']]]],['ORDER BY', ['sid']],['LIMIT', '100']]
+    #pprint(reorder_sql_statements(reorder_test))

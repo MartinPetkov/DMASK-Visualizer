@@ -469,7 +469,7 @@ def generate_simple_condition_join_query():
             [ 'SELECT', [['sid'], ['grade'], ['instructor']] ],
             [ 'FROM', [
                         ['Took'],
-                        'LEFT JOIN', [['Offering'], 'ON', ['Took.ofid','=','Offering.ofid']]
+                        'LEFT JOIN', ['Offering', 'ON', ['Took.ofid','=','Offering.ofid']]
                       ]
             ],
         ]
