@@ -29,7 +29,8 @@ LEGEND:
 
 
 # For SELECT
-<select_arg>        = ['col_name']
+<select_arg>        = ["*"]
+                        |   ['col_name']
                         |   [ ('col_name'
                             | <col_equation>
                             | <aggregate_fn>
