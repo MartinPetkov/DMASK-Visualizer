@@ -175,7 +175,7 @@ tableBlock      =   (Group((token | subquery)
                     + Optional((AS | space) + token)
                     ))
 
-tableOnBlock    =   (tableBlock 
+tableOnBlock    =   Group(tableBlock 
                     + (Optional(ON + Group(token + BINOP + columnRval))
                     | Optional(USING + Group(token))
                     ))
