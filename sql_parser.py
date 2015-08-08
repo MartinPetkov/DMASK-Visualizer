@@ -128,8 +128,9 @@ last_executable_sql = ''
 namespace = []
 schema = {}
 """ Convert a single SQL AST into a list of QueryStep objects """
-def sql_ast_to_steps(ast, current_schema=''):
+def sql_ast_to_steps(ast, current_schema={}):
 
+    global schema
     schema = current_schema
 
     steps = []
@@ -214,7 +215,9 @@ def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
     prev_chunk = prev_steps[-1].executable_sql
     executable_sql = prev_chunk[:-1] + " " + sql_chunk
 
-    input_tables = [str(prev_step_number)]
+    # REPLACED THE FOLLOWING LINE:
+    # input_tables = [str(prev_step_number)]
+    input_tables = [prev_steps[-1].result_table]
     result_table = current_step_number
 
     step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
@@ -497,7 +500,10 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     current_step_number = parent_number + step_number
     prev_step_number = parent_number + str(int(step_number) - 1)
-    input_tables = [str(prev_step_number)]
+    
+    # REPLACED THE FOLLOWING LINE:
+    # input_tables = [str(prev_step_number)]
+    input_tables = [prev_steps[-1].result_table]
     result_table = current_step_number
 
     prev_step = prev_steps[-1]

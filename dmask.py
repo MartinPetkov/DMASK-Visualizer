@@ -121,16 +121,8 @@ class DMASK:
                     for s in steps:
                         if s.step_number == tables[step.input_tables[0]].step:
                             input_step = s
-<<<<<<< HEAD
-                    
                     tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
                     set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
-                
-=======
-
-                    tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
-
->>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
                 t = Table(name, step.step_number, columns, tuples, {})
                 tables[str(step.result_table)] = t
         return tables
@@ -194,13 +186,8 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
     input_query = input_step.executable_sql
     input_table = tables[input_step.result_table]
     input_tuples = input_table.tuples
-<<<<<<< HEAD
     reasons = {0:Reason([], {}, [])}
     
-=======
-    reasons = {0:Reason([])}
-
->>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
     # Get the namespace of the entire query (only really need the FROM clause
     # of the original query)
     ast = sql_parser.sql_to_ast(input_query).asList()
@@ -247,10 +234,6 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
 
         # Go through each row and add a reason
         for i in range(0, len(input_tuples)):
-<<<<<<< HEAD
-=======
-
->>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
             # Substitute and execute the correlated subquery
             if correlated:
                 # Get the items to substitute
@@ -284,12 +267,8 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 if i+1 in reasons:
                     reasons[i+1].conditions_matched.append(condition)
                 else:
-<<<<<<< HEAD
                     reasons[i+1] = Reason([condition], {}, [])
-=======
-                    reasons[i+1] = Reason([condition])
->>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
-
+                    
                 # If there was a correlated subquery, add the parsed query and, if the condition
                 # passed, add it to the list of passed subqueries
                 if correlated:
@@ -383,17 +362,14 @@ def get_namespace(subquery, dmask):
     tables = []
 
     # Get all of the tables brought in (ex. FROM Took t, Student -> [(Took, t), (Student, Student)])
+    print(from_clause)
     for item in from_clause:
         if isinstance(item, list):
-            if not on_using:
-                # If it's a list, then the elements inside is a table brought in
-                # (except if preceeded by ON/USING)
-                name = item[0]
-                alias = item[-1]
-                tables.append((name, alias))
-            on_using = False
-        elif item.lower() in ["on", "using"]:
-                on_using = True
+            if 'ON' in item or 'USING' in item:
+                item = item[0]
+            name = item[0]
+            alias = item[-1]
+            tables.append((name, alias))
 
     main_table = " ".join(flatten_list(from_clause))
 
@@ -522,7 +498,12 @@ import psycopg2
 
 def visualize_query(sql):
     conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'"
-    dmask = DMASK(conn_string, [])
+    schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
+              "Course": ["dept", "cNum", "name"],
+              "Offering": ["oid" ,"dept", "cNum", "instructor"],
+              "Took": ["sid", "ofid", "grade"]
+             }
+    dmask = DMASK(conn_string, schema)
     dmask.set_connection("sophiadmask")
 
     # get_namespace works
