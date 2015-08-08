@@ -48,7 +48,7 @@ def flatten(lst):
 
 def make_column(column_list):
     if column_list == ["*"]:
-        return column_list
+        return column_list[0]
 
     columns = ''
     for item in column_list:
@@ -505,7 +505,6 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     prev_step = prev_steps[-1]
 
     # Check if selecting DISTINCT
-    print(prev_steps)
     column_list = ast_node[-1]
     column_string = make_column(column_list)
     sql_chunk = 'SELECT ' + column_string
