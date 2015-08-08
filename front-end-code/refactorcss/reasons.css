@@ -23,3 +23,11 @@ p {
     padding: 0px;
     margin:0px;
 }
+
+.passed {
+    color: green;
+}
+
+.failed {
+    color: red;
+}

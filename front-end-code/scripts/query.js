@@ -10,7 +10,7 @@ function Query(steps, tables, query_text, query_number){
 }
 
 Query.prototype.toTOC = function(){
-    var querytext = "<tr><td class='query'>" + this.query_text + ";";
+    var querytext = "<tr><td class='query'>" + this.query_text;
     var steps_header = "<table class='nested'>";
     var steps_footer = "</table></td></tr>";
 

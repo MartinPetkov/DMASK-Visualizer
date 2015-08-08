@@ -59,7 +59,6 @@ class DMASK:
             ast = sql_parser.sql_to_ast(query)
             steps = sql_parser.sql_ast_to_steps(ast, self.base_tables)
             tables = self.steps_to_tables(steps)
-
             parsed_query = ParsedQuery(steps, tables, query)
             json_queries.append(parsed_query.to_json())
             # TODO: If the query was a CREATE VIEW, add that table to the base tables for all subsequent steps
@@ -122,13 +121,18 @@ class DMASK:
                     for s in steps:
                         if s.step_number == tables[step.input_tables[0]].step:
                             input_step = s
-                            
+                    
                     tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
+                    set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
                 
                 t = Table(name, step.step_number, columns, tuples, {})
                 tables[str(step.result_table)] = t
         return tables
-
+    
+def set_passed(reasons, input_tuples, results):
+    for i in range(1, len(input_tuples) + 1):
+        if i in reasons and input_tuples[i - 1] not in results:
+            reasons[i].passed = False
 
 def get_all_conditions(sql_chunk):
     # Get the AST for the WHERE clause
@@ -184,7 +188,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
     input_query = input_step.executable_sql
     input_table = tables[input_step.result_table]
     input_tuples = input_table.tuples
-    reasons = {0:Reason([])}
+    reasons = {0:Reason([], {}, [])}
     
     # Get the namespace of the entire query (only really need the FROM clause
     # of the original query)
@@ -226,13 +230,12 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
             else:
                 # If it's not, execute the subquery and store it in the reasons[0]
                 steps = sql_parser.sql_ast_to_steps(subquery, dmask.base_tables)
-                tables = dmask.steps_to_tables(subquery)
+                tables = dmask.steps_to_tables(steps)
                 parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(subquery)))
                 reasons[0].subqueries[condition] = parsed_query
         
         # Go through each row and add a reason
         for i in range(0, len(input_tuples)):
-            
             # Substitute and execute the correlated subquery
             if correlated:
                 # Get the items to substitute
@@ -241,7 +244,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 for item in correlated:
                     for j in range(len(columns)):
                         if matches_alias(namespace, columns[j], item):
-                            substitutes[item] = tuples[i][j]
+                            substitutes[item] = input_tuples[i][j]
                             break
                     # TODO:
                     # If substitutes[item] does not exist at this point, then
@@ -255,7 +258,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 
                 # Create the parsed query
                 steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.base_tables)
-                tables = dmask.steps_to_tables(substituted_subquery)
+                tables = dmask.steps_to_tables(steps)
                 parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)))
                 
             # If the input tuple is in the returned list of tuples, it passed the condition
@@ -266,16 +269,15 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 if i+1 in reasons:
                     reasons[i+1].conditions_matched.append(condition)
                 else:
-                    reasons[i+1] = Reason([condition])
-                
+                    reasons[i+1] = Reason([condition], {}, [])
+
                 # If there was a correlated subquery, add the parsed query and, if the condition
                 # passed, add it to the list of passed subqueries
                 if correlated:
                     reasons[i+1].subqueries[condition] = parsed_query
                     if kept:
-                        reasons[i+1].passed_subqueries.append(condition)      
+                        reasons[i+1].passed_subqueries.append(condition)
     return reasons
-
 
 def get_correlated_elements(query, dmask):
     # Given an AST representing a query, return a list of elements that do not
@@ -499,26 +501,24 @@ class PreparedQuery:
 # she doesn't want to rewrite this every single time
 import psycopg2
 
-def sophia_test():
+def visualize_query(sql):
     conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'"
     dmask = DMASK(conn_string, [])
     dmask.set_connection("sophiadmask")
     
     # get_namespace works
+    json = dmask.sql_to_json(sql)
+    import os.path
+    f = open("front-end-code/template.html")
+    copy = f.readlines()
+    for i in range(len(copy)):
+        if copy[i].strip() == "<!-- INSERT TEST BELOW -->":
+            copy[i] = "<script>var pq = " + str(json) +"; var parsedquery = [JSON.parse(pq[0])];</script>"
+    output = open("C:/Users/School/Documents/DeMASK/git/front-end-code/results.html", "w")
+    for line in copy:
+        output.write(line)
+    f.close()
+    output.close()
     
-    tables = dmask.steps_to_tables(steps = [
-        QueryStep('1', 'FROM Offering o1', [], 'o1', # t_name = 'o1'
-            executable_sql="SELECT * FROM Offering o1",
-            namespace=[("o1", ["oid", "dept", "cNum", "instructor"])]),
-
-        QueryStep('2', 'WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
-            ['o1'], '2',
-            executable_sql="SELECT * FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)"
-        ),
-
-        QueryStep('3', 'SELECT instructor', ['2'], '3',
-            executable_sql="SELECT instructor FROM Offering o1 WHERE EXISTS (SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)",
-            namespace=[("o1", ["instructor"])])
-        ])
-    
-    return tables
+print("File is located in front-end-code/results.html")
+print("To run: visualize_query('QUERY')")

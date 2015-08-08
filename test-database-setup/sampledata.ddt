@@ -1,0 +1,21 @@
+INSERT INTO Student(sid, firstName, email, cgpa) VALUES ('1', 'Martin', 'martin@mail.com', '3.4');
+INSERT INTO Student(sid, firstName, email, cgpa) VALUES ('2', 'Kathy', 'kathy@mail.com', '4.0');
+INSERT INTO Student(sid, firstName, email, cgpa) VALUES ('3', 'Sophia', 'sophia@mail.com', '1.7');
+INSERT INTO Student(sid, firstName, email, cgpa) VALUES ('4', 'James', 'james@mail.com', '2.8');
+
+INSERT INTO Course(dept, cNum, name) VALUES ('csc', '148', 'Intro to Computer Science');
+INSERT INTO Course(dept, cNum, name) VALUES ('csc', '209', 'Systems Programming');
+INSERT INTO Course(dept, cNum, name) VALUES ('csc', '343', 'Intro to Databases');
+INSERT INTO Course(dept, cNum, name) VALUES ('mat', '137', 'Calculus');
+INSERT INTO Course(dept, cNum, name) VALUES ('ger', '100', 'Intro to German');
+
+INSERT INTO Offering(oid, dept, cNum, instructor) VALUES ('1', 'csc', '209', 'K. Reid');
+INSERT INTO Offering(oid, dept, cNum, instructor) VALUES ('2', 'csc', '343', 'D. Horton');
+INSERT INTO Offering(oid, dept, cNum, instructor) VALUES ('3', 'mat', '137', 'J. Kamnitzer');
+INSERT INTO Offering(oid, dept, cNum, instructor) VALUES ('4', 'ger', '100', 'E. Luzi');
+
+INSERT INTO Took(sid, ofid, grade) VALUES ('1', '2', '87');
+INSERT INTO Took(sid, ofid, grade) VALUES ('1', '4', '73');
+INSERT INTO Took(sid, ofid, grade) VALUES ('2', '2', '92');
+INSERT INTO Took(sid, ofid, grade) VALUES ('3', '1', '80');
+INSERT INTO Took(sid, ofid, grade) VALUES ('4', '1', '60');

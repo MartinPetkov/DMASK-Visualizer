@@ -8,7 +8,7 @@ var current_window;
 
 function loadQueries(queries){
     // Parse the JSON content and load them into the current window's ToC
-    var toc = $("#" + current_window.generateElemID("toc"));
+    var toc = $("#" + current_window.generateElemID("steps"));
     toc.empty();
     var i = 0;
     for (i = 0; i < queries.length; i++){
@@ -42,10 +42,10 @@ function onPageLoad(){
             }
     });
 
-    $(document).on("click", "#stepout", stepOut);
-    $(document).on("click", "#back", stepBack);
-    $(document).on("click", "#next", stepNext);
-    $(document).on("click", "#stepin", stepIn);
+    $(document).on("click", ".stepout", stepOut);
+    $(document).on("click", ".back", stepBack);
+    $(document).on("click", ".next", stepNext);
+    $(document).on("click", ".stepin", stepIn);
 
     // -- 'Reasons' box handler
     $(document).on("click", ".inbox .output-row", function(e){

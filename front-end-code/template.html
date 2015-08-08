@@ -1,0 +1,73 @@
+<head>
+    <link rel="stylesheet" type="text/css" media="screen" href="refactorcss/base.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="refactorcss/display.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="refactorcss/tables.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="refactorcss/navigation.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="refactorcss/features.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="refactorcss/reasons.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="refactorcss/arrows.css">
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    
+    <script src="scripts/parsed_query_display.js"></script>
+    <script src="scripts/table_display.js"></script>
+    <script src="scripts/resize.js"></script>
+    <script src="scripts/collapse.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/reasons.js"></script>
+    <script src="scripts/lines.js"></script>
+    <script src="scripts/testcases/globaltables.js"></script>
+    <!-- INSERT TEST BELOW -->
+    
+    <script src="scripts/window.js"></script>
+    <script src="scripts/query.js"></script>
+    <script src="scripts/step.js"></script>
+    <script src="scripts/table.js"></script>
+    
+    <script src="scripts/loader.js"></script>
+</head>
+<body>
+    <!-- Set up basic template -->
+    <div id="bodybag">
+        <!-- Table of Content -->
+        <div id="leftbar" class="leftbar">
+            <div id="toc" class="toc">
+                <table id="steps" class="steps">
+                </table>
+            </div>
+            <div id="navbar" class="navbar">
+                <div id="stepout" class="navigation stepout"><img src="icons/out.png"></div>
+                <div id="back" class="navigation back"><img src="icons/back.png"></div>
+                <div id="next" class="navigation next"><img src="icons/next.png"></div>
+                <div id="stepin" class="navigation stepin"><img src="icons/in.png"></div>
+            </div>
+        </div>
+        <!-- Display -->
+        <div id="workspace" class="workspace">
+            <div id="tablespace" class="tablespace">
+                <!-- Input -->
+                <div id="inbox" class="inbox">
+                </div>
+                <!-- Output -->
+                <div id="outbox" class="outbox">
+                </div>
+            </div>
+            <!-- Hovered Name -->
+            <div id="namebox" class="namebox"></div>
+            <div id="tablefooter" class="tablefooter">
+                <!-- Toggle-able Temporary Tables -->
+                <div id="namespace" class="namespace">
+                    <div id="namespaceheader" class="namespaceheader">Namespace</div>
+                    <div id="namespacebody" class="namespacebody"></div>
+                </div>
+                <div id="inventory" class="inventory">
+                    <div id="inventoryheader" onClick="toggleInventory()" class="inventoryheader">Tables and Views</div>
+                    <div id="inventoryspace" class="inventoryspace">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="canvas" class='canvas'></div>
+    </div>
+    <div id="tooltip"></div>
+</body>

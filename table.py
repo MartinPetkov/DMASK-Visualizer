@@ -68,13 +68,15 @@ class Reason:
         self.conditions_matched = conditions_matched
         self.subqueries = subqueries
         self.passed_subqueries = passed_subqueries
+        self.passed = True
 
     def __repr__(self):
-        return "[conditions_matched: {0}\nsubqueries: {1}\npassed_subqueries: {2}]\n".format(self.conditions_matched, self.subqueries, self.passed_subqueries)
+        return "[conditions_matched: {0}\nsubqueries: {1}\npassed_subqueries: {2}]\npassed: {3}\n".format(self.conditions_matched, self.subqueries, self.passed_subqueries, self.passed)
 
     def to_json(self):
         json_dict = {
             "conditions_matched": self.conditions_matched,
+            "passed": self.passed,
             "subqueries": {condition: subquery.to_json() for condition,subquery in self.subqueries.items()},
             "passed_subqueries": self.passed_subqueries
         }

@@ -43,23 +43,23 @@ tr:nth-child(even){
     background: #dbe5f1;
 }
 
-tr:nth-child(even) .kept{
-    background: #d0fdb9;
-}
-
-tr:nth-child(even) .removed{
-    background: #fba79f;
-}
-
 tr:nth-child(odd){
     background: #cad9f4;
 }
 
-tr:nth-child(odd) .kept{
+.inbox tr.kept:nth-child(even) {
+    background: #d0fdb9;
+}
+
+.inbox tr.removed:nth-child(even) {
+    background: #fba79f;
+}
+
+.inbox tr.kept:nth-child(odd) {
     background: #bcf0a5;
 }
 
-tr:nth-child(odd) .removed{
+.inbox tr.removed:nth-child(odd) {
     background: #f1968f;
 }
 

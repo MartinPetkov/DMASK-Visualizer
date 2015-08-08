@@ -65,12 +65,13 @@ function addReasons(reasons, table){
     var num_reasons = reasons.length;
     var i;
     var all_reasons = JSON.parse(reasons[0].conditions_matched).conditions_matched;
-    
+    var uncorrelated_subqueries = JSON.parse(reasons[0].conditions_matched).subqueries;
     // add the reasons
     for (i = 1; i < num_reasons; i++){
         // read the information
         var conditions_matched = JSON.parse(reasons[i].conditions_matched).conditions_matched;
         var subqueries = JSON.parse(reasons[i].conditions_matched).subqueries;
+        var passed_subqueries = JSON.parse(reasons[i].conditions_matched).passed_subqueries;
 
         // find the old value
         var row = reasons[i].row;
@@ -79,6 +80,8 @@ function addReasons(reasons, table){
         var old_value = table_row.val();
         if (!old_value)
             old_value = new Reasons();
+            old_value.conditions = all_reasons;
+            old_value.passed = JSON.parse(reasons[i].conditions_matched).passed;
 
         // add new reasons
         var j;
@@ -88,11 +91,22 @@ function addReasons(reasons, table){
             var new_reason = new Reason(conditions_matched[j]);
             if (subqueries[conditions_matched[j]] != undefined){
                 new_reason.subquery = JSON.parse(subqueries[conditions_matched[j]]);
+                new_reason.passed_subqueries = passed_subqueries;
             }
             old_value.reasons.push(new_reason);
         }
 
         table_row.val(old_value);
     }
+
+    var rows = $(table).find(".output-row");
+    for (i = 0; i < rows.length; i++){
+        var row = $(rows[i]);
+        if (row.val() && row.val().passed)
+            row.addClass("kept");
+        else
+            row.addClass("removed");
+    }
+
     return table;
 }
