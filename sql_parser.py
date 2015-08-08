@@ -623,11 +623,12 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     input_num1 = current_step_number + '.1'
     input_num2 = current_step_number + '.2'
-    input_tables = [input_num1, input_num2]
+    input_tables = []
     result_table = current_step_number
     executable_sql = sql_chunk
+    namespace = []
 
-    union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(union_step)
 
     query1 = parse_sql_query(ast_node[1], input_num1)
@@ -636,7 +637,16 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     steps += query1
     steps += query2
 
-    steps.append(union_step)
+    print(query2[-1].step_number)
+
+    # WLOG, namespace is same as query 1's namespace
+    namespace = query2[-1].namespace[:]
+    prev_step_number = query2[-1].step_number
+    current_step_number += '.3'
+    input_tables = [input_num1, input_num2]
+    union_sub_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
+
+    steps.append(union_sub_step)
 
 
     return steps
