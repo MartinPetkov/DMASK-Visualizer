@@ -43,8 +43,9 @@ Reason.prototype.toDisplay = function(){
     
     if (this.subquery != undefined){
         classes.push("subquery")
-    
-        if (this.passed_subqueries.indexOf(this.condition) == -1)
+        if (this.uncorrelated)
+            kept = "uncorrelated";
+        else if (this.passed_subqueries && this.passed_subqueries.indexOf(this.condition) == -1)
             kept = "failed";
     }
     

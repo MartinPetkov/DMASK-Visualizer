@@ -23,6 +23,11 @@ function onPageLoad(){
     main = new Window("");
     current_window = main;
 
+    parsedquery = [];
+    var i;
+    for (i = 0; i < pq.length; i++){
+        parsedquery.push(JSON.parse(pq[i]));
+    }
     loadQueries(parsedquery);
     sizeContent();
 

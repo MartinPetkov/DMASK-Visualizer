@@ -39,6 +39,14 @@ tr {
     border: none;
 }
 
+.kept {
+    cursor:pointer;
+}
+
+.removed {
+    cursor:pointer;
+}
+
 tr:nth-child(even){
     background: #dbe5f1;
 }
@@ -74,4 +82,12 @@ th {
     font-weight: bold;
     background: #4f81bd;
     color: white;
+}
+
+.tablename {
+    left: 50%;
+    position: absolute;
+    transform: translate(-50%, 0);
+    font-weight:bold;
+    padding:5px;
 }

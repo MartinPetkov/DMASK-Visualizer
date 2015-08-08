@@ -11,6 +11,7 @@ function sizeContent() {
         centerWindow(window);
         adjustInventory(window);
         adjustNamespace(window);
+        adjustTableNames(window);
         drawLines(window);
         window = window.parent;
     }
@@ -92,4 +93,23 @@ function adjustInventory(window){
         newheight = $("#" + window.generateElemID("tablefooter")).height();
     }
     $("#" + window.generateElemID("inventory")).height(newheight);
+}
+
+function adjustTableNames(window){
+    var container = "#" + window.generateElemID("workspace");
+    var tablenames = $(container + " .tablename");
+    var i;
+    for (i = 0; i < tablenames.length; i++){
+        var id = tablenames[i].id;
+        var table = "table-" + id.split("-").splice(1).join("-");
+        var closest = $(container + " #" + id).closest(".input");
+        
+        if (closest.length < 1){
+            closest = $(container);
+        }
+            
+        $(container + " #" + id).css({top: $(container + " #" + table).offset().top -
+                                          $(container + " #" + id).outerHeight() -
+                                          closest.offset().top});
+    }
 }

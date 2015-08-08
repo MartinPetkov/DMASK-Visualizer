@@ -55,13 +55,13 @@ class DMASK:
         json_queries = []
 
         queries = sql_parser.split_sql_queries(sql_queries)
+        
         for query in queries:
             ast = sql_parser.sql_to_ast(query).asList()
             steps = sql_parser.sql_ast_to_steps(ast, self.base_tables)
             tables = self.steps_to_tables(steps)
             parsed_query = ParsedQuery(steps, tables, query)
             json_queries.append(parsed_query.to_json())
-            # TODO: If the query was a CREATE VIEW, add that table to the base tables for all subsequent steps
 
         return json_queries
 
@@ -93,38 +93,52 @@ class DMASK:
         # Create a connection and cursor (PSQL)
         connection = self.connection;
         cursor = self.cursor;
-
+        
+        view_made = False
         for step in steps:
             if str(step.result_table) not in tables:
                 # Get the table name (table name matches FROM statement of the executable)
                 name = get_table_name(step.executable_sql)
 
-                # Execute the query
-                cursor.execute(step.executable_sql)
-
-                # Get the columns
-                columns = [desc[0] for desc in cursor.description]
-
-                # Get the tuples
-                tuples = []
-                for row in cursor:
-                    tuples.append(row)
-
-                # If the sql chunk is a where clause, get the reasons
-                # TODO: Adjust this to work for RA as well
-                if (step.sql_chunk.split()[0].lower() == "where"):
-                    # Get all of the conditions (and the ASTs of their corresponding subqueries)
-                    (conditions, subqueries) = get_all_conditions(step.executable_sql)
-
-                    # Add the reasons for the input table
-                    input_step = None
-                    for s in steps:
-                        if s.step_number == tables[step.input_tables[0]].step:
-                            input_step = s
-                    tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
-                    set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
-                t = Table(name, step.step_number, columns, tuples, {})
-                tables[str(step.result_table)] = t
+                # Do not generate tables for a create view step
+                if (step.executable_sql.lower().find("create view") == 0):
+                    if not view_made:
+                        cursor.execute(step.executable_sql)
+                        view_made = True
+                    if (step.input_tables):
+                        name = str(step.result_table)
+                        input_table = tables[step.input_tables[0]]
+                        tables[name] = Table(name, step.step_number, input_table.col_names, input_table.tuples, {})
+                        self.base_tables[name] = input_table.col_names
+                        
+                else:
+                    # Execute the query
+                    cursor.execute(step.executable_sql)
+    
+                    # Get the columns
+                    columns = [desc[0] for desc in cursor.description]
+    
+                    # Get the tuples
+                    tuples = []
+                    for row in cursor:
+                        tuples.append(row)
+    
+                    # If the sql chunk is a where clause, get the reasons
+                    # TODO: Adjust this to work for RA as well
+                    if (step.sql_chunk.split()[0].lower() == "where"):
+                        # Get all of the conditions (and the ASTs of their corresponding subqueries)
+                        (conditions, subqueries) = get_all_conditions(step.executable_sql)
+    
+                        # Add the reasons for the input table
+                        input_step = None
+                        for s in steps:
+                            if s.step_number == tables[step.input_tables[0]].step:
+                                input_step = s
+                        tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
+                        set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
+                    t = Table(name, step.step_number, columns, tuples, {})
+                    tables[str(step.result_table)] = t
+                    
         return tables
     
 def set_passed(reasons, input_tuples, results):
@@ -362,7 +376,6 @@ def get_namespace(subquery, dmask):
     tables = []
 
     # Get all of the tables brought in (ex. FROM Took t, Student -> [(Took, t), (Student, Student)])
-    print(from_clause)
     for item in from_clause:
         if isinstance(item, list):
             if 'ON' in item or 'USING' in item:
@@ -416,7 +429,14 @@ def get_table_name(exsqltable):
     # TODO: This would be very weird for RA statements (even though it would work). Make an RA equivalent?
 
     # Get the AST so we can identify the FROM clause
-    ast = sql_parser.sql_to_ast(exsqltable)
+    if (exsqltable.find("UNION") > -1):
+        split = exsqltable.split("UNION")
+        name = []
+        for item in split:
+            name.append(get_table_name(item))
+        return " UNION ".join(name)
+    
+    ast = find_query(sql_parser.sql_to_ast(exsqltable).asList())
 
     # Traverse the AST until the FROM clause is found
     for node in ast:
@@ -451,6 +471,20 @@ def get_table_name(exsqltable):
 
             # Return a string joined by whitespace
             return " ".join(str(item) for item in name)
+
+def find_query(ast):
+    if (isinstance(ast[0], list) and ast[0][0] == "SELECT"):
+        return ast
+    
+    for item in ast:
+        if isinstance(item, list):
+            if isinstance(item[0], list):
+                if item[0][0] == "SELECT":
+                    return item
+                elif isinstance(item[0][0], list):
+                    search = find_query(item[0])
+                    if search:
+                        return search
 
 def flatten_list(l):
     # Given a list of string or lists, flatten them into one list
@@ -507,13 +541,14 @@ def visualize_query(sql):
     dmask.set_connection("sophiadmask")
 
     # get_namespace works
+    json = ""
     json = dmask.sql_to_json(sql)
     import os.path
     f = open("front-end-code/template.html")
     copy = f.readlines()
     for i in range(len(copy)):
         if copy[i].strip() == "<!-- INSERT TEST BELOW -->":
-            copy[i] = "<script>var pq = " + str(json) +"; var parsedquery = [JSON.parse(pq[0])];</script>"
+            copy[i] = "<script>var pq = " + str(json) +";</script>"
     output = open("C:/Users/School/Documents/DeMASK/git/front-end-code/results.html", "w")
     for line in copy:
         output.write(line)

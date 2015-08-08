@@ -637,8 +637,6 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     steps += query1
     steps += query2
 
-    print(query2[-1].step_number)
-
     # WLOG, namespace is same as query 1's namespace
     namespace = query2[-1].namespace[:]
     prev_step_number = query2[-1].step_number

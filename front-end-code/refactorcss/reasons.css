@@ -25,9 +25,13 @@ p {
 }
 
 .passed {
-    color: green;
+    color: #2FB32F;
 }
 
 .failed {
     color: red;
+}
+
+.uncorrelated {
+    color: gray;
 }

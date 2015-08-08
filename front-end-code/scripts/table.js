@@ -3,6 +3,7 @@ function Table(t, query){
     this.rows = t.tuples;
     this.reasons = t.reasons;
     this.id = t.t_id;
+    this.t_name = t.t_name;
     
     if (!this.id)
         this.id = t.step;
@@ -28,8 +29,10 @@ Table.prototype.toDisplay = function(){
     var num_columns = this.columns.length;
     var num_rows = this.rows.length;
 
+    var tablename = "<div class='tablename' id=\"name-" + toID(this.id) +"\">" + this.t_name + "</div>";
+
     // Create the div container
-    var html = "<div class='tablecontainer' id=\"table-" + toID(this.id) + "\" onmouseover=\"hoverText('"+this.hovertext+"')\" onmouseout=\"hoverText('')\"><table>";
+    var html = tablename + "<div class='tablecontainer' id=\"table-" + toID(this.id) + "\" onmouseover=\"hoverText('"+this.hovertext+"')\" onmouseout=\"hoverText('')\"><table>";
 
     var i, j;
 
@@ -65,7 +68,31 @@ function addReasons(reasons, table){
     var num_reasons = reasons.length;
     var i;
     var all_reasons = JSON.parse(reasons[0].conditions_matched).conditions_matched;
-    var uncorrelated_subqueries = JSON.parse(reasons[0].conditions_matched).subqueries;
+    
+    // initialize the set of reasons
+    for (i = 1; i <= $(table).find(".output-row").length; i++){
+        var uncorrelated_subqueries = JSON.parse(reasons[0].conditions_matched).subqueries;
+        var passed_uncorrelated_subqueries = JSON.parse(reasons[0].conditions_matched).passed_subqueries;
+        
+        var new_reason = new Reasons();
+        new_reason.conditions = all_reasons;
+        $(table).find("#row-"+i).val(new_reason);
+
+        // add uncorrelated subqueries
+        var keys = Object.keys(uncorrelated_subqueries);
+        
+        var j;
+        for (j = 0; j < keys.length; j++){
+            var key = keys[j];
+            
+            var uncorrelated_reason = new Reason(key);
+            uncorrelated_reason.subquery = JSON.parse(uncorrelated_subqueries[key]);
+            uncorrelated_reason.uncorrelated = true;
+            
+            new_reason.reasons.push(uncorrelated_reason);
+        }
+    }
+    
     // add the reasons
     for (i = 1; i < num_reasons; i++){
         // read the information
@@ -78,9 +105,9 @@ function addReasons(reasons, table){
         var table_row = $(table).find("#row-"+row);
 
         var old_value = table_row.val();
-        if (!old_value)
-            old_value = new Reasons();
-            old_value.conditions = all_reasons;
+
+        // set whether the row passed or not
+        if (old_value.passed == undefined)
             old_value.passed = JSON.parse(reasons[i].conditions_matched).passed;
 
         // add new reasons
