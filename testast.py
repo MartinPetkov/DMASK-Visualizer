@@ -101,13 +101,13 @@ class TestSQL(unittest.TestCase):
             A query with a renamed column without keyword AS.
             Expected output:
                 [
-                    ['SELECT',  [['cnum', 'course']]],
+                    ['SELECT',  [['cnum', '', 'course']]],
                     ['FROM',    [['Courses']]],
                 ]
         '''
         print('TEST RENAMING A COLUMN:')
         print('A query with a renamed column without keyword AS')
-        expected = "[['SELECT', [['cnum', 'course']]], ['FROM', [['Courses']]]]"
+        expected = "[['SELECT', [['cnum', '', 'course']]], ['FROM', [['Courses']]]]"
         output = ast('select cnum course from Courses')
         print(expected)
         print(output)
@@ -130,19 +130,19 @@ class TestSQL(unittest.TestCase):
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
 
-    def test_41_column_misc(self):
+    def test_04_column_misc(self):
         ''' TEST RENAME COLUMN, COLUMN OPS, SUBQUERY:
             A query with column renames, column operations and subqueries
             Expected output:
                 [
-                    [ 'SELECT', [[['cnum', '||', 'dept'], 'as', 'course'], ['max(sid)', 'maxsid'],
-                        [[['SELECT', [['first(name)']]], ['FROM', [['Took']]]], A]]],
+                    [ 'SELECT', [[['cnum', '||', 'dept'], 'as', 'course'], ['max(sid)', '', 'maxsid'],
+                        [[['SELECT', [['first(name)']]], ['FROM', [['Took']]]], '', 'A']]],
                     ['FROM', [['Took']]]
                 ]
         '''
         print('TEST RENAME COLUMN, COLUMN OPS, SUBQUERY:')
         print('A query with column renames, column operations and subqueries')
-        expected = ("[['SELECT', [[['cnum', '||', 'dept'], 'as', 'course'], ['max(sid)', 'maxsid'], [[['SELECT', [['first(name)']]], ['FROM', [['Took']]]], 'A']]], ['FROM', [['Took']]]]")
+        expected = ("[['SELECT', [[['cnum', '||', 'dept'], 'as', 'course'], ['max(sid)', '', 'maxsid'], [[['SELECT', [['first(name)']]], ['FROM', [['Took']]]], '', 'A']]], ['FROM', [['Took']]]]")
         output = ast('select cnum || dept as course, max(sid) maxsid, (select first(name) from Took) A from Took')
         print(expected)
         print(output)
@@ -155,13 +155,13 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['grade']]],
-                    [ 'FROM',   [['Took', 'T'], 'JOIN', ['Offering']]]
+                    [ 'FROM',   [['Took', '', 'T'], 'CROSS JOIN', ['Offering']]]
                 ]
         '''
         print('TEST RENAME TABLE WITHOUT AS')
         print('A query with a table rename without keyword AS')
-        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'T'], 'JOIN', ['Offering']]]]"
-        output = ast('select sid, grade from Took T JOIN Offering')
+        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', '', 'T'], 'CROSS JOIN', ['Offering']]]]"
+        output = ast('select sid, grade from Took T CROSS JOIN Offering')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
@@ -173,13 +173,13 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['grade']] ],
-                    [ 'FROM',   [['Took', 'AS', 'T'], 'JOIN', ['Offering'] ] ]
+                    [ 'FROM',   [['Took', 'AS', 'T'], 'CROSS JOIN', ['Offering'] ] ]
                 ]
         '''
         print('TEST RENAME TABLE WITH AS')
         print('A query with a table rename with keyword AS')
-        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'AS', 'T'], 'JOIN', ['Offering']]]]"
-        output = ast('select sid, grade from Took as T JOIN Offering')
+        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took', 'AS', 'T'], 'CROSS JOIN', ['Offering']]]]"
+        output = ast('select sid, grade from Took as T CROSS JOIN Offering')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
@@ -209,13 +209,13 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']] ],
-                    [ 'FROM',   [ ['Student'], 'JOIN', ['Took'] ] ]
+                    [ 'FROM',   [ ['Student'], 'CROSS JOIN', ['Took'] ] ]
                 ]
         '''
         print('TEST JOIN:')
         print('A query with a cross product in it, using keyword JOIN.')
-        expected = "[['SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']]], ['FROM', [['Student'], 'JOIN', ['Took']]]]"
-        output = ast('select student.sid, student.email, took.grade from Student join Took')
+        expected = "[['SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']]], ['FROM', [['Student'], 'CROSS JOIN', ['Took']]]]"
+        output = ast('select student.sid, student.email, took.grade from Student cross join Took')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
@@ -264,12 +264,12 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['grade'], ['instructor']] ],
-                    [ 'FROM',   [['Took'], 'LEFT JOIN', ['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid'] ] ]
+                    [ 'FROM',   [['Took'], 'LEFT JOIN', [['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid'] ]] ]
                 ]
         '''
         print('TEST LEFT JOIN ON <condition>')
         print('A query with a LEFT JOIN on a condition.')
-        expected = "[['SELECT', [['sid'], ['grade'], ['instructor']]], ['FROM', [['Took'], 'LEFT JOIN', ['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid']]]]"
+        expected = "[['SELECT', [['sid'], ['grade'], ['instructor']]], ['FROM', [['Took'], 'LEFT JOIN', [['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid']]]]]"
         output = ast('select sid, grade, instructor from Took left join Offering on Took.oid=Offering.oid')
         print(expected)
         print(output)
@@ -283,13 +283,13 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['grade']] ],
-                    [ 'FROM',   [['Took'], 'FULL OUTER JOIN', ['Offering']] ],
+                    [ 'FROM',   [['Took'], 'FULL OUTER JOIN', [['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid']]] ],
                 ]
         '''
         print('TEST FULL OUTER JOIN')
         print('A query with a FULL OUTER JOIN.')
-        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took'], 'FULL OUTER JOIN', ['Offering']]]]"
-        output = ast('select sid, grade from Took full outer join Offering')
+        expected = "[['SELECT', [['sid'], ['grade']]], ['FROM', [['Took'], 'FULL OUTER JOIN', [['Offering'], 'ON', ['Took.oid', '=', 'Offering.oid']]]]]"
+        output = ast('select sid, grade from Took full outer join Offering on Took.oid = Offering.oid')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
@@ -470,13 +470,13 @@ class TestSQL(unittest.TestCase):
                         [
                             [ 'SELECT', 'DISTINCT', [['instructor']]], 
                             [ 'FROM',   [['Course']]]
-                        ], 'H']]
+                        ], '', 'H']]
                                 ]
             ]
         '''
         print('TEST SUBQUERY IN FROM CLAUSE:')
         print('A query with one subquery in the FROM clause')
-        expected = "[['SELECT', [['sid']]], ['FROM', [[[['SELECT', 'DISTINCT', [['instructor']]], ['FROM', [['Course']]]], 'H']]]]"
+        expected = "[['SELECT', [['sid']]], ['FROM', [[[['SELECT', 'DISTINCT', [['instructor']]], ['FROM', [['Course']]]], '', 'H']]]]"
         output = ast('select sid from (select distinct instructor from Course) H')
         print(expected)
         print(output)
@@ -489,13 +489,13 @@ class TestSQL(unittest.TestCase):
             A query with one subquery in the FROM clause
             Expected output: 
                 [
-                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]],
+                    [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], '', 'course'], ['grade']]],
                     [ 'FROM',   [['Took'], ',', [
                                     ['SELECT',  ['*'] ],
                                     ['FROM',    [['Offering']] ],
                                     ['WHERE',   [[['instructor', '=', '\'Horton\'']]]]
                                     ]
-                                , 'H']], 
+                                , '', 'H']], 
                     ['WHERE', [['Took.oid', '=', 'H.oid']]]
                 ]
 
@@ -503,7 +503,7 @@ class TestSQL(unittest.TestCase):
 
         print('TEST SUBQUERY IN FROM CLAUSE (COMPLEX): ')
         print('A query with one subquery in the FROM')
-        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], 'course'], ['grade']]], ['FROM', [['Took'], ',', [[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], 'H']]], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
+        expected = "[['SELECT', [['sid'], [['dept', '||', 'cnum'], '', 'course'], ['grade']]], ['FROM', [['Took'], ',', [[['SELECT', ['*']], ['FROM', [['Offering']]], ['WHERE', [['instructor', '=', '\'Horton\'']]]], '', 'H']]], ['WHERE', [['Took.oid', '='. 'H.oid']]]]"
         output = ast('select sid, dept || cnum course, grade from Took, (select * from Offering where instructor=\'Horton\') H where Took.oid = H.oid;')
         print(expected)
         print(output)
@@ -560,13 +560,13 @@ class TestSQL(unittest.TestCase):
                 [
                     [   'SELECT', [[[
                             ['SELECT', [['only']]], ['FROM', [['Took']] ]
-                            ], 'H']]],
+                            ], '', 'H']]],
                         ['FROM', [['Offering']] ]
                 ]
         '''
         print('TEST SUBQUERY IN SELECT CLAUSE:')
         print('A query with one subquery in the SELECT clause')
-        expected = "[['SELECT', [[[['SELECT', [['only']]], ['FROM', [['Took']]]], 'H']]], ['FROM', [['Offering']]]]"
+        expected = "[['SELECT', [[[['SELECT', [['only']]], ['FROM', [['Took']]]], '', 'H']]], ['FROM', [['Offering']]]]"
         output = ast('select (select only from Took) H from Offering')
         print(expected)
         print(output)
@@ -849,14 +849,14 @@ class TestSQL(unittest.TestCase):
             A query HAVING a condition.
             Expected output:
                 [
-                    [ 'SELECT', [['max(cgpa)', 'H']] ],
+                    [ 'SELECT', [['max(cgpa)', '', 'H']] ],
                     [ 'FROM',   [['Student']]],
                     [ 'HAVING', [['max(cgpa)', '>=', '3.5']]]
                 ]
         '''
         print('TEST HAVING')
         print('A query HAVING a condition.')
-        expected = "[['SELECT', [['max(cgpa)', 'H']]], ['FROM', [['Student']]], ['HAVING', [['max(cgpa)', '>=', '3.5']]]]"
+        expected = "[['SELECT', [['max(cgpa)', '', 'H']]], ['FROM', [['Student']]], ['HAVING', [['max(cgpa)', '>=', '3.5']]]]"
         output = ast('select max(cgpa) H from Student having max(cgpa) >= 3.5')
         print(expected)
         print(output)
@@ -868,14 +868,14 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sum(salary)']]], 
-                    [ 'FROM',   [['Department'], 'JOIN', ['Employee'], 'ON', ['dept', '=', 'did']]],
+                    [ 'FROM',   [['Department'], 'JOIN', [['Employee'], 'ON', ['dept', '=', 'did']]]],
                     [ 'GROUP BY', ['dept']],
                     [ 'HAVING', [['min(salary)', '>=', '100']]]
                 ]
         '''
         print('TEST HAVING CONDITION NOT IN SELECT CLAUSE')
         print('A query containing a HAVING condition over aggregate function not in select clause.')
-        expected = "[['SELECT', [['sum(salary)']]], ['FROM', [['Department'], 'JOIN', ['Employee'], 'ON', ['dept', '=', 'did']]], ['GROUP BY', ['dept']], ['HAVING', [['min(salary)', '>=', '100']]]]"
+        expected = "[['SELECT', [['sum(salary)']]], ['FROM', [['Department'], 'JOIN', [['Employee'], 'ON', ['dept', '=', 'did']]]], ['GROUP BY', ['dept']], ['HAVING', [['min(salary)', '>=', '100']]]]"
         output = ast('select sum(salary) from Department join Employee on dept = did group by dept having min(salary) >= 100')
         print(expected)
         print(output)

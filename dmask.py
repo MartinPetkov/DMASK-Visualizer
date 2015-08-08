@@ -31,12 +31,12 @@ class DMASK:
         # TODO: Implement the database connection parameters
         self.conn_params = conn_params
         self.base_tables = base_tables
-    
+
     def set_connection(self, schema):
         # TODO: Implement connecting to a database
         self.connection = psycopg2.connect(self.conn_params)
         self.cursor = self.connection.cursor()
-        
+
         #TODO: Remove the below (which sets the schema)
         self.cursor.execute("SET search_path TO "+schema)
 
@@ -56,7 +56,7 @@ class DMASK:
 
         queries = sql_parser.split_sql_queries(sql_queries)
         for query in queries:
-            ast = sql_parser.sql_to_ast(query)
+            ast = sql_parser.sql_to_ast(query).asList()
             steps = sql_parser.sql_ast_to_steps(ast, self.base_tables)
             tables = self.steps_to_tables(steps)
             parsed_query = ParsedQuery(steps, tables, query)
@@ -89,42 +89,48 @@ class DMASK:
         # Turns the QuerySteps given into Table objects by executing their queries on the database given by
         # self.conn_params and with the base tables given by self.base_tables
         tables = {}
-        
+
         # Create a connection and cursor (PSQL)
         connection = self.connection;
         cursor = self.cursor;
-        
+
         for step in steps:
             if str(step.result_table) not in tables:
                 # Get the table name (table name matches FROM statement of the executable)
                 name = get_table_name(step.executable_sql)
-                
+
                 # Execute the query
                 cursor.execute(step.executable_sql)
-                
+
                 # Get the columns
                 columns = [desc[0] for desc in cursor.description]
-                
+
                 # Get the tuples
                 tuples = []
                 for row in cursor:
                     tuples.append(row)
-                
+
                 # If the sql chunk is a where clause, get the reasons
                 # TODO: Adjust this to work for RA as well
                 if (step.sql_chunk.split()[0].lower() == "where"):
                     # Get all of the conditions (and the ASTs of their corresponding subqueries)
                     (conditions, subqueries) = get_all_conditions(step.executable_sql)
-                    
+
                     # Add the reasons for the input table
                     input_step = None
                     for s in steps:
                         if s.step_number == tables[step.input_tables[0]].step:
                             input_step = s
+<<<<<<< HEAD
                     
                     tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
                     set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
                 
+=======
+
+                    tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
+
+>>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
                 t = Table(name, step.step_number, columns, tuples, {})
                 tables[str(step.result_table)] = t
         return tables
@@ -137,13 +143,13 @@ def set_passed(reasons, input_tuples, results):
 def get_all_conditions(sql_chunk):
     # Get the AST for the WHERE clause
     ast = sql_parser.sql_to_ast(sql_chunk).asList()
-    
+
     for node in ast:
         if node[0].lower() == "where":
             return conditions_helper(node[1])
 
     return ([], {})
-    
+
     # Given an AST for the WHERE clause, return a tuple containing 2 items:
     # The first is a list of all the conditions in the where clause (ex. ["grade >= 80", "cnum in SELECT ..."])
     # The second is a dictionary mapping a condition to its AST {"condition": [AST]}
@@ -158,72 +164,77 @@ def conditions_helper(ast):
         if isinstance(item, list):
             if isinstance(item[0], str):
                 subquery = find_subquery(item)
-                
+
                 key = " ".join(flatten_list(item))
                 if subquery:
                     subquery_string = " ".join(flatten_list(subquery))
-                    key = key.replace(subquery_string, "("+subquery_string+")") 
-                
+                    key = key.replace(subquery_string, "("+subquery_string+")")
+
                 conditions.append(key)
-                
+
                 if subquery:
                     subqueries[key] = subquery
             else:
                 results = conditions_helper(item)
                 conditions.extend(results[0])
                 subqueries.update(results[1])
-    
+
     return (conditions, subqueries)
 
 def find_subquery(ast):
     # Given a WHERE condition, locates a subquery
     for item in ast:
         if isinstance(item, list):
-            return item    
-    
+            return item
+
 def get_reasons(conditions, subqueries, input_step, tables, dmask):
     # Given a list of conditions, subqueries, the input step and dmask object,
     # return the Reasons
-    
+
     input_query = input_step.executable_sql
     input_table = tables[input_step.result_table]
     input_tuples = input_table.tuples
+<<<<<<< HEAD
     reasons = {0:Reason([], {}, [])}
     
+=======
+    reasons = {0:Reason([])}
+
+>>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
     # Get the namespace of the entire query (only really need the FROM clause
     # of the original query)
     ast = sql_parser.sql_to_ast(input_query).asList()
     namespace = get_namespace(ast, dmask)
-    
+
     connection = dmask.connection
     cursor = dmask.cursor
-    
+
     # Execute all of the conditions
     for condition in conditions:
         reasons[0].conditions_matched.append(condition)
-        
+
         condition_sql = input_query.strip(';') + " WHERE " + condition
-        
+
         # Execute the query
         cursor.execute(condition_sql)
-        
+
         # Get the columns
         columns = [desc[0] for desc in cursor.description]
-        
+
         # Get the tuples
         tuples = []
         for row in cursor:
             tuples.append(row)
-                    
+
         correlated = []
-        
+
         # Execute the corresponding subquery, getting its steps and tables
         if condition in subqueries:
             subquery = subqueries[condition]
-            
+
             # Check if the subquery is correlated
             correlated = get_correlated_elements(subquery, dmask)
-            
+
             if correlated:
                 # If it is, prepare it for substitution for execution at each row
                 pq = PreparedQuery(subquery, correlated)
@@ -233,14 +244,18 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 tables = dmask.steps_to_tables(steps)
                 parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(subquery)))
                 reasons[0].subqueries[condition] = parsed_query
-        
+
         # Go through each row and add a reason
         for i in range(0, len(input_tuples)):
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
             # Substitute and execute the correlated subquery
             if correlated:
                 # Get the items to substitute
                 substitutes = {}
-                
+
                 for item in correlated:
                     for j in range(len(columns)):
                         if matches_alias(namespace, columns[j], item):
@@ -251,25 +266,29 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                     # it might be an aggregate function, in which case
                     # you will want to do "SELECT item FROM <from clause>"
                     # which may or may not fail
-                
-                
+
+
                 # Substitute them in the query
                 substituted_subquery = pq.substitute(substitutes)
-                
+
                 # Create the parsed query
                 steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.base_tables)
                 tables = dmask.steps_to_tables(steps)
                 parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)))
-                
+
             # If the input tuple is in the returned list of tuples, it passed the condition
             kept = input_tuples[i] in tuples
-            
+
             # If the tuple was kept or if there was a correlated subquery, add it as a reason
             if kept or correlated:
                 if i+1 in reasons:
                     reasons[i+1].conditions_matched.append(condition)
                 else:
+<<<<<<< HEAD
                     reasons[i+1] = Reason([condition], {}, [])
+=======
+                    reasons[i+1] = Reason([condition])
+>>>>>>> 3b8180163e81c9064aeeab4c3e6b2d7563f86349
 
                 # If there was a correlated subquery, add the parsed query and, if the condition
                 # passed, add it to the list of passed subqueries
@@ -282,13 +301,13 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
 def get_correlated_elements(query, dmask):
     # Given an AST representing a query, return a list of elements that do not
     # appear in the namespace of the (isolated) query.
-    
+
     # get the namespace of the subquery
     namespace = flatten_list(get_namespace(query, dmask))
-    
+
     # get the attributes called in the subquery
     attributes = find_attributes(query)
-    
+
     # for each attribute, if it appears somewhere in the namespace, remove it
     i = 0
     while (i < len(attributes)):
@@ -296,23 +315,23 @@ def get_correlated_elements(query, dmask):
             attributes.pop(i)
         else:
             i += 1
-    
+
     # return the list of remaining attributes (which did not appear in the namespace)
     return attributes
 
 def find_attributes(query):
     # Given an AST representing a query, return a list of the attributes that appear
-    # in the query (anything that is not a keyword or table name is an attribute) 
-    
+    # in the query (anything that is not a keyword or table name is an attribute)
+
     # DOES NOT HANDLE SUBQUERIES -- Subqueries would need to be handled recursively
     query = query[:]
-    
+
     # Remove the FROM clause
     for i in range(len(query)):
         if query[i][0].lower() == "from":
             query.pop(i)
             break
-    
+
     attributes = remove_keywords(flatten_list(query))
     return attributes
 
@@ -341,7 +360,7 @@ def is_keyword(string):
 
     # If subqueries are handled recursively, then none of the 'from clause' keywords
     # has to be mentioned
-    
+
     string = string.upper().strip(punctuation)
     if not string or string.isnumeric() or string[0] == '"' or string[0] == "'":
         return True
@@ -350,19 +369,19 @@ def is_keyword(string):
 def get_namespace(subquery, dmask):
     # Given an AST, return the namespace of the table in the form:
     # [[column, prefix.column, ...], [column, prefix.column, ...]]
-    
+
     from_clause = []
-    
+
     for node in subquery:
         if node[0].lower() == "from":
             from_clause = node[1]
             break
-    
+
     on_using = False
-    
+
     # tables is a list of (name, alias) tuples
     tables = []
-    
+
     # Get all of the tables brought in (ex. FROM Took t, Student -> [(Took, t), (Student, Student)])
     for item in from_clause:
         if isinstance(item, list):
@@ -375,11 +394,11 @@ def get_namespace(subquery, dmask):
             on_using = False
         elif item.lower() in ["on", "using"]:
                 on_using = True
-    
+
     main_table = " ".join(flatten_list(from_clause))
-    
+
     namespace = [[column] for column in get_columns("SELECT * FROM " + main_table, dmask)]
-    
+
     # Traverse the list of tables, adding all of the columns to the namespace
     for table in tables:
         columns = get_columns("SELECT * FROM " + table[0], dmask)
@@ -394,35 +413,35 @@ def get_namespace(subquery, dmask):
 
 def get_columns(query, dmask):
     cursor = dmask.cursor
-    
+
     # Execute the query
     cursor.execute(query + " LIMIT 0")
-    
+
     # Get the columns
     return [desc[0] for desc in cursor.description]
 
 def matches_alias(namespace, attribute, to_match):
     # Given a namespace, attribute (ex. "sid") and someting to match (ex. "Took.sid")
     # Returns true whether the attribute matches to_match
-    
+
     if attribute == to_match:
         return True
-    
+
     for item in namespace:
         if to_match in item:
             return True
-    
+
     return False
-    
-    
+
+
 
 def get_table_name(exsqltable):
     # Given an executable SQL statement, return the table's name
     # TODO: This would be very weird for RA statements (even though it would work). Make an RA equivalent?
-    
+
     # Get the AST so we can identify the FROM clause
     ast = sql_parser.sql_to_ast(exsqltable)
-    
+
     # Traverse the AST until the FROM clause is found
     for node in ast:
         if node[0].lower() == "from":
@@ -430,7 +449,7 @@ def get_table_name(exsqltable):
             from_ast = node[1]
             name = []
             on_using = False
-            
+
             # Traverse each token in the FROM query
             for token in from_ast:
                 # If it's a string, then it's either a keyword or table name, unless it follows the ON or USING keywords
@@ -453,7 +472,7 @@ def get_table_name(exsqltable):
                     else:
                         name.append(token)
                     on_using = False
-            
+
             # Return a string joined by whitespace
             return " ".join(str(item) for item in name)
 
@@ -472,31 +491,31 @@ class PreparedQuery:
     def __init__(self, query, substitutable):
         self.query = query
         self.substitutable = {}
-        
+
         for item in substitutable:
             self.substitutable[item] = item
-    
+
     def substitute(self, substitutes):
         # check to make sure everything that needs to be substituted is present
         for key in self.substitutable:
             if key not in substitutes:
                 return
-        
+
         # make a deep copy of the AST
         query_copy = copy.deepcopy(self.query)
-        
+
         def replace(query, substitutes):
             for i in range(len(query)):
                 element = query[i]
-                
+
                 if isinstance(element, list):
                     replace(element, substitutes)
                 elif element in substitutes:
                     query[i] = str(substitutes[element])
-                    
+
         replace(query_copy, substitutes)
         return query_copy
-    
+
 # TODO: REMOVE -- this function is for sophia's testing purposes and is here because
 # she doesn't want to rewrite this every single time
 import psycopg2
@@ -505,7 +524,7 @@ def visualize_query(sql):
     conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'"
     dmask = DMASK(conn_string, [])
     dmask.set_connection("sophiadmask")
-    
+
     # get_namespace works
     json = dmask.sql_to_json(sql)
     import os.path

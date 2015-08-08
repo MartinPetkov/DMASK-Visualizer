@@ -46,6 +46,8 @@ def flatten(lst):
     return result
 
 def make_column(column_list):
+    if column_list == ["*"]:
+        return column_list
 
     columns = ''
     for item in column_list:
@@ -54,7 +56,10 @@ def make_column(column_list):
     return columns[:-2]
 
 def lst_to_str(lst):
-    return ' '.join(flatten(lst))
+    return ' '.join(clean_lst(flatten(lst)))
+
+def clean_lst(lst):
+    return [e for e in lst if e != ''] # Remove nonexistence elements
 
 
 """ Split a string containing multiple SQL queries into a list of single SQL queries """
@@ -117,12 +122,15 @@ def reorder_sql_statements(sql_statements):
     # TODO: handle union and create view
     return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0].upper()])
 
+
 last_table = ''
 last_executable_sql = ''
-namespace = ''
-
+namespace = []
+schema = {}
 """ Convert a single SQL AST into a list of QueryStep objects """
-def sql_ast_to_steps(ast, schema=''):
+def sql_ast_to_steps(ast, current_schema=''):
+
+    schema = current_schema
 
     steps = []
 
@@ -178,7 +186,7 @@ def parse_sql_query(ast, parent_number=''):
     executable_sql = sql_chunk
 
     query = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
-    if parent_number: 
+    if parent_number:
         steps.append(query)
 
     ast = reorder_sql_statements(ast)
@@ -214,6 +222,8 @@ def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
     return step
 
 def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
+    global namespace
+
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
     if parent_number:
@@ -236,7 +246,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     executable_sql = "SELECT * " + sql_chunk
     last_executable_sql = executable_sql
-    namespace = [] # TODO
+    namespace += get_namespace_from_args(args)
 
     # Create and add the first step
     first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
@@ -249,44 +259,60 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     local_step_number = 1
     substep_number = current_step_number + '.' + str(local_step_number)
+    current_namespace = []
 
     # Create the first substep
     sql_chunk = lst_to_str(args[0])
     combine_sql_chunk = sql_chunk
     executable_sql = "SELECT * FROM " + sql_chunk
     combine_executable_sql = executable_sql
-    output_table_name = extract_from_arg_table_name(args[0])
+
+    full_table_name = extract_from_arg_table_name(args[0])
+    original_table_name = full_table_name.split(' ')[0]
+    output_table_name = full_table_name.split(' ')[-1]
+
     last_from_table = output_table_name
 
+    # The first step is a rename of a subquery
     if(len(args[0]) == 3 and args[0][2] != "ON" and isinstance(args[0][0], list)):
-        # The first step is a rename of a subquery
         subquery = args[0][0]
 
         # Create the top step
         top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
         top_step_executable_sql = lst_to_str(subquery)
-        substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql, namespace)
+        substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql)
         steps.append(substep)
         last_from_table = substep_number
 
         # Gather the subquery steps
+        index_of_new_tables = len(namespace)
         steps.append(parse_sql_query(subquery, substep_number)[1:])
 
         # Advance to the next step on this level
         local_step_number += 1
         substep_number = current_step_number + '.' + str(local_step_number)
 
+
         # Add the separate rename step
         rename_sql_chunk = ' '.join(args[0][1:])
         rename_new_name = args[0][2]
         rename_executable_sql = "SELECT * FROM " + top_step_sql_chunk + ' ' + rename_sql_chunk
-        substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, namespace)
+
+        # Get the namespace after the subquery
+        # Go through all the new namespace tables and collect all of their columns into one
+        subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
+        current_namespace.append((rename_new_name, subquery_cols))
+        namespace = namespace[:index_of_new_tables]
+
+        substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, current_namespace)
         steps.append(substep)
 
         last_from_table = rename_new_name
 
+    # No subquery in the first step
     else:
-        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, namespace)
+        current_namespace += [(output_table_name, schema[original_table_name])]
+        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, [(output_table_name, schema[original_table_name])])
         steps.append(substep)
 
 
@@ -298,47 +324,61 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         local_step_number += 1
         substep_number = current_step_number + '.' + str(local_step_number)
 
+        # Case of a subquery being renamed
         if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and isinstance(from_arg[0], list):
-            # Case of a subquery being renamed
             subquery = from_arg[0]
 
             # Create the top step
             top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
             top_step_executable_sql = lst_to_str(subquery)
-            substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql, namespace)
+            substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql)
             steps.append(substep)
             last_from_table = substep_number
 
             # Gather the subquery steps
+            index_of_new_tables = len(namespace)
             steps.append(parse_sql_query(subquery, substep_number)[1:])
 
             # Advance to the next step on this level
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
 
+
             # Add the separate rename step
             rename_sql_chunk = ' '.join(from_arg[1:])
             rename_new_name = from_arg[2]
             rename_executable_sql = "SELECT * FROM " + top_step_sql_chunk + ' ' + rename_sql_chunk
-            substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, namespace)
+
+            # Get the namespace after the subquery
+            subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
+            current_namespace.append((rename_new_name, subquery_cols))
+            namespace = namespace[:index_of_new_tables]
+
+            substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, current_namespace)
             steps.append(substep)
 
             last_from_table = rename_new_name
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
 
-        else:
-            # Simple table select
 
+        # Case of simple table select
+        else:
             # Step for collecting the new table
-            sql_chunk = lst_to_str(from_arg)
+            sql_chunk = extract_from_arg_table_name(from_arg)
             executable_sql = "SELECT * FROM " + sql_chunk
-            output_table_name = extract_from_arg_table_name(from_arg)
-            substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, namespace)
+
+            full_table_name = extract_from_arg_table_name(from_arg)
+            original_table_name = full_table_name.split(' ')[0]
+            output_table_name = full_table_name.split(' ')[-1]
+
+            current_namespace += [(output_table_name, schema[original_table_name])]
+            substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, [(output_table_name, schema[original_table_name])])
             steps.append(substep)
 
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
+
 
         # Step for joining everything up to this point and this table
         combine_sql_chunk += ' ' + from_connector + ' ' + lst_to_str(from_arg)
@@ -346,12 +386,15 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
 
-        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, namespace)
+        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, current_namespace)
         steps.append(substep)
 
         last_from_table = output_table_name
 
         i += 2 # Going by twos, collecting the connector and the next table
+
+    # Update the global namespace
+    namespace += current_namespace
 
     return steps
 
@@ -360,13 +403,35 @@ def extract_from_arg_table_name(from_arg):
         return from_arg[0]
     elif len(from_arg) == 3:
         if from_arg[1] == 'ON':
-            return from_arg[0]
+            if len(from_arg[0]) == 3:
+                return from_arg[0][0] + ' ' + from_arg[0][2]
+            else:
+                return from_arg[0][0]
         else:
             # If it's a renamed query or table
-            return from_arg[2]
+            if isinstance(from_arg[0], list):
+                return from_arg[2]
+            else:
+                return from_arg[0] + ' ' + from_arg[2]
 
     # Not correctly parsable
     return ''
+
+def get_namespace_from_args(from_args):
+    i = 0
+    extracted_namespace = []
+    while i < len(from_args):
+        from_arg = from_args[i]
+        table_names = extract_from_arg_table_name(from_arg)
+        new_name = table_names.split(' ')[-1]
+        schema_table = table_names.split(' ')[0]
+
+        if schema_table in schema:
+            extracted_namespace.append((new_name, schema[schema_table]))
+
+        i += 2
+
+    return extracted_namespace
 
 
 def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
@@ -418,6 +483,8 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO:
     # - namespace
 
+    global namespace
+
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
@@ -432,14 +499,76 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     prev_step_number = parent_number + str(int(step_number) - 1)
     input_tables = [str(prev_step_number)]
     result_table = current_step_number
-    namespace = ''
 
     prev_step = prev_steps[-1]
 
     # Check if selecting DISTINCT
 
-    sql_chunk = 'SELECT ' + make_column(ast_node[-1])
+    column_list = ast_node[-1]
+    column_string = make_column(column_list)
+    sql_chunk = 'SELECT ' + column_string
     executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
+
+    # TODO: Go through the list of columns and modify the namespace if needed
+    # Go through existing tables and do three things:
+    #   1. Modify names of existing columns if renamed
+    #   2. Remove columns that weren't selected
+    #   3. Add new columns (i.e. static ones, combined ones)
+    if column_list != ["*"]:
+        namespace.append(('',[])) # Empty tuple for collecting columns not associated with any table
+        final_cols = {} # Use to remove any columns that were not selected
+
+        for col in column_list:
+            equation_or_old_col = col[0]
+            final_col_name = ''
+            if len(col) == 3:
+                final_col_name = col[2]
+            else:
+                final_col_name = col[0]
+
+            table_name = None
+            start_name = equation_or_old_col
+            if isinstance(equation_or_old_col, list):
+                start_name = lst_to_str(equation_or_old_col)
+            elif '.' in equation_or_old_col:
+                table_name = equation_or_old_col.split('.')[0]
+                start_name = equation_or_old_col.split('.')[1:]
+
+            if table_name:
+                final_cols[table_name] = final_cols[table_name].append(final_col_name) if table_name in final_cols else [final_col_name]
+
+            # Go through the existing namespace and perform steps 1 and 3
+            for i in range(len(namespace)):
+                table = namespace[i][0]
+                cols = namespace[i][1]
+
+                # Independent columns
+                if table == '':
+                    namespace[i][1].append(final_col_name)
+
+                # Either match the table name, or look for the column in the table name
+                # This works because ambiguous column names must be differentiated using the table name
+                if (not table_name or table == table_name) and (start_name in cols):
+                    # Replace the old column name with the new column name, if there is a new column name
+                    namespace[i][1][cols.index(start_name)] = final_col_name
+                    final_cols[table] = final_cols[table] + [final_col_name] if table in final_cols else [final_col_name]
+
+                    # A column should only match on one table
+                    break
+
+        # Filter out all the columns that weren't selected
+        for i in range(len(namespace)):
+            table = namespace[i][0]
+            cols = namespace[i][1] # Remove the table prefixes
+
+            if table in final_cols:
+                keep_cols = final_cols[table]
+                namespace[i] = (namespace[i][0], [c for c in cols if c in keep_cols])
+
+        # Remove the independent columns if there are none
+        if not namespace[-1][1]:
+            namespace = namespace[:-1]
+
 
     select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(select_step)

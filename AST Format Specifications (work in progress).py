@@ -29,7 +29,8 @@ LEGEND:
 
 
 # For SELECT
-<select_arg>        = ['col_name']
+<select_arg>        = ["*"]
+                        |   ['col_name']
                         |   [ ('col_name'
                             | <col_equation>
                             | <aggregate_fn>
@@ -48,7 +49,7 @@ LEGEND:
 # For FROM
 <from_arg>          = ['table_name']
                         |   [ ('table_name' | <sql_query>), <as>, 'new_name']
-                        |   [ 'table_name', 'ON', <reason> ]
+                        |   [ ['table_name' (, <as>, 'new_name')?], 'ON', <reason> ]
 
 <from_connector>    = ","
                         | ("NATURAL"
