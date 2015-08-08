@@ -707,7 +707,6 @@ def parse_create_view(ast_node, step_number=''):
     query = parse_sql_query(ast_node[-1], current_step_number + '.1')
     steps += query
 
-
     current_step_number += '.2'
     last_query_step_number = [query[-1].result_table]
     create_view_sub_step = QueryStep(current_step_number, sql_chunk, last_query_step_number, result_table, executable_sql)

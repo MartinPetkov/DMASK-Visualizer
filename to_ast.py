@@ -263,7 +263,7 @@ subquery        <<   Optional(Suppress("(")) + Group(sqlStmt) + Optional(Suppres
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 
                     + Optional(AS) 
-                    + subquery
+                    + query
                     )
 
 setOp           <<  (operatorPrecedence(
