@@ -696,7 +696,9 @@ def parse_create_view(ast_node, step_number=''):
     sql_chunk = lst_to_str(ast_node)
 
     input_tables = []
-    result_table = current_step_number
+
+    result_table = ast_node[1]
+
     executable_sql = sql_chunk
 
     create_view_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
