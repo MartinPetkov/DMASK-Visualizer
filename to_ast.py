@@ -258,7 +258,7 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     )
 
 
-subquery        <<   Suppress("(") + Group(sqlStmt) + Suppress(")")
+subquery        <<   Optional(Suppress("(")) + Group(sqlStmt) + Optional(Suppress(")"))
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 

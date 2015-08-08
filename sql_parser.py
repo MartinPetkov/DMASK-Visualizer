@@ -9,6 +9,7 @@ import re
 
 import pdb
 from pprint import pprint
+import pyparsing
 
 # Used for a custom sorting function
 SQL_EXEC_ORDER = {
@@ -250,7 +251,6 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     executable_sql = "SELECT * " + sql_chunk
     last_executable_sql = executable_sql
     namespace += get_namespace_from_args(args)
-
     # Create and add the first step
     first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(first_step)
@@ -306,7 +306,6 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
         current_namespace.append((rename_new_name, subquery_cols))
         namespace = namespace[:index_of_new_tables]
-
         substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, current_namespace)
         steps.append(substep)
 
@@ -356,7 +355,6 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
             current_namespace.append((rename_new_name, subquery_cols))
             namespace = namespace[:index_of_new_tables]
-
             substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, current_namespace)
             steps.append(substep)
 
@@ -397,7 +395,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         i += 2 # Going by twos, collecting the connector and the next table
 
     # Update the global namespace
-    namespace += current_namespace
+    namespace = current_namespace
 
     return steps
 
@@ -487,10 +485,8 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     # - namespace
 
     global namespace
-
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
-
     if len(ast_node) < 1:
         print("No arguments to SELECT clause")
         return
@@ -509,21 +505,20 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     prev_step = prev_steps[-1]
 
     # Check if selecting DISTINCT
-
+    print(prev_steps)
     column_list = ast_node[-1]
     column_string = make_column(column_list)
     sql_chunk = 'SELECT ' + column_string
     executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
-
     # TODO: Go through the list of columns and modify the namespace if needed
     # Go through existing tables and do three things:
     #   1. Modify names of existing columns if renamed
     #   2. Remove columns that weren't selected
     #   3. Add new columns (i.e. static ones, combined ones)
+    current_namespace = namespace[:]
     if column_list != ["*"]:
-        namespace.append(('',[])) # Empty tuple for collecting columns not associated with any table
+        current_namespace.append(('',[])) # Empty tuple for collecting columns not associated with any table
         final_cols = {} # Use to remove any columns that were not selected
-
         for col in column_list:
             equation_or_old_col = col[0]
             final_col_name = ''
@@ -534,50 +529,54 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
             table_name = None
             start_name = equation_or_old_col
-            if isinstance(equation_or_old_col, list):
+
+            if isinstance(equation_or_old_col, pyparsing.ParseResults):
                 start_name = lst_to_str(equation_or_old_col)
+                final_col_name = start_name
             elif '.' in equation_or_old_col:
                 table_name = equation_or_old_col.split('.')[0]
                 start_name = equation_or_old_col.split('.')[1:]
 
             if table_name:
-                final_cols[table_name] = final_cols[table_name].append(final_col_name) if table_name in final_cols else [final_col_name]
+
+                if table_name in final_cols:
+                    final_cols[table_name].append(final_col_name)
+                else:
+                    final_cols[table_name] = [final_col_name]
 
             # Go through the existing namespace and perform steps 1 and 3
-            for i in range(len(namespace)):
-                table = namespace[i][0]
-                cols = namespace[i][1]
+            for i in range(len(current_namespace)):
+                table = current_namespace[i][0]
+                cols = current_namespace[i][1]
 
                 # Independent columns
                 if table == '':
-                    namespace[i][1].append(final_col_name)
+                    current_namespace[i][1].append(final_col_name)
 
                 # Either match the table name, or look for the column in the table name
                 # This works because ambiguous column names must be differentiated using the table name
                 if (not table_name or table == table_name) and (start_name in cols):
                     # Replace the old column name with the new column name, if there is a new column name
-                    namespace[i][1][cols.index(start_name)] = final_col_name
+                    current_namespace[i][1][cols.index(start_name)] = final_col_name
                     final_cols[table] = final_cols[table] + [final_col_name] if table in final_cols else [final_col_name]
 
                     # A column should only match on one table
                     break
-
         # Filter out all the columns that weren't selected
-        for i in range(len(namespace)):
-            table = namespace[i][0]
-            cols = namespace[i][1] # Remove the table prefixes
+        for i in range(len(current_namespace)):
+            table = current_namespace[i][0]
+            cols = current_namespace[i][1] # Remove the table prefixes
 
             if table in final_cols:
                 keep_cols = final_cols[table]
-                namespace[i] = (namespace[i][0], [c for c in cols if c in keep_cols])
+                current_namespace[i] = (current_namespace[i][0], [c for c in cols if c in keep_cols])
 
         # Remove the independent columns if there are none
-        if not namespace[-1][1]:
-            namespace = namespace[:-1]
-
-
-    select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
+        if current_namespace:
+            current_namespace = [x for x in current_namespace if x[1] != []]
+    select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, current_namespace)
     steps.append(select_step)
+    namespace = current_namespace[:]
 
     return steps
 
