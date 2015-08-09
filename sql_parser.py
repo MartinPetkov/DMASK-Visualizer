@@ -513,18 +513,23 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
     # TODO: Go through the list of columns and modify the namespace if needed
     # Go through existing tables and do three things:
-    #   1. Modify names of existing columns if renamed
+    #   1. Modify names of existing columns if renamed 
     #   2. Remove columns that weren't selected
-    #   3. Add new columns (i.e. static ones, combined ones)
+    #       a. If table matches, remove columns not selected
+    #       b. If table not matched, remove all columns
+    #   3. Add new columns (i.e. static ones, combined ones, col ops)
+
+    # Create copy of namespace
     current_namespace = namespace[:]
-    if column_list != ["*"]:
-        current_namespace.append(('',[])) # Empty tuple for collecting columns not associated with any table
-        final_cols = {} # Use to remove any columns that were not selected
+    if column_list[0] != "*":
+        current_namespace.append(('', [])) # Empty tuple for collecting columns not associated with any table
+        final_cols = {} # Used to remove any columns that were not selected
+
         for col in column_list:
             equation_or_old_col = col[0]
             final_col_name = ''
             if len(col) == 3:
-                final_col_name = col[2]
+                final_col_name = col[-1]
             else:
                 final_col_name = col[0]
 
@@ -538,23 +543,23 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 table_name = equation_or_old_col.split('.')[0]
                 start_name = equation_or_old_col.split('.')[1:]
 
+            # If table name is prefixed add to final_cols
             if table_name:
-
                 if table_name in final_cols:
                     final_cols[table_name].append(final_col_name)
                 else:
                     final_cols[table_name] = [final_col_name]
 
-            # Go through the existing namespace and perform steps 1 and 3
+            # Go through existing namespace and perform steps 1 and 3
             for i in range(len(current_namespace)):
                 table = current_namespace[i][0]
                 cols = current_namespace[i][1]
 
                 # Independent columns
                 if table == '':
-                    current_namespace[i][1].append(final_col_name)
+                    cols.append(final_col_name)
 
-                # Either match the table name, or look for the column in the table name
+                # Either match the table name or look for the column in the table name
                 # This works because ambiguous column names must be differentiated using the table name
                 if (not table_name or table == table_name) and (start_name in cols):
                     # Replace the old column name with the new column name, if there is a new column name
@@ -563,6 +568,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
                     # A column should only match on one table
                     break
+
         # Filter out all the columns that weren't selected
         for i in range(len(current_namespace)):
             table = current_namespace[i][0]
@@ -571,10 +577,13 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
             if table in final_cols:
                 keep_cols = final_cols[table]
                 current_namespace[i] = (current_namespace[i][0], [c for c in cols if c in keep_cols])
+        
 
         # Remove the independent columns if there are none
         if current_namespace:
-            current_namespace = [x for x in current_namespace if x[1] != []]
+            current_namespace = [x for x in current_namespace if x[1] != [] and (x[0] == '' or x[0] in final_cols)]
+
+
     select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, current_namespace)
     steps.append(select_step)
     namespace = current_namespace[:]
