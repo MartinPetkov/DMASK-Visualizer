@@ -59,7 +59,8 @@ class DMASK:
         for query in queries:
             ast = sql_parser.sql_to_ast(query).asList()
             base_tables = self.base_tables.copy()
-            steps = sql_parser.sql_ast_to_steps(ast, self.base_tables)
+            # ERROR IN SQL_PARSER: steps can included a nested list -- temporary fix: Flatten list
+            steps = flatten_list(sql_parser.sql_ast_to_steps(ast, self.base_tables))
             tables = self.steps_to_tables(steps)
             parsed_query = ParsedQuery(steps, tables, query, base_tables)
             json_queries.append(parsed_query.to_json())
@@ -96,6 +97,9 @@ class DMASK:
         cursor = self.cursor;
         
         view_made = False
+        # ERROR IN SQL_PARSER: steps can included a nested list -- temporary fix: Flatten list
+        steps = flatten_list(steps)
+        
         for step in steps:
             if str(step.result_table) not in tables:
                 # Get the table name (table name matches FROM statement of the executable)
@@ -170,11 +174,7 @@ def conditions_helper(ast):
     for item in ast:
         if isinstance(item, list):
             if isinstance(item[0], str):
-                sq = find_subqueries(item)
-                key = " ".join(flatten_list(item))
-                for subquery in sq:
-                    subquery_string = " ".join(flatten_list(subquery))
-                    key = key.replace(subquery_string, "("+subquery_string+")")
+                (key, sq) = flatten_ast_to_string(item)
 
                 conditions.append(key)
 
@@ -188,20 +188,38 @@ def conditions_helper(ast):
 
     return (conditions, subqueries)
 
+def flatten_ast_to_string(item):
+    # Given part of an AST, search for subqueries and return the flattened
+    # expression with appropriate bracketing (as well as the ASTs of the subqueries)
+    
+    sq = find_subqueries(item)
+    for s in sq:
+        if (sq.count(s) > 1):
+            sq.remove(s)
+    
+    key = " ".join(flatten_list(item))
+    for subquery in sq:
+        subquery_string = " ".join(flatten_list(subquery))
+        key = key.replace(subquery_string, "("+subquery_string+")")    
+    return (key, sq)
+
 def find_subqueries(ast):
-    # Given a WHERE condition, locates a subquery
+    # Given a list, return all subqueries found in the AST
     subqueries = []
-    if (len(ast) == 1 and isinstance(ast, list)):
-        ast = ast[0]
+    
+    # Given an AST, locates every subquery
+    if (isinstance(ast[0], list) and ast[0][0] == "SELECT"):
+        subqueries.append(ast)
+    
     for item in ast:
-        if isinstance(item, list):
-            subqueries.append(item)
-            # Find the WHERE clause of the subquery if it exists and recursively
-            # find the next subquery
-            for token in item:
-                if token[0].lower() == "where":
-                    subqueries.extend(find_subqueries(token[1]))
-            return subqueries
+        if isinstance(item, list): # Possible the AST [["SELECT", [...]], ...]
+            first_child = item[0]   # Possibly the list ["SELECT", [...]]
+            if isinstance(first_child, list):
+                maybe_select = first_child[0]
+                if maybe_select == "SELECT":
+                    subqueries.append(item)
+            subqueries.extend(find_subqueries(item))
+    return subqueries
 
 def get_reasons(conditions, subqueries, input_step, tables, dmask):
     # Given a list of conditions, subqueries, the input step and dmask object,
@@ -244,7 +262,6 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
 
             # Check if the subquery is correlated
             correlated = get_correlated_elements(subquery, dmask)
-            print(correlated)
 
             if correlated:
                 # If it is, prepare it for substitution for execution at each row
@@ -253,7 +270,11 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 # If it's not, execute the subquery and store it in the reasons[0]
                 steps = sql_parser.sql_ast_to_steps(subquery, dmask.base_tables)
                 tables = dmask.steps_to_tables(steps)
-                parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(subquery)), base_tables = dmask.base_tables)
+                name = flatten_ast_to_string(subquery)[0]
+                if name[0] == "(":
+                    name = name[1:-1]
+                name += ";"
+                parsed_query = ParsedQuery(steps, tables, name, base_tables = dmask.base_tables)
                 reasons[0].subqueries[condition] = parsed_query
 
         # Go through each row and add a reason
@@ -393,12 +414,15 @@ def get_namespace(subquery, dmask):
                 item = item[0]
             name = item[0]
             alias = item[-1]
+            # If there's a subquery, bracket the name and add the alis
+            if isinstance(name, list):
+                name = flatten_ast_to_string(name)[0] + " " + alias
             tables.append((name, alias))
-
-    main_table = " ".join(flatten_list(from_clause))
-
+    
+    main_table = flatten_ast_to_string(from_clause)[0]
+    
     namespace = [[column] for column in get_columns("SELECT * FROM " + main_table, dmask)]
-
+    
     # Traverse the list of tables, adding all of the columns to the namespace
     for table in tables:
         columns = get_columns("SELECT * FROM " + table[0], dmask)

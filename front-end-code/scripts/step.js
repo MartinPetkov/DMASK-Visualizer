@@ -1,6 +1,6 @@
 function Step(s, query){
     this.stepnumber = s.step_number;
-    this.sql = s.sql_chunk;
+    this.sql = s.sql_chunk.replace(/\n/g, "<br />");
     this.input_ids = s.input_tables;
     this.reasons = s.reasons;
     this.namespace = s.namespace;

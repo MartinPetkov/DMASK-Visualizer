@@ -1,5 +1,5 @@
 function Query(steps, tables, query_text, query_number, base_tables){
-    this.query_text = query_text;
+    this.query_text = query_text.replace(/\n/g, "<br />");
     this.base_tables = base_tables;
     this.steps_dictionary = this.addStepsToDictionary(steps);
     this.step_keys = Object.keys(this.steps_dictionary).sort();
