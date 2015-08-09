@@ -170,17 +170,17 @@ def conditions_helper(ast):
     for item in ast:
         if isinstance(item, list):
             if isinstance(item[0], str):
-                subquery = find_subquery(item)
-
+                sq = find_subqueries(item)
                 key = " ".join(flatten_list(item))
-                if subquery:
+                for subquery in sq:
                     subquery_string = " ".join(flatten_list(subquery))
                     key = key.replace(subquery_string, "("+subquery_string+")")
 
                 conditions.append(key)
 
-                if subquery:
-                    subqueries[key] = subquery
+                if sq:
+                    subqueries[key] = sq[0]
+                
             else:
                 results = conditions_helper(item)
                 conditions.extend(results[0])
@@ -188,16 +188,24 @@ def conditions_helper(ast):
 
     return (conditions, subqueries)
 
-def find_subquery(ast):
+def find_subqueries(ast):
     # Given a WHERE condition, locates a subquery
+    subqueries = []
+    if (len(ast) == 1 and isinstance(ast, list)):
+        ast = ast[0]
     for item in ast:
         if isinstance(item, list):
-            return item
+            subqueries.append(item)
+            # Find the WHERE clause of the subquery if it exists and recursively
+            # find the next subquery
+            for token in item:
+                if token[0].lower() == "where":
+                    subqueries.extend(find_subqueries(token[1]))
+            return subqueries
 
 def get_reasons(conditions, subqueries, input_step, tables, dmask):
     # Given a list of conditions, subqueries, the input step and dmask object,
     # return the Reasons
-
     input_query = input_step.executable_sql
     input_table = tables[input_step.result_table]
     input_tuples = input_table.tuples
@@ -214,7 +222,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
     # Execute all of the conditions
     for condition in conditions:
         reasons[0].conditions_matched.append(condition)
-
+    
         condition_sql = input_query.strip(';') + " WHERE " + condition
 
         # Execute the query
@@ -236,6 +244,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
 
             # Check if the subquery is correlated
             correlated = get_correlated_elements(subquery, dmask)
+            print(correlated)
 
             if correlated:
                 # If it is, prepare it for substitution for execution at each row
@@ -321,13 +330,12 @@ def find_attributes(query):
 
     # DOES NOT HANDLE SUBQUERIES -- Subqueries would need to be handled recursively
     query = query[:]
-
     # Remove the FROM clause
     for i in range(len(query)):
         if query[i][0].lower() == "from":
             query.pop(i)
             break
-
+    
     attributes = remove_keywords(flatten_list(query))
     return attributes
 
@@ -352,7 +360,7 @@ def is_keyword(string):
                 "BETWEEN", "JOIN", "NATURAL JOIN", ",", "EXCEPT", "EQUALS",
                 "IN", "MIN", "MAX", "COUNT", "LEFT JOIN", "RIGHT JOIN",
                 "LEFT INNER JOIN", "LEFT OUTER JOIN", "RIGHT INNER JOIN",
-                "RIGHT OUTER JOIN"]
+                "RIGHT OUTER JOIN", "EXISTS"]
 
     # If subqueries are handled recursively, then none of the 'from clause' keywords
     # has to be mentioned
@@ -458,9 +466,12 @@ def get_table_name(exsqltable):
                     else:
                         name.append(token)
                 elif isinstance(token, list):
-                    # For the elements following ON/USING keywords, flatten them and add it to name
-                    flattened = flatten_list(token)
-                    name.extend(flattened)
+                    if 'ON' in token or 'USING' in token:
+                        # For the elements following ON/USING keywords, flatten them and add it to name
+                        flattened = flatten_list(token)
+                        name.extend(flattened)
+                    else:
+                        name.append(token[-1])
 
             # Return a string joined by whitespace
             return " ".join(str(item) for item in name)

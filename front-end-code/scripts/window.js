@@ -41,7 +41,7 @@ Window.prototype.generateElemID = function(elem_class){
 }
 
 function openModalWindow(prefix){
-    var new_window = new Window(prefix, "modal", current_window);
+    var new_window = new Window(prefix, "modal-"+generateModalNumber(), current_window);
     var shadow = $("<div>", {id:new_window.generateElemID("shadow"), class: "shadow"});
     var old = $("#" + current_window.generateElemID("bodybag"));
     old.append(shadow);
@@ -58,3 +58,8 @@ function closeModalWindow(){
     sizeContent();
 }
 
+var modal_index = 0;
+function generateModalNumber(){
+    modal_index += 1;
+    return modal_index;
+}
