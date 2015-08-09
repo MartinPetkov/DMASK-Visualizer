@@ -43,8 +43,9 @@ if __name__ == "__main__":
 	n = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join Offering natural join Student where surname = "Lakemeyer")')
 	o = ast('select instructor from Offering Off1 where not exists (select * from Offering where oid <> Off1.oid and instructor = Off1.instructor)')
 	p = ast('(select sid from Student) union (select sid from Took) order by firstName')
+	q = ast('select distinct sid, dept || cnum as course, count(grade), (select max(sid) from Took) maxsid from Took, Offering where sid > 0 group by sid having count(grade) > 0 order by sid limit 5')
 
-	x = sql_ast_to_steps(a, schema)
+	x = sql_ast_to_steps(l, schema)
 	printout(x)
 	'''
 	# ======== TESTING PARSE_WHERE AND PARSE_GROUP_BY ==========

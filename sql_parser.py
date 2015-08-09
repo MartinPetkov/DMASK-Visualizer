@@ -534,17 +534,14 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
             if len(col) == 3:
                 final_col_name = col[-1]
-            else:
-                final_col_name = start_name
 
-            if isinstance(start_name, pyparsing.ParseResults):
-                start_name = lst_to_str(start_name)
+            if not final_col_name:
+                if isinstance(start_name, pyparsing.ParseResults):
+                    start_name = lst_to_str(start_name)
                 final_col_name = start_name
-                print(final_col_name)
             elif '.' in start_name:
                 table_name = start_name.split('.')[0]
                 start_name = start_name.split('.')[1:]
-
 
             # If table name is prefixed add to final_cols
             if table_name:
@@ -561,14 +558,13 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 # Independent columns
                 if table == '':
                     cols.append(final_col_name)
-
+                    
                 # Either match the table name or look for the column in the table name
                 # This works because ambiguous column names must be differentiated using the table name
-                if (not table_name or table == table_name) and (start_name in cols):
+                if (not table_name or table == table_name) and (final_col_name in cols):
                     # Replace the old column name with the new column name, if there is a new column name
-                    current_namespace[i][1][cols.index(start_name)] = final_col_name
+                    current_namespace[i][1][cols.index(final_col_name)] = final_col_name
                     final_cols[table] = final_cols[table] + [final_col_name] if table in final_cols else [final_col_name]
-
                     # A column should only match on one table
                     break
 
@@ -580,7 +576,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
             if table in final_cols:
                 keep_cols = final_cols[table]
                 current_namespace[i] = (current_namespace[i][0], [c for c in cols if c in keep_cols])
-        
+                    
 
         # Remove the independent columns if there are none
         if current_namespace:

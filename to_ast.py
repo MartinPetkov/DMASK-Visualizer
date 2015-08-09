@@ -130,10 +130,10 @@ aggregatefns    =   (Combine(Word(alphas) + ("(") + token + (")")))
 columnRval      =   (realNum | intNum | quotedString | posParam | aggregatefns | token)
 
 tokenObs        =   Group(
-                    (Group(columnRval + (COLOPS) + columnRval) | columnRval)
-                    + Optional((COLOPS) + columnRval)
-                    + Optional((AS | space) + token)
-                    | (subquery + Optional((AS| space) + token))
+                        (Group(columnRval + COLOPS + columnRval) | columnRval)
+                        + Optional(COLOPS + columnRval)
+                        + Optional((AS | space) + token)
+                        | (subquery + Optional((AS | space) + token))
                     )
 
 tokenList       =   delimitedList(tokenObs)
@@ -258,7 +258,11 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     )
 
 
-subquery        <<   Optional(Suppress("(")) + Group(sqlStmt) + Optional(Suppress(")"))
+subquery        <<  (Optional(Suppress("(")) 
+                    + Group(sqlStmt) 
+                    + Optional(Suppress(")"))
+                    )
+
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 
