@@ -44,7 +44,7 @@ if __name__ == "__main__":
 	o = ast('select instructor from Offering Off1 where not exists (select * from Offering where oid <> Off1.oid and instructor = Off1.instructor)')
 	p = ast('(select sid from Student) union (select sid from Took) order by firstName')
 
-	x = sql_ast_to_steps(c, schema)
+	x = sql_ast_to_steps(a, schema)
 	printout(x)
 	'''
 	# ======== TESTING PARSE_WHERE AND PARSE_GROUP_BY ==========

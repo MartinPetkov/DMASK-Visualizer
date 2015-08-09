@@ -375,8 +375,9 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             original_table_name = full_table_name.split(' ')[0]
             output_table_name = full_table_name.split(' ')[-1]
 
-            current_namespace += [(output_table_name, schema[original_table_name])]
-            substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, [(output_table_name, schema[original_table_name])])
+            this_namespace = [(output_table_name, schema[original_table_name])]
+            current_namespace += this_namespace
+            substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace)
             steps.append(substep)
 
             local_step_number += 1
@@ -389,7 +390,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
 
-        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, current_namespace)
+        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, current_namespace[:])
         steps.append(substep)
 
         last_from_table = output_table_name
@@ -639,9 +640,8 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     input_tables = []
     result_table = current_step_number
     executable_sql = sql_chunk
-    namespace = []
 
-    union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
+    union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
     steps.append(union_step)
 
     query1 = parse_sql_query(ast_node[1], input_num1)
@@ -721,8 +721,8 @@ def parse_create_view(ast_node, step_number=''):
     result_table = ast_node[1]
 
     executable_sql = sql_chunk
-
-    create_view_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    namespace = [(result_table, [])]
+    create_view_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(create_view_step)
 
     query = parse_sql_query(ast_node[-1], current_step_number + '.1')
@@ -730,7 +730,14 @@ def parse_create_view(ast_node, step_number=''):
 
     current_step_number += '.2'
     last_query_step_number = [query[-1].result_table]
-    create_view_sub_step = QueryStep(current_step_number, sql_chunk, last_query_step_number, result_table, executable_sql)
+
+    # Replace namespace table with view name
+    last_query_namespace = query[-1].namespace
+    for name in last_query_namespace:
+        namespace[0][1].extend(name[1])
+
+
+    create_view_sub_step = QueryStep(current_step_number, sql_chunk, last_query_step_number, result_table, executable_sql, namespace)
     steps.append(create_view_sub_step)
 
     return steps
