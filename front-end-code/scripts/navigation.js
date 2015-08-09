@@ -7,7 +7,7 @@ function stepOut(){
         return;
     } else {
         var current_step = current_window.current_step;
-        var current_query_number = readStepID(step_id)[0];
+        var current_query_number = parseInt(readStepID(step_id)[0]);
         var step_keys = current_step.query.step_keys;
         
         // get the index of the current step in the step_keys dictionary
@@ -26,7 +26,8 @@ function stepOut(){
         index = query_index[1];
 
         var query = current_window.queries[current_query_number];
-        query.steps_dictionary[query.step_keys[index - 1]].loadStep();
+        if (query)
+            query.steps_dictionary[query.step_keys[index - 1]].loadStep();
     }
 }
 
@@ -39,7 +40,7 @@ function stepBack(){
         return;
     } else {
         var current_step = current_window.current_step;
-        var current_query_number = readStepID(step_id)[0];
+        var current_query_number = parseInt(readStepID(step_id)[0]);
         var step_keys = current_step.query.step_keys;
         
         // get the index of the current step in the step_keys dictionary
@@ -47,7 +48,7 @@ function stepBack(){
 
         // if the initial step is the first part of a nested step (ex. 2.1.)
         // step out of the nested component and go to the next one on the same level
-        if (hasNested(step_keys, index - 1) && differentLevels(step_keys, index, index - 1)){
+        if (index > 1 && hasNested(step_keys, index - 1) && differentLevels(step_keys, index, index - 1)){
             while (index > 1 && hasNested(step_keys, index - 1)){
                 index -= 1;
             }
@@ -67,7 +68,8 @@ function stepBack(){
         index = query_index[1];
 
         var query = current_window.queries[current_query_number];
-        query.steps_dictionary[query.step_keys[index - 1]].loadStep();
+        if (query)
+            query.steps_dictionary[query.step_keys[index - 1]].loadStep();
     }
 }
 
@@ -82,7 +84,7 @@ function stepNext(){
         return;
     } else {
         var current_step = current_window.current_step;
-        var current_query_number = readStepID(step_id)[0];
+        var current_query_number = parseInt(readStepID(step_id)[0]);
         var step_keys = current_step.query.step_keys;
         
         // get the index of the current step in the step_keys dictionary
@@ -94,6 +96,8 @@ function stepNext(){
             while (index < step_keys.length - 1 && differentLevels(step_keys, initial, index + 1)){
                 index += 1;
             }
+            if (nestedInside(step_keys, index, initial))
+                initial = index;
         }
 
         // if there's no next step, then move to the next query
@@ -103,7 +107,8 @@ function stepNext(){
         }
 
         var query = current_window.queries[current_query_number];
-        query.steps_dictionary[query.step_keys[index + 1]].loadStep();
+        if (query)
+            query.steps_dictionary[query.step_keys[index + 1]].loadStep();
     }
 }
 
@@ -118,7 +123,7 @@ function stepIn(){
         return;
     } else {
         var current_step = current_window.current_step;
-        var current_query_number = readStepID(step_id)[0];
+        var current_query_number = parseInt(readStepID(step_id)[0]);
         var step_keys = current_step.query.step_keys;
         
         // get the index of the current step in the step_keys dictionary
@@ -126,8 +131,15 @@ function stepIn(){
         
         // if there's no next step, then move to the next query
         if (step_keys[index + 1] == undefined){
-            index = -1;
+            index = 0;
             current_query_number += 1;
+            
+            // Traverse into the innermost first step
+            var next_query = current_window.queries[current_query_number].step_keys;
+            
+            while (index < next_query.length - 1 && hasNested(next_query, index + 1)){
+                   index += 1;
+               }
         } else {
             while (index < step_keys.length - 1 && hasNested(step_keys, index + 1)){
                 index += 1;
@@ -135,7 +147,8 @@ function stepIn(){
         }
         
         var query = current_window.queries[current_query_number];
-        query.steps_dictionary[query.step_keys[index + 1]].loadStep();
+        if (query)
+            query.steps_dictionary[query.step_keys[index + 1]].loadStep();
     }
 }
 
@@ -174,7 +187,7 @@ function isLastStep(step_id){
 }
 
 function previousHelper(step_keys, initial, index, current_query_number){
-    if (nestedInside(step_keys, initial, index) || (index == 1 && nestedInside(step_keys, initial, 0))){
+    if ((initial == index && initial == 0) || nestedInside(step_keys, initial, index) || (index == 1 && nestedInside(step_keys, initial, 0))){
         index = 0;
         if (current_query_number > 0){
             // move to the last step in the previous query

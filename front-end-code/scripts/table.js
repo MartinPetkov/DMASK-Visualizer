@@ -14,7 +14,7 @@ function Table(t, query){
 Table.prototype.generateHovertext = function(query){
     var hovertext;
     if (query.step_keys.indexOf(this.id) > -1)
-        hovertext = "Table " + this.id + ". " + query.steps_dictionary[this.id].sql;
+        hovertext = this.id + ". " + query.steps_dictionary[this.id].sql;
     else
         hovertext = this.id;
 

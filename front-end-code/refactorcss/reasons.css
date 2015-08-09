@@ -1,5 +1,6 @@
 .subquery {
     text-decoration:underline;
+    cursor: pointer;
 }
 
 #tooltip {

@@ -58,9 +58,10 @@ class DMASK:
         
         for query in queries:
             ast = sql_parser.sql_to_ast(query).asList()
+            base_tables = self.base_tables.copy()
             steps = sql_parser.sql_ast_to_steps(ast, self.base_tables)
             tables = self.steps_to_tables(steps)
-            parsed_query = ParsedQuery(steps, tables, query)
+            parsed_query = ParsedQuery(steps, tables, query, base_tables)
             json_queries.append(parsed_query.to_json())
 
         return json_queries
@@ -243,7 +244,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 # If it's not, execute the subquery and store it in the reasons[0]
                 steps = sql_parser.sql_ast_to_steps(subquery, dmask.base_tables)
                 tables = dmask.steps_to_tables(steps)
-                parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(subquery)))
+                parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(subquery)), base_tables = dmask.base_tables)
                 reasons[0].subqueries[condition] = parsed_query
 
         # Go through each row and add a reason
@@ -267,11 +268,12 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
 
                 # Substitute them in the query
                 substituted_subquery = pq.substitute(substitutes)
-
-                # Create the parsed query
-                steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.base_tables)
-                tables = dmask.steps_to_tables(steps)
-                parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)))
+                parsed_query = None
+                if substituted_subquery:
+                    # Create the parsed query
+                    steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.base_tables)
+                    tables = dmask.steps_to_tables(steps)
+                    parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)), base_tables = dmask.base_tables)
 
             # If the input tuple is in the returned list of tuples, it passed the condition
             kept = input_tuples[i] in tuples
@@ -286,7 +288,8 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 # If there was a correlated subquery, add the parsed query and, if the condition
                 # passed, add it to the list of passed subqueries
                 if correlated:
-                    reasons[i+1].subqueries[condition] = parsed_query
+                    if parsed_query:
+                        reasons[i+1].subqueries[condition] = parsed_query
                     if kept:
                         reasons[i+1].passed_subqueries.append(condition)
     return reasons
@@ -444,30 +447,20 @@ def get_table_name(exsqltable):
             # The second element in the node [FROM, [...]] holds the table's name
             from_ast = node[1]
             name = []
-            on_using = False
 
             # Traverse each token in the FROM query
             for token in from_ast:
                 # If it's a string, then it's either a keyword or table name, unless it follows the ON or USING keywords
-                if isinstance(token, str) and not on_using:
+                if isinstance(token, str):
                     # If the token is a "," (JOIN) add it to the previous token
                     if token.strip() == ",":
                         name[-1] = str(name[-1]) + ","
                     else:
                         name.append(token)
-                    if token.lower() in ["on", "using"]:
-                        on_using = True
-                elif not on_using:
-                    # If it's an array, then the last token in it is the name (as in the case of ["Student", "AS", "s1"])
-                    name.append(token[-1])
-                else:
+                elif isinstance(token, list):
                     # For the elements following ON/USING keywords, flatten them and add it to name
-                    if isinstance(token, list):
-                        flattened = flatten_list(token)
-                        name.extend(flattened)
-                    else:
-                        name.append(token)
-                    on_using = False
+                    flattened = flatten_list(token)
+                    name.extend(flattened)
 
             # Return a string joined by whitespace
             return " ".join(str(item) for item in name)
@@ -543,6 +536,10 @@ def visualize_query(sql):
     # get_namespace works
     json = ""
     json = dmask.sql_to_json(sql)
+    
+    # nothing gets commited -- closing the connection will prevent hanging
+    dmask.connection.close()
+    
     import os.path
     f = open("front-end-code/template.html")
     copy = f.readlines()

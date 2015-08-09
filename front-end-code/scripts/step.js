@@ -81,6 +81,9 @@ Step.prototype.loadStep = function(){
     // update the namespace
     updateNamespace(this);
 
+    // update the Tables and Views
+    updateStoredTables(this.query.base_tables);
+
     // update the screen size
     sizeContent();
 }
@@ -132,7 +135,19 @@ function namespaceToString(namespace){
         table_name = item[0];
         columns = item[1];
         string = table_name + ": " + (columns.join(", "));
-        namespace_list.push(string);
+        namespace_list.push("<li>"+string);
     }
-    return namespace_list.join("<br>");
+    return namespace_list.join("");
+}
+
+function updateStoredTables(base_tables){
+    var keys = Object.keys(base_tables);
+    var inventory = $("#" + current_window.generateElemID("inventoryspace"));
+    inventory.empty()
+    var i;
+    for (i = 0; i < keys.length; i++){
+        var table = keys[i];
+        var results = base_tables[table].join(", ");
+        inventory.append("<li>" + table + " (" + results +")");
+    }
 }

@@ -17,29 +17,33 @@ function collapseHandler(collapsible){
     Collapse a given tr
 */
 function collapse(parent){
-    jQuery($("#"+parent).find(".nested")[0]).hide();
+    var prefix = "#" + current_window.generateElemID("leftbar") + " ";
+    jQuery($(prefix + "#"+parent).find(".nested")[0]).hide();
 };
 
 /*
     Expand a given tr
 */
 function expand(parent){
-    jQuery($("#"+parent).find(".nested")[0]).show();
+    var prefix = "#" + current_window.generateElemID("leftbar") + " ";
+    jQuery($(prefix + "#"+parent).find(".nested")[0]).show();
 };
 
 /*
     Collapse all steps
 */
 function collapseAll(){
-    $(".step").each(function(){collapse(this.id)});
-    $(".collapsible").html("[+]");
+    var prefix = "#" + current_window.generateElemID("leftbar") + " ";
+    $(prefix + ".step").each(function(){collapse(this.id)});
+    $(prefix + ".collapsible").html("[+]");
 }
 
 /*
     Expand all steps
 */
 function expandAll(){
-    $(".step").each(function(){expand(this.id)});
-    $(".collapsible").html("[-]");
+    var prefix = "#" + current_window.generateElemID("leftbar") + " ";
+    $(prefix + ".step").each(function(){expand(this.id)});
+    $(prefix + ".collapsible").html("[-]");
 
 }

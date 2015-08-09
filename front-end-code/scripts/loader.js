@@ -12,7 +12,7 @@ function loadQueries(queries){
     toc.empty();
     var i = 0;
     for (i = 0; i < queries.length; i++){
-        var q = new Query(queries[i].steps, queries[i].tables, queries[i].query_text, i);
+        var q = new Query(queries[i].steps, queries[i].tables, queries[i].query_text, i, queries[i].base_tables);
         current_window.queries.push(q);
         toc.append(q.toTOC());
     }
@@ -88,5 +88,7 @@ function onPageLoad(){
     Adjusts the hovertext display
 */
 function hoverText(newtext){
+    newtext = newtext.replace(/\\"/g, '"');
+    newtext = newtext.replace(/\\'/g, "'");
     $("#" + current_window.generateElemID("namebox")).text(newtext);
 }

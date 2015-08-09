@@ -36,7 +36,7 @@ function adjustHeight(window){
     var newHeight = $("#" + window.generateElemID("bodybag")).height();
     
     // Update the height of the Table of Contents
-    var newheight = $("#" + window.generateElemID("leftbar")).height() - $("#" + window.generateElemID("navbar")).height();
+    var newheight = $("#" + window.generateElemID("leftbar")).height() - $("#" + window.generateElemID("navbar")).outerHeight();
     $("#" + window.generateElemID("toc")).height(newheight);
 
     // Update the height of the table display area

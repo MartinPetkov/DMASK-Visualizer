@@ -17,16 +17,36 @@
 .navbar {
     float:bottom;
     text-align:center;
-    height: 30px;
+    padding:5px;
     border-top: 1px solid #91a3d9;
+}
+
+.expandall {
+    display:inline-block;
+    cursor:pointer;
+}
+
+.collapseall {
+    display:inline-block;
+    cursor:pointer;
+}
+
+.collapse-controllers{
+    width: 100%;
+    font-size: 12px;
 }
 
 .steps{
     width:100%;
 }
 
+.step{
+    color: #647BA5;
+}
+
 .query{
     font-weight:bold;
+    color: #546FA0;
 }
 
 
@@ -90,4 +110,6 @@ th {
     transform: translate(-50%, 0);
     font-weight:bold;
     padding:5px;
+    width: 80%;
+    text-align:center;
 }

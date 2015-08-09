@@ -81,6 +81,8 @@ def split_sql_queries(sql_queries):
 
 """ Convert a single SQL query into an AST """
 def sql_to_ast(query):
+    global namespace
+    namespace = []
     return ast(query)
 
 
