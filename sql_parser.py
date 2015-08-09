@@ -57,6 +57,8 @@ def make_column(column_list):
     return columns[:-2]
 
 def lst_to_str(lst):
+    if isinstance(lst, basestring):
+        return lst
     return ' '.join(clean_lst(flatten(lst)))
 
 def clean_lst(lst):
@@ -241,20 +243,26 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         print("No arguments to FROM statement")
         return
 
-    collapse_step = ( len(args) == 1 and (len(args[0]) == 1 or not isinstance(args[0][0], list)) )
+    collapse_step = ( len(args) == 1 and (len(args[0]) == 1 or not isinstance(args[0][0], pyparsing.ParseResults)) )
 
     # Create the first step
     current_step_number = parent_number + '1'
     sql_chunk = lst_to_str(ast_node)
     input_tables = []
+
     # Either going to be a combined intermediate table, or just the one table being selected if there is only one
     result_table = extract_from_arg_table_name(args[0]) if collapse_step else current_step_number
 
     executable_sql = "SELECT * " + sql_chunk
     last_executable_sql = executable_sql
-    namespace += get_namespace_from_args(args)
+
+    current_namespace = []
+    this_namespace = get_namespace_from_args(args)
+    current_namespace = this_namespace[:]
+    namespace += current_namespace[:]
+
     # Create and add the first step
-    first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
+    first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, current_namespace)
     steps.append(first_step)
 
     # Exit early if we are collapsing the steps into only one step
@@ -264,7 +272,6 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     local_step_number = 1
     substep_number = current_step_number + '.' + str(local_step_number)
-    current_namespace = []
 
     # Create the first substep
     sql_chunk = lst_to_str(args[0])
@@ -279,7 +286,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     last_from_table = output_table_name
 
     # The first step is a rename of a subquery
-    if(len(args[0]) == 3 and args[0][2] != "ON" and isinstance(args[0][0], list)):
+    if(len(args[0]) == 3 and args[0][2] != "ON" and isinstance(args[0][0], pyparsing.ParseResults)):
         subquery = args[0][0]
 
         # Create the top step
@@ -291,7 +298,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
         # Gather the subquery steps
         index_of_new_tables = len(namespace)
-        steps.append(parse_sql_query(subquery, substep_number)[1:])
+        steps.extend(parse_sql_query(subquery, substep_number)[1:])
 
         # Advance to the next step on this level
         local_step_number += 1
@@ -313,12 +320,13 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
         last_from_table = rename_new_name
 
+
     # No subquery in the first step
     else:
-        current_namespace += [(output_table_name, schema[original_table_name])]
-        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, [(output_table_name, schema[original_table_name])])
+        this_namespace = [(output_table_name, schema[original_table_name])]
+        #current_namespace += this_namespace[:]
+        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace)
         steps.append(substep)
-
 
     # Create and add the remaining substeps
     i = 1
@@ -329,7 +337,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         substep_number = current_step_number + '.' + str(local_step_number)
 
         # Case of a subquery being renamed
-        if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and isinstance(from_arg[0], list):
+        if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and isinstance(from_arg[0], pyparsing.ParseResults):
             subquery = from_arg[0]
 
             # Create the top step
@@ -341,7 +349,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
             # Gather the subquery steps
             index_of_new_tables = len(namespace)
-            steps.append(parse_sql_query(subquery, substep_number)[1:])
+            steps.extend(parse_sql_query(subquery, substep_number)[1:])
 
             # Advance to the next step on this level
             local_step_number += 1
@@ -354,10 +362,12 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             rename_executable_sql = "SELECT * FROM " + top_step_sql_chunk + ' ' + rename_sql_chunk
 
             # Get the namespace after the subquery
-            subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
-            current_namespace.append((rename_new_name, subquery_cols))
+            subquery_cols = [c for t in namespace for c in t[1]]
+            #subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
+            this_namespace = [(rename_new_name, subquery_cols)]
+            current_namespace += this_namespace[:]
             namespace = namespace[:index_of_new_tables]
-            substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, current_namespace)
+            substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, this_namespace)
             steps.append(substep)
 
             last_from_table = rename_new_name
@@ -376,7 +386,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             output_table_name = full_table_name.split(' ')[-1]
 
             this_namespace = [(output_table_name, schema[original_table_name])]
-            current_namespace += this_namespace
+            current_namespace += this_namespace[:]
             substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace)
             steps.append(substep)
 
@@ -416,7 +426,7 @@ def extract_from_arg_table_name(from_arg):
             if isinstance(from_arg[0], list):
                 return from_arg[2]
             else:
-                return from_arg[0] + ' ' + from_arg[2]
+                return lst_to_str(from_arg[0]) + ' ' + lst_to_str(from_arg[2])
 
     # Not correctly parsable
     return ''
@@ -558,7 +568,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 # Independent columns
                 if table == '':
                     cols.append(final_col_name)
-                    
+
                 # Either match the table name or look for the column in the table name
                 # This works because ambiguous column names must be differentiated using the table name
                 if (not table_name or table == table_name) and (final_col_name in cols):
