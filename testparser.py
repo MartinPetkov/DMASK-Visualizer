@@ -31,7 +31,7 @@ if __name__ == "__main__":
 	b = ast('select Student.sid, Student.email, Took.grade from Student, Took')
 	c = ast('select sid, email from Student Natural join Took natural join Course')
 	d = ast('select sid, grade, instructor from Took left join Offering on took.ofid = Offering.oid')
-	e = ast('select oid from Took, (select oid, dept from Offering) as H')
+	e = ast('select sid, oid from Took, (select oid, dept from Offering) as H')
 	f = ast('select email, cgpa from Student where cgpa > 3 and firstname = \'Martin\'')
 	g = ast('select email, cgpa from Student where cgpa > 3 and (firstname=\'Martin\' or firstname=\'Kathy\'')
 	h = ast('select t.sid, o.oid from Took t, Offering o')
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 	p = ast('(select sid from Student) union (select sid from Took) order by firstName')
 	q = ast('select distinct sid, dept || cnum as course, count(grade), (select max(sid) from Took) maxsid from Took, Offering where sid > 0 group by sid having count(grade) > 0 order by sid limit 5')
 
-	x = sql_ast_to_steps(e, schema)
+	x = sql_ast_to_steps(l, schema)
 	printout(x)
 	'''
 	# ======== TESTING PARSE_WHERE AND PARSE_GROUP_BY ==========

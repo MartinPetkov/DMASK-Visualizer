@@ -48,7 +48,7 @@ def flatten(lst):
 
 def make_column(column_list):
     if column_list == ["*"]:
-        return column_list[0]
+        return "*"
 
     columns = ''
     for item in column_list:
@@ -363,10 +363,10 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
             # Get the namespace after the subquery
             subquery_cols = [c for t in namespace for c in t[1]]
-            #subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
+            print(subquery_cols)
             this_namespace = [(rename_new_name, subquery_cols)]
             current_namespace += this_namespace[:]
-            namespace = namespace[:index_of_new_tables]
+            #namespace = namespace[:index_of_new_tables]
             substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, this_namespace)
             steps.append(substep)
 
@@ -399,7 +399,6 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         combine_executable_sql += ' ' + from_connector + ' ' + lst_to_str(from_arg)
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
-
         substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, current_namespace[:])
         steps.append(substep)
 
@@ -564,7 +563,6 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
             for i in range(len(current_namespace)):
                 table = current_namespace[i][0]
                 cols = current_namespace[i][1]
-
                 # Independent columns
                 if table == '':
                     cols.append(final_col_name)
@@ -575,6 +573,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                     # Replace the old column name with the new column name, if there is a new column name
                     current_namespace[i][1][cols.index(final_col_name)] = final_col_name
                     final_cols[table] = final_cols[table] + [final_col_name] if table in final_cols else [final_col_name]
+                    
                     # A column should only match on one table
                     break
 
@@ -582,12 +581,10 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
         for i in range(len(current_namespace)):
             table = current_namespace[i][0]
             cols = current_namespace[i][1] # Remove the table prefixes
-
             if table in final_cols:
                 keep_cols = final_cols[table]
                 current_namespace[i] = (current_namespace[i][0], [c for c in cols if c in keep_cols])
-                    
-
+                
         # Remove the independent columns if there are none
         if current_namespace:
             current_namespace = [x for x in current_namespace if x[1] != [] and (x[0] == '' or x[0] in final_cols)]
@@ -626,6 +623,7 @@ def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
 
 def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
 
+    global namespace 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
@@ -656,8 +654,13 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     steps += query1
     steps += query2
 
-    # WLOG, namespace is same as query 1's namespace
-    namespace = query2[-1].namespace[:]
+    #WLOG, namespace is same as query 1's namespace
+    if namespace:
+        cols = query2[-1].namespace[:][0][1]
+        namespace.append(('', cols))
+        print(namespace)
+        namespace = [x for x in namespace if x[1] != [] and (x[0] == '')]
+
     prev_step_number = query2[-1].step_number
     current_step_number += '.3'
     input_tables = [input_num1, input_num2]
