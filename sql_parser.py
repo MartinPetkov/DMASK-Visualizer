@@ -527,21 +527,23 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
         for col in column_list:
             equation_or_old_col = col[0]
+            start_name = equation_or_old_col
             final_col_name = ''
+            table_name = None
+
             if len(col) == 3:
                 final_col_name = col[-1]
             else:
-                final_col_name = col[0]
-
-            table_name = None
-            start_name = equation_or_old_col
-
-            if isinstance(equation_or_old_col, pyparsing.ParseResults):
-                start_name = lst_to_str(equation_or_old_col)
                 final_col_name = start_name
-            elif '.' in equation_or_old_col:
-                table_name = equation_or_old_col.split('.')[0]
-                start_name = equation_or_old_col.split('.')[1:]
+
+            if isinstance(start_name, pyparsing.ParseResults):
+                start_name = lst_to_str(start_name)
+                final_col_name = start_name
+                print(final_col_name)
+            elif '.' in start_name:
+                table_name = start_name.split('.')[0]
+                start_name = start_name.split('.')[1:]
+
 
             # If table name is prefixed add to final_cols
             if table_name:

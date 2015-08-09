@@ -29,7 +29,7 @@ if __name__ == "__main__":
 	star = ast('select * from Took')
 	a = ast('select dept || cnum from Student where cgpa > 3')
 	b = ast('select Student.sid, Student.email, Took.grade from Student, Took')
-	c = ast('select sid, email, cNum from Student Natural join Took natural join Course')
+	c = ast('select sid, email from Student Natural join Took natural join Course')
 	d = ast('select sid, grade, instructor from Took left join Offering on took.ofid = Offering.oid')
 	e = ast('select oid from (select oid, dept from Offering) as H')
 	f = ast('select email, cgpa from Student where cgpa > 3 and firstname = \'Martin\'')
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 	o = ast('select instructor from Offering Off1 where not exists (select * from Offering where oid <> Off1.oid and instructor = Off1.instructor)')
 	p = ast('(select sid from Student) union (select sid from Took) order by firstName')
 
-	x = sql_ast_to_steps(k, schema)
+	x = sql_ast_to_steps(c, schema)
 	printout(x)
 	'''
 	# ======== TESTING PARSE_WHERE AND PARSE_GROUP_BY ==========
