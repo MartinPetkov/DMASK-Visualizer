@@ -130,7 +130,6 @@ def reorder_sql_statements(sql_statements):
 
 last_table = ''
 last_executable_sql = ''
-namespace = []
 schema = {}
 """ Convert a single SQL AST into a list of QueryStep objects """
 def sql_ast_to_steps(ast, current_schema={}):
@@ -189,7 +188,7 @@ def parse_sql_query(ast, parent_number=''):
     input_tables = []
     result_table = current_step_number
     executable_sql = sql_chunk
-    global namespace
+    namespace = []
 
     query = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     if parent_number:
@@ -201,14 +200,14 @@ def parse_sql_query(ast, parent_number=''):
         statement = ast_node[0] # Statement name has to be the first element in this list
 
         # Each statement has a handler that will generate its own steps and substeps, and those get appended to the overall list of steps
-        new_step = STATEMENT_HANDLERS[statement](ast_node, str(local_step_number), parent_number, steps)
+        new_step = STATEMENT_HANDLERS[statement](ast_node, str(local_step_number), parent_number, steps, namespace)
         if new_step != []:
             steps += new_step
             local_step_number += 1
 
     return steps
 
-def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     if parent_number:
         parent_number += '.'
@@ -229,8 +228,7 @@ def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return step
 
-def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
-    global namespace
+def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -256,13 +254,11 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     executable_sql = "SELECT * " + sql_chunk
     last_executable_sql = executable_sql
 
-    current_namespace = []
     this_namespace = get_namespace_from_args(args)
-    current_namespace = this_namespace[:]
-    namespace += current_namespace[:]
+    namespace += this_namespace[:]
 
     # Create and add the first step
-    first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, current_namespace)
+    first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(first_step)
 
     # Exit early if we are collapsing the steps into only one step
@@ -289,6 +285,10 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     if(len(args[0]) == 3 and args[0][2] != "ON" and isinstance(args[0][0], pyparsing.ParseResults)):
         subquery = args[0][0]
 
+        current_namespace = []
+        steps += parse_sql_query(subquery, substep_number)
+
+        '''
         # Create the top step
         top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
         top_step_executable_sql = lst_to_str(subquery)
@@ -303,19 +303,22 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         # Advance to the next step on this level
         local_step_number += 1
         substep_number = current_step_number + '.' + str(local_step_number)
-
+        '''
 
         # Add the separate rename step
+        index_of_new_tables = len(namespace)
+        prev_step = steps[-1]
+        prev_step_number = prev_step.result_table
         rename_sql_chunk = ' '.join(args[0][1:])
         rename_new_name = args[0][2]
-        rename_executable_sql = "SELECT * FROM " + top_step_sql_chunk + ' ' + rename_sql_chunk
+        rename_executable_sql = "SELECT * FROM " + prev_step.executable_sql + ' ' + rename_sql_chunk
 
         # Get the namespace after the subquery
         # Go through all the new namespace tables and collect all of their columns into one
         subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
         current_namespace.append((rename_new_name, subquery_cols))
         namespace = namespace[:index_of_new_tables]
-        substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, current_namespace)
+        substep = QueryStep(substep_number, rename_sql_chunk, [prev_step_number], rename_new_name, rename_executable_sql, current_namespace)
         steps.append(substep)
 
         last_from_table = rename_new_name
@@ -324,8 +327,10 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     # No subquery in the first step
     else:
         this_namespace = [(output_table_name, schema[original_table_name])]
-        current_namespace = this_namespace[:]
-        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace)
+        for item in this_namespace:
+            if item not in namespace:
+                namespace.append(item)
+        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, namespace[:])
         steps.append(substep)
 
     # Create and add the remaining substeps
@@ -340,6 +345,9 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and isinstance(from_arg[0], pyparsing.ParseResults):
             subquery = from_arg[0]
 
+            steps += parse_sql_query(subquery, substep_number)
+
+            '''
             # Create the top step
             top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
             top_step_executable_sql = lst_to_str(subquery)
@@ -350,28 +358,35 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             # Gather the subquery steps
             index_of_new_tables = len(namespace)
             steps.extend(parse_sql_query(subquery, substep_number)[1:])
-
             # Advance to the next step on this level
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
-
+            '''
 
             # Add the separate rename step
+            index_of_new_tables = len(namespace)
+            prev_step = steps[-1]
+            prev_step_number = prev_step.result_table
             rename_sql_chunk = ' '.join(from_arg[1:])
             rename_new_name = from_arg[2]
-            rename_executable_sql = "SELECT * FROM " + top_step_sql_chunk + ' ' + rename_sql_chunk
+            rename_executable_sql = "SELECT * FROM " + prev_step.executable_sql + ' ' + rename_sql_chunk
 
             # Get the namespace after the subquery
             subquery_cols = [c for t in namespace for c in t[1]]
             this_namespace = [(rename_new_name, subquery_cols)]
-            current_namespace += this_namespace[:]
-            namespace = namespace[:index_of_new_tables]
-            substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, this_namespace)
+            
+            for item in this_namespace:
+                if item not in namespace:
+                    namespace.append(item)
+            #namespace = namespace[:index_of_new_tables]
+            substep = QueryStep(substep_number, rename_sql_chunk, [prev_step_number], rename_new_name, rename_executable_sql, this_namespace[:])
             steps.append(substep)
 
             last_from_table = rename_new_name
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
+
+
 
         # Case of simple table select
         else:
@@ -384,7 +399,10 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             output_table_name = full_table_name.split(' ')[-1]
 
             this_namespace = [(output_table_name, schema[original_table_name])]
-            current_namespace += this_namespace[:]
+            
+            for item in this_namespace:
+                if item not in namespace:
+                    namespace.append(item)
             substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace[:])
             steps.append(substep)
 
@@ -398,7 +416,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         combine_executable_sql += ' ' + from_connector + ' ' + lst_to_str(from_arg)
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
-        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, current_namespace[:])
+        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, namespace[:])
         steps.append(substep)
 
         last_from_table = output_table_name
@@ -406,7 +424,6 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         i += 2 # Going by twos, collecting the connector and the next table
 
     # Update the global namespace
-    namespace = current_namespace
 
     return steps
 
@@ -446,7 +463,7 @@ def get_namespace_from_args(from_args):
     return extracted_namespace
 
 
-def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_where(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -462,7 +479,7 @@ def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
-def parse_group_by(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_group_by(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -477,7 +494,7 @@ def parse_group_by(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
-def parse_having(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_having(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -491,11 +508,10 @@ def parse_having(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_select(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
     # TODO:
     # - namespace
 
-    global namespace
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
     if len(ast_node) < 1:
@@ -520,7 +536,6 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     column_string = make_column(column_list)
     sql_chunk = 'SELECT ' + column_string
     executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
-    # TODO: Go through the list of columns and modify the namespace if needed
     # Go through existing tables and do three things:
     #   1. Modify names of existing columns if renamed 
     #   2. Remove columns that weren't selected
@@ -595,7 +610,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     steps = []
 
@@ -620,9 +635,8 @@ def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_set(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
-    global namespace 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
 
@@ -654,11 +668,11 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     steps += query2
 
     #WLOG, namespace is same as query 1's namespace
-    if namespace:
-        cols = query2[-1].namespace[0][1]
-        namespace.append(('', cols))
-        namespace = [x for x in namespace if x[1] != [] and (x[0] == '')]
 
+    cols = query2[-1].namespace[0][1]
+    namespace.append(('', cols))
+    namespace = [x for x in namespace if x[1] != [] and (x[0] == '')]
+    
     prev_step_number = query2[-1].step_number
     current_step_number += '.3'
     input_tables = [input_num1, input_num2]
@@ -669,7 +683,7 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -683,7 +697,7 @@ def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -697,7 +711,7 @@ def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[]):
+def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[], namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
@@ -711,7 +725,7 @@ def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     return steps
 
-def parse_create_view(ast_node, step_number=''):
+def parse_create_view(ast_node, step_number='', namespace=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
     steps = []
