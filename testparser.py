@@ -32,7 +32,7 @@ if __name__ == "__main__":
 	c = ast('select sid, email from Student Natural join Took natural join Course')
 	d = ast('select sid, grade, instructor from Took left join Offering on took.ofid = Offering.oid')
 	e = ast('select sid, oid from Took, (select oid, dept, sid from Offering, Student) as H')
-	e2 = ast('select sid from (select sid, grade from Took) H')
+	e2 = ast('select oid from (select oid, dept from Offering) as H')
 	f = ast('select email, cgpa from Student where cgpa > 3 and firstname = \'Martin\'')
 	g = ast('select email, cgpa from Student where cgpa > 3 and (firstname=\'Martin\' or firstname=\'Kathy\'')
 	h = ast('select t.sid, o.oid from Took t, Offering o')
@@ -44,9 +44,9 @@ if __name__ == "__main__":
 	n = ast('select sid, dept || cnum as course, grade from Took natural join Offering where grade >= 80 and dept in (select dept from Took natural join Offering natural join Student where surname = "Lakemeyer")')
 	o = ast('select instructor from Offering Off1 where not exists (select * from Offering where oid <> Off1.oid and instructor = Off1.instructor)')
 	p = ast('(select sid from Student) union (select sid from Took) order by firstName')
+	p2 = ast('((select sid from Student) union (select sid from Took)) union (select sid from Student)')
 	q = ast('select distinct sid, dept || cnum as course, count(grade), (select max(sid) from Took) maxsid from Took, Offering where sid > 0 group by sid having count(grade) > 0 order by sid limit 5')
 
 
-	x = sql_ast_to_steps(q, schema)
+	x = sql_ast_to_steps(e2, schema)
 	printout(x)
-

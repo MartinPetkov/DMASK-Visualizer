@@ -46,6 +46,7 @@ def flatten(lst):
             result.append(elem)
     return result
 
+
 def make_column(column_list):
     if column_list == ["*"]:
         return "*"
@@ -56,10 +57,12 @@ def make_column(column_list):
 
     return columns[:-2]
 
+
 def lst_to_str(lst):
     if isinstance(lst, basestring):
         return lst
     return ' '.join(clean_lst(flatten(lst)))
+
 
 def clean_lst(lst):
     return [e for e in lst if e != ''] # Remove nonexistence elements
@@ -72,6 +75,7 @@ def remove_sql_comments(sql_queries):
     clean_sql = comments_regex.sub("", sql_queries)
 
     return clean_sql
+
 
 def split_sql_queries(sql_queries):
     # Assuming semicolons are enforced
@@ -90,9 +94,10 @@ def sql_to_ast(query):
 
 def reorder_sql_statements(sql_statements):
 
+
     # If there are set operations, all of them will be contained in the first element, followed by things like 'LIMIT'
     # and 'ORDER BY'. Successive set operations are nested deeper instead of being serialized in sequence.
-    if len(sql_statements[0]) == 3 and not isinstance(sql_statements[0][1],list) and sql_statements[0][1].upper() in SET_OPERATIONS:
+    if len(sql_statements[0]) == 3 and not isinstance(sql_statements[0][1],pyparsing.ParseResults) and sql_statements[0][1].upper() in SET_OPERATIONS:
         # Handle set operation reordering
         set_operation = sql_statements[0]
         first_sql_query = set_operation[0]
@@ -108,16 +113,20 @@ def reorder_sql_statements(sql_statements):
                            ]
         final_statements += sql_statements[1:]
         return final_statements
-    '''
+    
     # For inner set operations, do different things
-    if len(sql_statements) == 3 and not isinstance(sql_statements[1],list) and sql_statements[1].upper() in SET_OPERATIONS:
+    if len(sql_statements) == 3 and not isinstance(sql_statements[1],pyparsing.ParseResults) and sql_statements[1].upper() in SET_OPERATIONS:
         # Handle set operation reordering
         first_sql_query = sql_statements[0]
         operator = sql_statements[1]
         second_sql_query = sql_statements[2]
 
-        return [operator, reorder_sql_statements(first_sql_query), reorder_sql_statements(second_sql_query)]
-    '''
+        final_statements = [
+                            [
+                            operator, first_sql_query, second_sql_query
+                            ]
+                            ]
+        return final_statements
 
     # If selected columns DISTINCT
     if len(sql_statements[0]) > 2 and sql_statements[1] == 'DISTINCT':
@@ -270,7 +279,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
     substep_number = current_step_number + '.' + str(local_step_number)
 
     # Create the first substep
-    sql_chunk = lst_to_str(args[0])
+    sql_chunk = extract_from_arg_table_name(args[0])
     combine_sql_chunk = sql_chunk
     executable_sql = "SELECT * FROM " + sql_chunk
     combine_executable_sql = executable_sql
@@ -284,43 +293,30 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
     # The first step is a rename of a subquery
     if(len(args[0]) == 3 and args[0][2] != "ON" and isinstance(args[0][0], pyparsing.ParseResults)):
         subquery = args[0][0]
-
-        current_namespace = []
-        steps += parse_sql_query(subquery, substep_number)
-
-        '''
-        # Create the top step
-        top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
-        top_step_executable_sql = lst_to_str(subquery)
-        substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql)
-        steps.append(substep)
-        last_from_table = substep_number
-
-        # Gather the subquery steps
-        index_of_new_tables = len(namespace)
-        steps.extend(parse_sql_query(subquery, substep_number)[1:])
-
-        # Advance to the next step on this level
         local_step_number += 1
-        substep_number = current_step_number + '.' + str(local_step_number)
-        '''
+        steps += parse_sql_query(subquery, substep_number)
 
         # Add the separate rename step
         index_of_new_tables = len(namespace)
         prev_step = steps[-1]
         prev_step_number = prev_step.result_table
+        rename_number = current_step_number + '.' + str(local_step_number)
         rename_sql_chunk = ' '.join(args[0][1:])
         rename_new_name = args[0][2]
-        rename_executable_sql = "SELECT * FROM " + prev_step.executable_sql + ' ' + rename_sql_chunk
+        rename_executable_sql = "SELECT * FROM " + prev_step.executable_sql[:-1] + ' ' + rename_sql_chunk
+        subquery_namespace = steps[-1].namespace
 
         # Get the namespace after the subquery
         # Go through all the new namespace tables and collect all of their columns into one
-        subquery_cols = [ c for t in namespace[index_of_new_tables:] for c in t[1] ]
-        current_namespace.append((rename_new_name, subquery_cols))
-        namespace = namespace[:index_of_new_tables]
-        substep = QueryStep(substep_number, rename_sql_chunk, [prev_step_number], rename_new_name, rename_executable_sql, current_namespace)
-        steps.append(substep)
+        subquery_cols = [ c for t in subquery_namespace for c in t[1] ]
+        this_namespace = [(rename_new_name, subquery_cols)]
+        
+        for item in this_namespace:
+            if item not in namespace:
+                namespace.append(item)
 
+        substep = QueryStep(rename_number, rename_sql_chunk, [prev_step_number], rename_new_name, rename_executable_sql, this_namespace[:])
+        steps.append(substep)
         last_from_table = rename_new_name
 
 
@@ -330,7 +326,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
         for item in this_namespace:
             if item not in namespace:
                 namespace.append(item)
-        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, namespace[:])
+        substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace[:])
         steps.append(substep)
 
     # Create and add the remaining substeps
@@ -345,48 +341,33 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
         if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and isinstance(from_arg[0], pyparsing.ParseResults):
             subquery = from_arg[0]
 
-            steps += parse_sql_query(subquery, substep_number)
-
-            '''
-            # Create the top step
-            top_step_sql_chunk = '(' + lst_to_str(subquery) + ')'
-            top_step_executable_sql = lst_to_str(subquery)
-            substep = QueryStep(substep_number, top_step_sql_chunk, [], substep_number, top_step_executable_sql)
-            steps.append(substep)
-            last_from_table = substep_number
-
-            # Gather the subquery steps
-            index_of_new_tables = len(namespace)
-            steps.extend(parse_sql_query(subquery, substep_number)[1:])
-            # Advance to the next step on this level
             local_step_number += 1
-            substep_number = current_step_number + '.' + str(local_step_number)
-            '''
+            steps += parse_sql_query(subquery, substep_number)
 
             # Add the separate rename step
             index_of_new_tables = len(namespace)
             prev_step = steps[-1]
             prev_step_number = prev_step.result_table
+            rename_number = current_step_number + '.' + str(local_step_number)
             rename_sql_chunk = ' '.join(from_arg[1:])
             rename_new_name = from_arg[2]
-            rename_executable_sql = "SELECT * FROM " + prev_step.executable_sql + ' ' + rename_sql_chunk
-
+            rename_executable_sql = "SELECT * FROM (" + prev_step.executable_sql[:-1] + ') ' + rename_sql_chunk
+            subquery_namespace = steps[-1].namespace
+            
             # Get the namespace after the subquery
-            subquery_cols = [c for t in namespace for c in t[1]]
+            subquery_cols = [c for t in subquery_namespace for c in t[1]]
             this_namespace = [(rename_new_name, subquery_cols)]
             
             for item in this_namespace:
                 if item not in namespace:
                     namespace.append(item)
-            #namespace = namespace[:index_of_new_tables]
-            substep = QueryStep(substep_number, rename_sql_chunk, [prev_step_number], rename_new_name, rename_executable_sql, this_namespace[:])
+
+            substep = QueryStep(rename_number, rename_sql_chunk, [prev_step_number], rename_new_name, rename_executable_sql, this_namespace[:])
             steps.append(substep)
 
             last_from_table = rename_new_name
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
-
-
 
         # Case of simple table select
         else:
@@ -438,7 +419,7 @@ def extract_from_arg_table_name(from_arg):
                 return from_arg[0][0]
         else:
             # If it's a renamed query or table
-            if isinstance(from_arg[0], list):
+            if isinstance(from_arg[0], pyparsing.ParseResults):
                 return from_arg[2]
             else:
                 return lst_to_str(from_arg[0]) + ' ' + lst_to_str(from_arg[2])
