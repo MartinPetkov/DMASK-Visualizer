@@ -6,6 +6,7 @@ from table import *
 from to_ast import ast
 
 import re
+import collections
 
 import pdb
 from pprint import pprint
@@ -30,8 +31,12 @@ SQL_EXEC_ORDER = {
 
 SET_OPERATIONS = ['UNION', 'INTERSECT', 'EXCEPT']
 
-import collections
 basestring = (str, bytes)
+
+last_table = ''
+last_executable_sql = ''
+schema = {}
+
 def flatten(lst):
     result = []
     for elem in lst:
@@ -49,6 +54,7 @@ def flatten(lst):
     return result
 
 
+''' Return a string of the columns provided in column_list, separated by a comma. '''
 def make_column(column_list):
     if column_list == ["*"]:
         return "*"
@@ -60,6 +66,7 @@ def make_column(column_list):
     return columns[:-2]
 
 
+''' Returns a string representation of the flatten list lst. '''
 def lst_to_str(lst):
     if isinstance(lst, basestring):
         return lst
@@ -68,6 +75,12 @@ def lst_to_str(lst):
 
 def clean_lst(lst):
     return [e for e in lst if e != ''] # Remove nonexistence elements
+
+
+def get_table(steps, table_name):
+    for step in steps:
+        if step.result_table == table_name:
+            return step.namespace
 
 
 """ Split a string containing multiple SQL queries into a list of single SQL queries """
@@ -95,7 +108,6 @@ def sql_to_ast(query):
 
 
 def reorder_sql_statements(sql_statements):
-
 
     # If there are set operations, all of them will be contained in the first element, followed by things like 'LIMIT'
     # and 'ORDER BY'. Successive set operations are nested deeper instead of being serialized in sequence.
@@ -139,9 +151,7 @@ def reorder_sql_statements(sql_statements):
     return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0].upper()])
 
 
-last_table = ''
-last_executable_sql = ''
-schema = {}
+
 """ Convert a single SQL AST into a list of QueryStep objects """
 def sql_ast_to_steps(ast, current_schema={}):
 
@@ -393,7 +403,30 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
         combine_executable_sql += ' ' + from_connector + ' ' + lst_to_str(from_arg)
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
-        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, namespace[:])
+
+
+        
+        # Input tables: last_from_table, new_joined_table
+        if from_connector.upper() == 'NATURAL JOIN':
+
+            input_namespace_1 = get_table(steps, last_from_table)
+            input_namespace_2 = get_table(steps, new_joined_table)
+
+            keep_cols_1 = [c for c in input_namespace_1[0][1] if c in input_namespace_2[0][1]]
+            keep_cols_2 = [c for c in input_namespace_2[0][1] if c in input_namespace_1[0][1]]
+
+
+            # Keep only cols matching in both joined tables
+            this_namespace = [(last_from_table, keep_cols_1), (new_joined_table, keep_cols_2)]
+            this_namespace = [x for x in this_namespace if x[1] != []]
+
+            for item in this_namespace:
+                if item[0] not in namespace:
+                    namespace.append(item)
+
+            print(namespace)
+        
+        substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, this_namespace[:])
         steps.append(substep)
 
         last_from_table = output_table_name
@@ -510,7 +543,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[], name
     # Check if selecting DISTINCT
     column_list = ast_node[-1]
     column_string = make_column(column_list)
-    sql_chunk = 'SELECT ' + column_string
+    sql_chunk = 'SELECT ' + column_string 
     executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
     # Go through existing tables and do three things:
     #   1. Modify names of existing columns if renamed 
