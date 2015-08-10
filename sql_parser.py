@@ -198,12 +198,12 @@ def parse_sql_query(ast, parent_number=''):
     steps = []
 
     local_step_number = 1
+    current_step_number = str(local_step_number)
 
     if parent_number:
         current_step_number = parent_number
 
-    current_step_number = local_step_number
-    sql_chunk = lst_to_str(ast[0])
+    sql_chunk = lst_to_str(ast)
     input_tables = []
     result_table = current_step_number
     executable_sql = sql_chunk
@@ -404,8 +404,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
 
-
-        
+        this_namespace = namespace[:]
         # Input tables: last_from_table, new_joined_table
         if from_connector.upper() == 'NATURAL JOIN':
 
@@ -415,17 +414,14 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
             keep_cols_1 = [c for c in input_namespace_1[0][1] if c in input_namespace_2[0][1]]
             keep_cols_2 = [c for c in input_namespace_2[0][1] if c in input_namespace_1[0][1]]
 
-
+            keep_cols = keep_cols_1 + keep_cols_2
             # Keep only cols matching in both joined tables
-            this_namespace = [(last_from_table, keep_cols_1), (new_joined_table, keep_cols_2)]
-            this_namespace = [x for x in this_namespace if x[1] != []]
+            for j in range(len(this_namespace)):
+                table = this_namespace[j][0]
+                cols = this_namespace[j][1]
 
-            for item in this_namespace:
-                if item[0] not in namespace:
-                    namespace.append(item)
+                this_namespace[j] = (this_namespace[j][0], [c for c in cols if c in keep_cols])
 
-            print(namespace)
-        
         substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, this_namespace[:])
         steps.append(substep)
 

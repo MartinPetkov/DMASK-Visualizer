@@ -29,7 +29,7 @@ if __name__ == "__main__":
 	star = ast('select * from Took')
 	a = ast('select dept || cnum from Student where cgpa > 3')
 	b = ast('select Student.sid, Student.email, Took.grade from Student, Took')
-	c = ast('select sid, email from Student Natural join Took natural')
+	c = ast('select sid from Student Natural join Took natural join Student S')
 	d = ast('select sid, grade, instructor from Took left join Offering on took.ofid = Offering.oid')
 	e = ast('select sid, oid from Took, (select oid, dept, sid from Offering, Student) as H')
 	e2 = ast('select oid from (select oid, dept from Offering) as H')
@@ -48,5 +48,5 @@ if __name__ == "__main__":
 	q = ast('select distinct sid, dept || cnum as course, count(grade), (select max(sid) from Took) maxsid from Took, Offering where sid > 0 group by sid having count(grade) > 0 order by sid limit 5')
 
 
-	x = sql_ast_to_steps(c, schema)
+	x = sql_ast_to_steps(l, schema)
 	printout(x)
