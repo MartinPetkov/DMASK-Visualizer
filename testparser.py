@@ -48,5 +48,5 @@ if __name__ == "__main__":
 	q = ast('select distinct sid, dept || cnum as course, count(grade), (select max(sid) from Took) maxsid from Took, Offering where sid > 0 group by sid having count(grade) > 0 order by sid limit 5')
 
 
-	x = sql_ast_to_steps(e2, schema)
+	x = sql_ast_to_steps(e, schema)
 	printout(x)
