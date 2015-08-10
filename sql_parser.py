@@ -174,7 +174,6 @@ def parse_sql_query(ast, parent_number=''):
 
     last_table = ''
     last_executable_sql = ''
-    namespace = ''
     # A list of steps for just this sql query, would be appended to a bigger list if we're many levels deep
     steps = []
 
@@ -190,8 +189,9 @@ def parse_sql_query(ast, parent_number=''):
     input_tables = []
     result_table = current_step_number
     executable_sql = sql_chunk
+    global namespace
 
-    query = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    query = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     if parent_number:
         steps.append(query)
 
@@ -324,7 +324,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     # No subquery in the first step
     else:
         this_namespace = [(output_table_name, schema[original_table_name])]
-        #current_namespace += this_namespace[:]
+        current_namespace = this_namespace[:]
         substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace)
         steps.append(substep)
 
@@ -363,17 +363,15 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
             # Get the namespace after the subquery
             subquery_cols = [c for t in namespace for c in t[1]]
-            print(subquery_cols)
             this_namespace = [(rename_new_name, subquery_cols)]
             current_namespace += this_namespace[:]
-            #namespace = namespace[:index_of_new_tables]
+            namespace = namespace[:index_of_new_tables]
             substep = QueryStep(substep_number, rename_sql_chunk, [last_from_table], rename_new_name, rename_executable_sql, this_namespace)
             steps.append(substep)
 
             last_from_table = rename_new_name
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
-
 
         # Case of simple table select
         else:
@@ -387,8 +385,9 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
             this_namespace = [(output_table_name, schema[original_table_name])]
             current_namespace += this_namespace[:]
-            substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace)
+            substep = QueryStep(substep_number, sql_chunk, [], output_table_name, executable_sql, this_namespace[:])
             steps.append(substep)
+
 
             local_step_number += 1
             substep_number = current_step_number + '.' + str(local_step_number)
@@ -548,9 +547,10 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 if isinstance(start_name, pyparsing.ParseResults):
                     start_name = lst_to_str(start_name)
                 final_col_name = start_name
-            elif '.' in start_name:
+            
+            if '.' in start_name:
                 table_name = start_name.split('.')[0]
-                start_name = start_name.split('.')[1:]
+                final_col_name = start_name.split('.')[1]
 
             # If table name is prefixed add to final_cols
             if table_name:
@@ -577,10 +577,10 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                     # A column should only match on one table
                     break
 
-        # Filter out all the columns that weren't selected
         for i in range(len(current_namespace)):
             table = current_namespace[i][0]
             cols = current_namespace[i][1] # Remove the table prefixes
+
             if table in final_cols:
                 keep_cols = final_cols[table]
                 current_namespace[i] = (current_namespace[i][0], [c for c in cols if c in keep_cols])
@@ -589,10 +589,9 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
         if current_namespace:
             current_namespace = [x for x in current_namespace if x[1] != [] and (x[0] == '' or x[0] in final_cols)]
 
-
     select_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, current_namespace)
     steps.append(select_step)
-    namespace = current_namespace[:]
+    namespace = current_namespace
 
     return steps
 
@@ -645,7 +644,7 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     result_table = current_step_number
     executable_sql = sql_chunk
 
-    union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql)
+    union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(union_step)
 
     query1 = parse_sql_query(ast_node[1], input_num1)
@@ -656,9 +655,8 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     #WLOG, namespace is same as query 1's namespace
     if namespace:
-        cols = query2[-1].namespace[:][0][1]
+        cols = query2[-1].namespace[0][1]
         namespace.append(('', cols))
-        print(namespace)
         namespace = [x for x in namespace if x[1] != [] and (x[0] == '')]
 
     prev_step_number = query2[-1].step_number
