@@ -57,7 +57,7 @@ class DMASK:
         queries = sql_parser.split_sql_queries(sql_queries)
         
         for query in queries:
-            ast = sql_parser.sql_to_ast(query).asList()
+            ast = sql_parser.sql_to_ast(query)
             base_tables = self.base_tables.copy()
             # ERROR IN SQL_PARSER: steps can included a nested list -- temporary fix: Flatten list
             steps = flatten_list(sql_parser.sql_ast_to_steps(ast, self.base_tables))
