@@ -276,7 +276,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
     namespace += this_namespace[:]
 
     # Create and add the first step
-    first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
+    first_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace[:])
     steps.append(first_step)
 
     # Exit early if we are collapsing the steps into only one step
@@ -404,23 +404,15 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[], namesp
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
 
-        this_namespace = namespace[:]
-        # Input tables: last_from_table, new_joined_table
-        if from_connector.upper() == 'NATURAL JOIN':
+        this_namespace = get_table(steps, last_from_table)
+        this_namespace.append(get_table(steps, new_joined_table))
 
-            input_namespace_1 = get_table(steps, last_from_table)
-            input_namespace_2 = get_table(steps, new_joined_table)
 
-            keep_cols_1 = [c for c in input_namespace_1[0][1] if c in input_namespace_2[0][1]]
-            keep_cols_2 = [c for c in input_namespace_2[0][1] if c in input_namespace_1[0][1]]
+        #     for j in range(len(this_namespace)):
+        #         table = this_namespace[j][0]
+        #         cols = this_namespace[j][1]
 
-            keep_cols = keep_cols_1 + keep_cols_2
-            # Keep only cols matching in both joined tables
-            for j in range(len(this_namespace)):
-                table = this_namespace[j][0]
-                cols = this_namespace[j][1]
-
-                this_namespace[j] = (this_namespace[j][0], [c for c in cols if c in keep_cols])
+        #         this_namespace[j] = (this_namespace[j][0], [c for c in cols if c in keep_cols])
 
         substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, this_namespace[:])
         steps.append(substep)
