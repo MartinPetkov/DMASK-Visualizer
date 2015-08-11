@@ -42,6 +42,7 @@
 
 .step{
     color: #647BA5;
+    cursor: pointer;
 }
 
 .query{
