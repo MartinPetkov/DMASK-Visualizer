@@ -87,6 +87,13 @@ def get_namespace(steps, step_number='', table_name=''):
             if step.result_table == table_name:
                 return step.namespace
 
+def get_all_cols(namespace):
+
+    cols = []
+    for table in namespace:
+        cols.extend(table[1])
+    return cols
+
 
 """ Split a string containing multiple SQL queries into a list of single SQL queries """
 def remove_sql_comments(sql_queries):
@@ -552,6 +559,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     from_namespace = get_namespace(prev_steps, step_number=from_step_number)
 
     current_namespace = from_namespace[:]
+    all_cols = get_all_cols(current_namespace)
     if column_list[0] != "*":
         current_namespace.append(('', [])) # Empty tuple for collecting columns not associated with any table
         final_cols = {} # Used to remove any columns that were not selected
@@ -585,8 +593,8 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
             for i in range(len(current_namespace)):
                 table = current_namespace[i][0]
                 cols = current_namespace[i][1]
-                # Independent columns
-                if table == '':
+
+                if table_name == '':
                     cols.append(final_col_name)
 
                 # Either match the table name or look for the column in the table name
@@ -595,10 +603,10 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                     # Replace the old column name with the new column name, if there is a new column name
                     current_namespace[i][1][cols.index(final_col_name)] = final_col_name
                     final_cols[table] = final_cols[table] + [final_col_name] if table in final_cols else [final_col_name]
-                    
-                    # A column should only match on one table
-                    break
+                elif (not table_name and final_col_name not in all_cols):
+                    current_namespace[i][1].append(final_col_name)
 
+        print(all_cols)
         for i in range(len(current_namespace)):
             table = current_namespace[i][0]
             cols = current_namespace[i][1] # Remove the table prefixes
@@ -606,7 +614,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
             if table in final_cols:
                 keep_cols = final_cols[table]
                 current_namespace[i] = (current_namespace[i][0], [c for c in cols if c in keep_cols])
-                
+
         # Remove the independent columns if there are none
         if current_namespace:
             current_namespace = [x for x in current_namespace if x[1] != [] and (x[0] == '' or x[0] in final_cols)]
