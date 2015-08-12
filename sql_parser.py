@@ -30,6 +30,7 @@ SQL_EXEC_ORDER = {
 
 SET_OPERATIONS = ['UNION', 'INTERSECT', 'EXCEPT']
 CONDITIONS = ['WHERE', 'HAVING']
+BRACKETS = ['(', ')']
 
 basestring = (str, bytes)
 
@@ -107,10 +108,9 @@ def lst_to_str(lst):
 
 def clean_lst(lst):
     query = []
-    brackets = ['(', ')']
 
     for i in range(len(lst)):
-        if lst[i] in brackets:
+        if lst[i] in BRACKETS:
             if query[-1] in KEYWORDS:
                 query[-1] = query[-1] + ' ' + lst[i]
             else:
