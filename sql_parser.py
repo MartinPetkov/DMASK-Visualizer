@@ -68,9 +68,15 @@ def flatten_where(lst):
     result = []
     for elem in lst:
         if hasattr(elem, "__iter__") and not isinstance(elem, basestring):
-            result.append('(')
-            result.extend(flatten_where(elem))
-            result.append(')')
+
+            if (elem[0][0] == 'SELECT'):
+                result.append('(')
+                result.extend(flatten(elem))
+                result.append(')')
+            else:
+                result.append('(')
+                result.extend(flatten_where(elem))
+                result.append(')')
         else:
             result.append(elem)
 
