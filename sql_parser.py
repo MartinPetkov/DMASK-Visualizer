@@ -451,8 +451,8 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             substep_number = current_step_number + '.' + str(local_step_number)
 
         # Step for joining everything up to this point and this table
-        combine_sql_chunk += from_connector + ' ' + lst_to_str(from_arg)
-        combine_executable_sql += from_connector + ' ' + lst_to_str(from_arg)
+        combine_sql_chunk += ' ' + from_connector + ' ' + lst_to_str(from_arg)
+        combine_executable_sql += ' ' + from_connector + ' ' + lst_to_str(from_arg)
         new_joined_table = output_table_name
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
         this_namespace = get_namespace(steps, table_name=last_from_table)
