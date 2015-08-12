@@ -17,7 +17,6 @@ import ra_parser
 import copy
 
 
-
 # TODO: Figure out how to handle the database connection
 """ A class to handle the conversion functions and the database connection """
 class DMASK:
@@ -32,13 +31,14 @@ class DMASK:
         self.conn_params = conn_params
         self.base_tables = base_tables
 
-    def set_connection(self, schema):
+    def set_connection(self, schema=""):
         # TODO: Implement connecting to a database
         self.connection = psycopg2.connect(self.conn_params)
         self.cursor = self.connection.cursor()
 
         #TODO: Remove the below (which sets the schema)
-        self.cursor.execute("SET search_path TO "+schema)
+        if schema:
+            self.cursor.execute("SET search_path TO "+schema)
 
     def set_base_tables(self, base_tables):
         # TODO: Implement
@@ -381,7 +381,7 @@ def is_keyword(string):
                 "BETWEEN", "JOIN", "NATURAL JOIN", ",", "EXCEPT", "EQUALS",
                 "IN", "MIN", "MAX", "COUNT", "LEFT JOIN", "RIGHT JOIN",
                 "LEFT INNER JOIN", "LEFT OUTER JOIN", "RIGHT INNER JOIN",
-                "RIGHT OUTER JOIN", "EXISTS"]
+                "RIGHT OUTER JOIN", "EXISTS", "*"]
 
     # If subqueries are handled recursively, then none of the 'from clause' keywords
     # has to be mentioned
@@ -417,10 +417,9 @@ def get_namespace(subquery, dmask):
             # If there's a subquery, bracket the name and add the alis
             if isinstance(name, list):
                 name = flatten_ast_to_string(name)[0] + " " + alias
-            tables.append((name, alias))
+            tables.append((name.lower(), alias.lower()))
     
     main_table = flatten_ast_to_string(from_clause)[0]
-    
     namespace = [[column] for column in get_columns("SELECT * FROM " + main_table, dmask)]
     
     # Traverse the list of tables, adding all of the columns to the namespace
@@ -447,8 +446,9 @@ def get_columns(query, dmask):
 def matches_alias(namespace, attribute, to_match):
     # Given a namespace, attribute (ex. "sid") and someting to match (ex. "Took.sid")
     # Returns true whether the attribute matches to_match
-
-    if attribute == to_match:
+    to_match = to_match.lower()
+    
+    if attribute.lower() == to_match:
         return True
 
     for item in namespace:
@@ -581,6 +581,8 @@ def visualize_query(sql):
     for i in range(len(copy)):
         if copy[i].strip() == "<!-- INSERT TEST BELOW -->":
             copy[i] = "<script>var pq = " + str(json) +";</script>"
+        
+    # MODIFY THIS PATH -- Need to get the current directory to append front-end-code/results.html
     output = open("C:/Users/School/Documents/DeMASK/git/front-end-code/results.html", "w")
     for line in copy:
         output.write(line)
