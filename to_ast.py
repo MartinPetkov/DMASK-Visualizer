@@ -219,8 +219,6 @@ whereClause     <<  operatorPrecedence(
 
 #==========HAVING CLAUSE ===========
 havingCondition = Group(
-                    #Optional(Suppress("("))
-                    (
                         (aggregatefns + BINOP + (((ANY_ | SOME_ | ALL_) + subquery) | columnRval))
                         | (aggregatefns + IN_ + Suppress("(") + delimitedList(columnRval) + Suppress(")"))
                         | (aggregatefns + IN_ + subquery)
@@ -228,17 +226,15 @@ havingCondition = Group(
                         | (aggregatefns + (ISNULL_ | NOTNULL_))
                         | (aggregatefns + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
                     )
-                    #+ Optional(Suppress(")"))
-                    )
 
 havingNested    = nestedExpr("(", ")", havingCondition)
 
-havingClause    =   (havingNested | operatorPrecedence(
+havingClause    =   operatorPrecedence(
                         havingNested | havingCondition,
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
-                    ))
+                    )
 
 #=========== SQL STATEMENT =========
 # Define the grammar for SQL query.

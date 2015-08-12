@@ -1,9 +1,8 @@
 # All the functions for parsing and converting sql reside here
-
 from parsed_query import *
 from query_step import *
 from table import *
-from to_ast import ast
+from to_ast import ast, KEYWORDS
 
 import re
 import collections
@@ -74,9 +73,12 @@ def flatten_where(lst):
                 result.extend(flatten(elem))
                 result.append(')')
             else:
-                result.append('(')
-                result.extend(flatten_where(elem))
-                result.append(')')
+                if len(elem) == 1:
+                    result.extend(flatten_where(elem))
+                else:
+                    result.append('(')
+                    result.extend(flatten_where(elem))
+                    result.append(')')
         else:
             result.append(elem)
 
@@ -104,8 +106,19 @@ def lst_to_str(lst):
 
 
 def clean_lst(lst):
-    return [e for e in lst if e != ''] # Remove nonexistence elements
+    query = []
+    brackets = ['(', ')']
 
+    for i in range(len(lst)):
+        if lst[i] in brackets:
+            if query[-1] in KEYWORDS:
+                query[-1] = query[-1] + ' ' + lst[i]
+            else:
+                query[-1] = query[-1] + lst[i]
+        elif lst[i] != '':
+            query.append(lst[i]) # Remove nonexistence elements
+
+    return query
 
 def get_namespace(steps, step_number='', table_name=''):
     for step in steps:
