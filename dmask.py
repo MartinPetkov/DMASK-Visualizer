@@ -141,6 +141,20 @@ class DMASK:
                                 input_step = s
                         tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
                         set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
+                        
+                    # Prefix duplicate columns
+                    duplicates = []
+                    for i in range(len(columns)):
+                        if columns.count(columns[i]) > 1:
+                            duplicates.append(i)
+                    namespace = get_namespace(sql_parser.sql_to_ast(step.executable_sql).asList(), self)
+                    
+                    for index in duplicates:
+                        for alias_set in namespace:
+                            if alias_set[0].lower() == columns[index].lower() and len(alias_set) > 1:
+                                columns[index] = alias_set[1]
+                                alias_set.pop(1)
+                    
                     t = Table(name, step.step_number, columns, tuples, {})
                     tables[str(step.result_table)] = t
                     
@@ -329,7 +343,7 @@ def get_correlated_elements(query, dmask):
     # appear in the namespace of the (isolated) query.
 
     # get the namespace of the subquery
-    namespace = flatten_list(get_namespace(query, dmask))
+    namespace = [i.lower() for i in flatten_list(get_namespace(query, dmask))]
 
     # get the attributes called in the subquery
     attributes = find_attributes(query)
@@ -337,7 +351,7 @@ def get_correlated_elements(query, dmask):
     # for each attribute, if it appears somewhere in the namespace, remove it
     i = 0
     while (i < len(attributes)):
-        if attributes[i] in namespace:
+        if attributes[i].lower() in namespace:
             attributes.pop(i)
         else:
             i += 1
@@ -417,7 +431,7 @@ def get_namespace(subquery, dmask):
             # If there's a subquery, bracket the name and add the alis
             if isinstance(name, list):
                 name = flatten_ast_to_string(name)[0] + " " + alias
-            tables.append((name.lower(), alias.lower()))
+            tables.append((name, alias))
     
     main_table = flatten_ast_to_string(from_clause)[0]
     namespace = [[column] for column in get_columns("SELECT * FROM " + main_table, dmask)]
@@ -452,7 +466,7 @@ def matches_alias(namespace, attribute, to_match):
         return True
 
     for item in namespace:
-        if to_match in item:
+        if to_match in [i.lower() for i in item]:
             return True
 
     return False
