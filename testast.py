@@ -643,7 +643,7 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST TWO UNIONS')
         print('query1 UNION query2 UNION query3')
-        expected = "[[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', 'ALL', [['SELECT', [['sid']]], ['FROM', [['Took']]]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['University']]]]]]"
+        expected = "[[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION ALL', [['SELECT', [['sid']]], ['FROM', [['Took']]]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['University']]]]]]"
         output = ast('((select sid from Student) union all (select sid from Took)) union (select sid from University);')
         print(expected)
         print(output)
@@ -1029,7 +1029,7 @@ class TestSQL(unittest.TestCase):
         self.assertEqual(len(expected), len(output.__str__()))
 
 
-    def test_41_two_unions_nobrackets(self):
+    def test_41_two_unions(self):
         ''' TEST TWO UNIONS 
             query1 UNION query2 UNION query3
             Expected output:
@@ -1051,12 +1051,39 @@ class TestSQL(unittest.TestCase):
         '''
         print('TEST TWO UNIONS')
         print('query1 UNION query2 UNION query3')
-        expected = "[[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', 'ALL', [['SELECT', [['sid']]], ['FROM', [['Took']]]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['University']]]]]]"
+        expected = "[[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION ALL', [['SELECT', [['sid']]], ['FROM', [['Took']]]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['University']]]]]]"
         output = ast('(select sid from Student) union all (select sid from Took) union (select sid from University);')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
-        
+
+    def test_42_two_unions_rightbrackets(self):
+        ''' TEST TWO UNIONS 
+            query1 UNION query2 UNION query3
+            Expected output:
+                [
+                    [
+                        [
+                            [ 'SELECT', [['sid']]],
+                            [ 'FROM',    [['Student']]]
+                        ], UNION, ALL,
+                        [   [ 'SELECT', [['sid']]],
+                            [ 'FROM',   [['Took']]]
+                        ]
+                    ], UNION,
+                    [   
+                        [ 'SELECT', [['sid']]],
+                        [ 'FROM',   [['University']]]
+                    ]
+                ]
+        '''
+        print('TEST TWO UNIONS')
+        print('query1 UNION query2 UNION query3')
+        expected = "[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION ALL', [[['SELECT', [['sid']]], ['FROM', [['Took']]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['University']]]]]]]"
+        output = ast('(select sid from Student) union all ((select sid from Took) union (select sid from University));')
+        print(expected)
+        print(output)
+        self.assertEqual(len(expected), len(output.__str__()))        
 
 if __name__ == "__main__":
     unittest.main()

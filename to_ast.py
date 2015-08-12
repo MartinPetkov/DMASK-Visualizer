@@ -65,6 +65,7 @@ createView      =   Forward()
 setOp           =   Forward()
 whereClause     =   Forward()
 whereCondition  =   Forward()
+nestedSubquery  =   Forward()
 
 # =========== PRECEDENCE FUNCTION ============
 
@@ -249,12 +250,7 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
                     + Optional( Group( OFFSET + Group(columnRval)))
                     )
 
-
-subquery        <<  (Optional(Suppress("(")) 
-                    + Group(sqlStmt) 
-                    + Optional(Suppress(")"))
-                    )
-
+subquery        <<  Optional(Suppress('(')) + Group(sqlStmt) + Optional(Suppress(')'))
 
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 
@@ -262,9 +258,13 @@ createView      <<  (Combine( CREATE + " " + VIEW)
                     + (subquery | setOp | selectCalculator)
                     )
 
+setOps          = Combine((UNION_ | INTERSECT_ | EXCEPT_) + Optional(' ' + ALL_))
+
+nestedSubquery  <<  nestedExpr('(', ')', Group(sqlStmt))
+
 setOp           <<  (operatorPrecedence(
-                        (subquery),
-                        [( (UNION_ | INTERSECT_ | EXCEPT_) + Optional(ALL_), 2, opAssoc.LEFT)]
+                        (subquery | nestedSubquery),
+                        [(( setOps), 2, opAssoc.LEFT, precedence(2))]
                     )   + Optional(Group (Combine (ORDER + " " + BY) + tokenList + Optional(ASC_ | DESC_)))
                         + Optional(Group(LIMIT + Group(columnRval )))
                         + Optional(Group(OFFSET + Group(columnRval)))

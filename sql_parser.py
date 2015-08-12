@@ -28,7 +28,7 @@ SQL_EXEC_ORDER = {
     "OFFSET": 10
 }
 
-SET_OPERATIONS = ['UNION', 'INTERSECT', 'EXCEPT']
+SET_OPERATIONS = ['UNION', 'INTERSECT', 'EXCEPT', 'UNION ALL', 'INTERSECT ALL', 'EXCEPT ALL']
 CONDITIONS = ['WHERE', 'HAVING']
 BRACKETS = ['(', ')']
 
@@ -457,11 +457,6 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         output_table_name = substep_number if (i+2) != len(args) else current_step_number
         this_namespace = get_namespace(steps, table_name=last_from_table)
         this_namespace = this_namespace[:] + (get_namespace(steps, table_name=new_joined_table))
-        #     for j in range(len(this_namespace)):
-        #         table = this_namespace[j][0]
-        #         cols = this_namespace[j][1]
-
-        #         this_namespace[j] = (this_namespace[j][0], [c for c in cols if c in keep_cols])
 
         substep = QueryStep(substep_number, combine_sql_chunk, [last_from_table, new_joined_table], output_table_name, combine_executable_sql, this_namespace[:])
         steps.append(substep)
