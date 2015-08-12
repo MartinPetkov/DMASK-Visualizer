@@ -131,7 +131,7 @@ function stepIn(){
         
         // if there's no next step, then move to the next query
         if (step_keys[index + 1] == undefined){
-            index = 0;
+            index = -1;
             current_query_number += 1;
             
             // Traverse into the innermost first step
