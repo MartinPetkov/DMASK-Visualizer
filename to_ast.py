@@ -45,13 +45,14 @@ NULL_           =   KEYWORD("NULL", caseless=True)
 ISNULL_         =   KEYWORD("ISNULL", caseless=True)
 NOTNULL_        =   KEYWORD("NOTNULL", caseless=True)
 BETWEEN_        =   KEYWORD("BETWEEN", caseless=True)
+COMMA_          =   KEYWORD(",", caseless=True)
 
 KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
                     CREATE | VIEW | AS | DISTINCT | ON | ASC_ | DESC_ | USING | 
                     LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
                     ANY_ | SOME_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
                     JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
-                    NULL_ | ISNULL_ | NOTNULL_ | BETWEEN_)
+                    NULL_ | ISNULL_ | NOTNULL_ | BETWEEN_ | ',')
 
 # ================= Define SQL CLAUSES =======================
 # Grammar for clauses will be defined below. 
@@ -263,7 +264,7 @@ createView      <<  (Combine( CREATE + " " + VIEW)
 
 setOp           <<  (operatorPrecedence(
                         (subquery),
-                        [( (UNION_ | INTERSECT_ | EXCEPT_) + Optional(ALL_), 2, opAssoc.LEFT, )]
+                        [( (UNION_ | INTERSECT_ | EXCEPT_) + Optional(ALL_), 2, opAssoc.LEFT)]
                     )   + Optional(Group (Combine (ORDER + " " + BY) + tokenList + Optional(ASC_ | DESC_)))
                         + Optional(Group(LIMIT + Group(columnRval )))
                         + Optional(Group(OFFSET + Group(columnRval)))

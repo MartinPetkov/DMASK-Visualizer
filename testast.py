@@ -1028,8 +1028,34 @@ class TestSQL(unittest.TestCase):
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
 
-        
 
+    def test_41_two_unions_nobrackets(self):
+        ''' TEST TWO UNIONS 
+            query1 UNION query2 UNION query3
+            Expected output:
+                [
+                    [
+                        [
+                            [ 'SELECT', [['sid']]],
+                            [ 'FROM',    [['Student']]]
+                        ], UNION, ALL,
+                        [   [ 'SELECT', [['sid']]],
+                            [ 'FROM',   [['Took']]]
+                        ]
+                    ], UNION,
+                    [   
+                        [ 'SELECT', [['sid']]],
+                        [ 'FROM',   [['University']]]
+                    ]
+                ]
+        '''
+        print('TEST TWO UNIONS')
+        print('query1 UNION query2 UNION query3')
+        expected = "[[[[['SELECT', [['sid']]], ['FROM', [['Student']]]], 'UNION', 'ALL', [['SELECT', [['sid']]], ['FROM', [['Took']]]]], 'UNION', [['SELECT', [['sid']]], ['FROM', [['University']]]]]]"
+        output = ast('(select sid from Student) union all (select sid from Took) union (select sid from University);')
+        print(expected)
+        print(output)
+        self.assertEqual(len(expected), len(output.__str__()))
         
 
 if __name__ == "__main__":
