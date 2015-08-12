@@ -1463,9 +1463,9 @@ def generate_multiple_queries_unrelated():
 def generate_multiple_queries_related():
     query_text1 =\
     ' CREATE VIEW pizza AS' +\
-    '   SELECT sid, email, cgpa' +\
+    '   (SELECT sid, email, cgpa' +\
     '   FROM Student' +\
-    '   WHERE cgpa<3'
+    '   WHERE cgpa<3)'
 
     steps1 = [
         QueryStep('1', 'CREATE VIEW pizza AS SELECT sid, email, cgpa FROM Student WHERE cgpa<3', [], 'pizza',
@@ -1595,7 +1595,7 @@ def generate_diane_subquery_in_from():
     ' FROM Took,' +\
     '   (SELECT *' +\
     '   FROM Offering' +\
-    '   WHERE instructor="Horton") H' +\
+    '   WHERE instructor=\'D. Horton\') H' +\
     ' WHERE Took.ofid = H.oid;'
 
     steps = [
@@ -1733,8 +1733,8 @@ def generate_diane_where_any():
     query_text =\
     ' SELECT sid' +\
     ' FROM Student' +\
-    ' WHERE gpa > ANY' +\
-    '   (SELECT gpa' +\
+    ' WHERE cgpa > ANY' +\
+    '   (SELECT cgpa' +\
     '    FROM Student NATURAL JOIN Took' +\
     '    WHERE grade > 100);'
 

@@ -118,6 +118,7 @@ class DMASK:
                         
                 else:
                     # Execute the query
+                    print(step.executable_sql)
                     cursor.execute(step.executable_sql)
     
                     # Get the columns
@@ -139,6 +140,15 @@ class DMASK:
                         for s in steps:
                             if s.step_number == tables[step.input_tables[0]].step:
                                 input_step = s
+                                
+                        if tables[str(input_step.result_table)].reasons:
+                            old_name = str(input_step.result_table)
+                            new_name = old_name + "2"
+                            old_table = tables[old_name]
+                            tables[new_name] =  Table(old_table.t_name, old_table.step, old_table.col_names, old_table.tuples, {})
+                            input_step.result_table = new_name            
+                            step.input_tables[step.input_tables.index(old_name)] = new_name
+                            
                         tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
                         set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
                         
@@ -147,13 +157,15 @@ class DMASK:
                     for i in range(len(columns)):
                         if columns.count(columns[i]) > 1:
                             duplicates.append(i)
-                    namespace = get_namespace(sql_parser.sql_to_ast(step.executable_sql).asList(), self)
                     
-                    for index in duplicates:
-                        for alias_set in namespace:
-                            if alias_set[0].lower() == columns[index].lower() and len(alias_set) > 1:
-                                columns[index] = alias_set[1]
-                                alias_set.pop(1)
+                    if duplicates:
+                        namespace = get_namespace(sql_parser.sql_to_ast(step.executable_sql).asList(), self)
+                        
+                        for index in duplicates:
+                            for alias_set in namespace:
+                                if alias_set[0].lower() == columns[index].lower() and len(alias_set) > 1:
+                                    columns[index] = alias_set[1]
+                                    alias_set.pop(1)
                     
                     t = Table(name, step.step_number, columns, tuples, {})
                     tables[str(step.result_table)] = t
@@ -301,14 +313,22 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 for item in correlated:
                     for j in range(len(columns)):
                         if matches_alias(namespace, columns[j], item):
-                            substitutes[item] = input_tuples[i][j]
+                            result = input_tuples[i][j]
+                            # If it's not a number, surround it with single quotes
+                            try:
+                                float(result)
+                            except ValueError:
+                                try:
+                                    complex(result)
+                                except ValueError:
+                                    result = "'" + result + "'"
+                            substitutes[item] = result
                             break
                     # TODO:
                     # If substitutes[item] does not exist at this point, then
                     # it might be an aggregate function, in which case
                     # you will want to do "SELECT item FROM <from clause>"
                     # which may or may not fail
-
 
                 # Substitute them in the query
                 substituted_subquery = pq.substitute(substitutes)
@@ -410,6 +430,7 @@ def get_namespace(subquery, dmask):
     # [[column, prefix.column, ...], [column, prefix.column, ...]]
 
     from_clause = []
+    print(subquery)
 
     for node in subquery:
         if node[0].lower() == "from":
@@ -461,12 +482,14 @@ def matches_alias(namespace, attribute, to_match):
     # Given a namespace, attribute (ex. "sid") and someting to match (ex. "Took.sid")
     # Returns true whether the attribute matches to_match
     to_match = to_match.lower()
+    attribute = attribute.lower()
     
-    if attribute.lower() == to_match:
+    if attribute == to_match:
         return True
 
     for item in namespace:
-        if to_match in [i.lower() for i in item]:
+        lowered_item = [i.lower() for i in item]
+        if to_match in lowered_item and attribute in lowered_item:
             return True
 
     return False
@@ -589,7 +612,7 @@ def visualize_query(sql):
     # nothing gets commited -- closing the connection will prevent hanging
     dmask.connection.close()
     
-    import os.path
+    import os
     f = open("front-end-code/template.html")
     copy = f.readlines()
     for i in range(len(copy)):
@@ -597,7 +620,7 @@ def visualize_query(sql):
             copy[i] = "<script>var pq = " + str(json) +";</script>"
         
     # MODIFY THIS PATH -- Need to get the current directory to append front-end-code/results.html
-    output = open("C:/Users/School/Documents/DeMASK/git/front-end-code/results.html", "w")
+    output = open(os.getcwd() +"/front-end-code/results.html", "w")
     for line in copy:
         output.write(line)
     f.close()
@@ -605,3 +628,27 @@ def visualize_query(sql):
     
 print("File is located in front-end-code/results.html")
 print("To run: visualize_query('QUERY')")
+
+def test_all(index = 0):
+    queries = [' SELECT sid, cgpa FROM Student WHERE cgpa > 3',
+               ' SELECT Student.sid, Student.email, Took.grade FROM Student, Took',
+               ' SELECT sid, email, cgpa FROM Student NATURAL JOIN Took NATURAL JOIN Course',
+               ' SELECT sid, grade, instructor FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid',
+               ' SELECT LimitedCols.oid FROM (SELECT oid, dept FROM Offering ) AS LimitedCols',
+               ' SELECT email, cgpa FROM Student WHERE cgpa > 3 AND firstName=\'Martin\'',
+               ' SELECT email, cgpa FROM Student WHERE cgpa > 3 OR firstName=\'Sophia\'',
+               ' SELECT email, cgpa FROM Student WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')',
+               ' SELECT t.sid, o.oid FROM Took t, Offering o',
+               ' SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa  FROM Student  WHERE sid=4)',
+               ' SELECT instructor FROM Offering o1 WHERE EXISTS ( SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
+               ' SELECT email FROM Student; SELECT oid FROM Offering',
+               ' CREATE VIEW pizza AS (SELECT sid, email, cgpa FROM Student WHERE cgpa<3); SELECT email FROM pizza',
+               ' SELECT sid, dept||cnum as course, grade FROM Took, (SELECT * FROM Offering WHERE instructor=\'D. Horton\') H WHERE Took.ofid = H.oid;',
+               ' SELECT sid FROM Student WHERE cgpa > ANY (SELECT cgpa FROM Student NATURAL JOIN Took WHERE grade > 100);',
+               ' SELECT sid, dept||cnum AS course, grade FROM Took NATURAL JOIN Offering WHERE grade >= 80 AND (cnum, dept) IN ( SELECT cnum, dept FROM Took NATURAL JOIN Offering NATURAL JOIN Student WHERE surname = "Lakemeyer");',
+               ' SELECT instructor FROM Offering Off1 WHERE NOT EXISTS ( SELECT * FROM Offering WHERE oid <> Off1.oid AND instructor = Off1.instructor );']
+    while (index < len(queries)):
+        print("Executing query " + str(index) + ": " + queries[index]+"...")
+        visualize_query(queries[index])
+        index += 1
+        input("Press any key to load the next query: ")
