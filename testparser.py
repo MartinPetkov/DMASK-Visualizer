@@ -45,8 +45,9 @@ if __name__ == "__main__":
 	o = ast('select instructor from Offering Off1 where not exists (select * from Offering where oid <> Off1.oid and instructor = Off1.instructor)')
 	p = ast('(select sid from Student) union (select sid from Took) order by firstName')
 	p2 = ast('((select sid from Student) union (select sid from Took)) union (select sid from Student)')
+	p3 = ast('(select sid from Student) union (select sid from Student) union (select sid from Took)')
 	q = ast('select distinct sid, dept || cnum as course, count(grade), (select max(sid) from Took) maxsid from Took, Offering where sid > 0 group by sid having count(grade) > 0 order by sid limit 5')
+	r = ast('select sid from Student where (cgpa > 3) and (grade > 0 or grade < 40) ')
 
-	print(g)
-	x = sql_ast_to_steps(n, schema)
+	x = sql_ast_to_steps(r, schema)
 	printout(x)

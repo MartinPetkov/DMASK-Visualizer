@@ -413,7 +413,7 @@ class TestSQL(unittest.TestCase):
         print('TEST COMPOUND CONDITION: AND + OR, WITH BRACKETS EVERY')
         print('A query with an AND and OR in its WHERE statement. With brackets around every condition.')
         expected = "[['SELECT', [['email'], ['cgpa']]], ['FROM', [['Student']]], ['WHERE', [[['cgpa', '>', '3'], 'AND', [['firstName', '=', \"'Martin'\"], 'OR', ['firstName', 'LIKE', \"'%Kat%'\"]]]]]]"
-        output = ast('select email, cgpa from Student (where cgpa > 3) and (firstName=\'Martin\' or firstName like \'%Kat%\')')
+        output = ast('select email, cgpa from Student where (cgpa > 3) and (firstName=\'Martin\' or firstName like \'%Kat%\')')
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))

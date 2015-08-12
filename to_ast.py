@@ -197,8 +197,6 @@ fromClause      =   (tableBlock
 # ========= WHERE CLAUSE ===========
 
 whereCondition  <<   Group(
-                    # Optional(Suppress("(")) + 
-                    (
                         (token + BINOP + ( 
                             columnRval 
                             | (Optional(ANY_ | SOME_ | ALL_) + subquery)))
@@ -210,17 +208,14 @@ whereCondition  <<   Group(
                         | (token + (ISNULL_ | NOTNULL_))
                         | (token + Optional(NOT_) + BETWEEN_ + columnRval + AND_ + columnRval)
                     )
-                    # + Optional(Suppress(")"))
-                    )
+whereNested     =   nestedExpr("(", ")", whereCondition)
 
-whereNested     =  nestedExpr("(", ")", whereCondition)
-
-whereClause     <<  (whereNested | operatorPrecedence(
-                        whereNested | whereCondition,
+whereClause     <<  operatorPrecedence(
+                        (whereNested | whereCondition),
                         [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
-                    ))
+                    )
 
 #==========HAVING CLAUSE ===========
 havingCondition = Group(
@@ -267,13 +262,13 @@ subquery        <<  (Optional(Suppress("("))
 createView      <<  (Combine( CREATE + " " + VIEW) 
                     + token 
                     + Optional(AS) 
-                    + query
+                    + (subquery | setOp | selectCalculator)
                     )
 
 setOp           <<  (operatorPrecedence(
                         (subquery),
                         [( (UNION_ | INTERSECT_ | EXCEPT_) + Optional(ALL_), 2, opAssoc.LEFT, )]
-                    )   + Optional(Group (Combine (ORDER + " " + BY) + tokenList))
+                    )   + Optional(Group (Combine (ORDER + " " + BY) + tokenList + Optional(ASC_ | DESC_)))
                         + Optional(Group(LIMIT + Group(columnRval )))
                         + Optional(Group(OFFSET + Group(columnRval)))
                     )
