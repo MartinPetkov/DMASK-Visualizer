@@ -30,6 +30,7 @@ SQL_EXEC_ORDER = {
 }
 
 SET_OPERATIONS = ['UNION', 'INTERSECT', 'EXCEPT']
+CONDITIONS = ['WHERE', 'HAVING']
 
 basestring = (str, bytes)
 
@@ -40,6 +41,10 @@ namespace = []
 
 def flatten(lst):
     result = []
+
+    if lst[0] in CONDITIONS:
+        return flatten_where(lst)
+
     for elem in lst:
         if hasattr(elem, "__iter__") and not isinstance(elem, basestring):
             if (elem[0][0] == 'SELECT'):
@@ -48,10 +53,27 @@ def flatten(lst):
                 result.append(')')
             elif (elem[0] == 'SELECT'):
                 result.append('SELECT ' + make_column(elem[1]))
+            elif (elem[0] in CONDITIONS):
+                result.append(elem[0] + ' ')
+                result.extend(flatten_where(elem[1]))
+                print(result)
             else:
                 result.extend(flatten(elem))
         else:
             result.append(elem)
+    return result
+
+
+def flatten_where(lst):
+    result = []
+    for elem in lst:
+        if hasattr(elem, "__iter__") and not isinstance(elem, basestring):
+            result.append('(')
+            result.extend(flatten_where(elem))
+            result.append(')')
+        else:
+            result.append(elem)
+
     return result
 
 
@@ -71,6 +93,7 @@ def make_column(column_list):
 def lst_to_str(lst):
     if isinstance(lst, basestring):
         return lst
+
     return ' '.join(clean_lst(flatten(lst)))
 
 
@@ -123,7 +146,7 @@ def reorder_sql_statements(sql_statements):
 
     # If there are set operations, all of them will be contained in the first element, followed by things like 'LIMIT'
     # and 'ORDER BY'. Successive set operations are nested deeper instead of being serialized in sequence.
-    if len(sql_statements[0]) == 3 and not isinstance(sql_statements[0][1],pyparsing.ParseResults) and sql_statements[0][1].upper() in SET_OPERATIONS:
+    if len(sql_statements[0]) == 3 and isinstance(sql_statements[0][1], basestring) and sql_statements[0][1].upper() in SET_OPERATIONS:
         # Handle set operation reordering
         set_operation = sql_statements[0]
         first_sql_query = set_operation[0]
@@ -141,7 +164,7 @@ def reorder_sql_statements(sql_statements):
         return final_statements
     
     # For inner set operations, do different things
-    if len(sql_statements) == 3 and not isinstance(sql_statements[1],pyparsing.ParseResults) and sql_statements[1].upper() in SET_OPERATIONS:
+    if len(sql_statements) == 3 and isinstance(sql_statements[1],basestring) and sql_statements[1].upper() in SET_OPERATIONS:
         # Handle set operation reordering
         first_sql_query = sql_statements[0]
         operator = sql_statements[1]
@@ -272,7 +295,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         print("No arguments to FROM statement")
         return
 
-    collapse_step = ( len(args) == 1 and (len(args[0]) == 1 or not isinstance(args[0][0], pyparsing.ParseResults)) )
+    collapse_step = ( len(args) == 1 and (len(args[0]) == 1 or isinstance(args[0][0], basestring)) )
 
     # Create the first step
     current_step_number = parent_number + '1'
@@ -311,7 +334,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     last_from_table = output_table_name
 
     # The first step is a rename of a subquery
-    if(len(args[0]) == 3 and args[0][2] != "ON" and isinstance(args[0][0], pyparsing.ParseResults)):
+    if(len(args[0]) == 3 and args[0][2] != "ON" and not isinstance(args[0][0], basestring)):
         subquery = args[0][0]
         local_step_number += 1
         steps += parse_sql_query(subquery, substep_number)
@@ -356,7 +379,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         substep_number = current_step_number + '.' + str(local_step_number)
 
         # Case of a subquery being renamed
-        if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and isinstance(from_arg[0], pyparsing.ParseResults):
+        if len(from_arg) > 1 and (from_arg[1] == "AS" or from_arg[1] == "") and not isinstance(from_arg[0], basestring):
             subquery = from_arg[0]
 
             local_step_number += 1
@@ -442,7 +465,7 @@ def extract_from_arg_table_name(from_arg):
                 return from_arg[0][0]
         else:
             # If it's a renamed query or table
-            if isinstance(from_arg[0], pyparsing.ParseResults):
+            if not isinstance(from_arg[0], basestring):
                 return from_arg[2]
             else:
                 return lst_to_str(from_arg[0]) + ' ' + lst_to_str(from_arg[2])
@@ -464,7 +487,7 @@ def get_namespace_from_args(from_args):
             extracted_namespace.append((new_name, schema[schema_table]))
         else:
             # Subquery in from clause
-            if isinstance(from_args[i][0], pyparsing.ParseResults):
+            if not isinstance(from_args[i][0], basestring):
                 subquery_namespace = sql_ast_to_steps(from_args[i][0], schema)[-1].namespace
                 keep_cols = []
                 for table in subquery_namespace:
@@ -574,7 +597,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 final_col_name = col[-1]
 
             if not final_col_name:
-                if isinstance(start_name, pyparsing.ParseResults):
+                if isinstance(start_name, basestring):
                     start_name = lst_to_str(start_name)
                 final_col_name = start_name
             
@@ -606,7 +629,6 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 elif (not table_name and final_col_name not in all_cols):
                     current_namespace[i][1].append(final_col_name)
 
-        print(all_cols)
         for i in range(len(current_namespace)):
             table = current_namespace[i][0]
             cols = current_namespace[i][1] # Remove the table prefixes

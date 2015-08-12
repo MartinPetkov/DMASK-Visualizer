@@ -34,7 +34,7 @@ if __name__ == "__main__":
 	e = ast('select sid, oid from Took, (select oid, dept, sid from Offering, Student) as H')
 	e2 = ast('select oid from (select oid, dept from Offering) as H')
 	f = ast('select email, cgpa from Student where cgpa > 3 and firstname = \'Martin\'')
-	g = ast('select email, cgpa from Student where cgpa > 3 and (firstname=\'Martin\' or firstname=\'Kathy\'')
+	g = ast('select email, cgpa from Student where cgpa > 3 and (firstname=\'Martin\' or firstname=\'Kathy\') group by sid having max(sid) > 3')
 	h = ast('select t.sid, o.oid from Took t, Offering o')
 	i = ast('select sid, firstName from Student where cgpa > (select cgpa from Student where sid=4')
 	j = ast('select instructor from Offering o1 where exists (select o2.oid from Offering o2 where o2.oid <> o1.oid')
@@ -47,5 +47,6 @@ if __name__ == "__main__":
 	p2 = ast('((select sid from Student) union (select sid from Took)) union (select sid from Student)')
 	q = ast('select distinct sid, dept || cnum as course, count(grade), (select max(sid) from Took) maxsid from Took, Offering where sid > 0 group by sid having count(grade) > 0 order by sid limit 5')
 
-	x = sql_ast_to_steps(l, schema)
+	print(g)
+	x = sql_ast_to_steps(g, schema)
 	printout(x)
