@@ -651,8 +651,50 @@ def test_all(index = 0):
 
 if __name__ == '__main__':
     sql = "test"
+    "host='localhost' dbname='postgres' user='postgres' password='password'"
+    host = input("Enter host name (localhost by default): ")
+    if not host:
+        host = "localhost"
+    
+    dbname = input("Enter database name (postgres by default): ")
+    if not dbname:
+        dbname = "postgres"
+    
+    user = input("Enter username (postgres by default): ")
+    if not user:
+        user = "postgres"
+    
+    password = input("Enter password (empty by default): ")
+    
+    conn_string = "host='{}' dbname='{}' user='{}' password='{}'".format(host, dbname, user, password)
+    print(conn_string)
+    
+    to_search = input("Enter search path (empty by default): ")
+    
+    i = ""
+    schema = {}
+    if (input("Setting up schema. Press q to use default, any other key to specify your own: ") != "q"):
+        while (i.lower() != "q"):
+            i = input("Enter table name or q to quit: ")
+            if (i.lower() != "q"):
+                j = ""
+                columns = []
+                while (j.lower() != "q"):
+                    j = input("Enter column name or q to enter another table: ")
+                    if (j.lower() != "q"):
+                        columns.append(j)
+                schema[i] = columns
+            
+    else:
+        schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
+                              "Course": ["dept", "cNum", "name"],
+                              "Offering": ["oid" ,"dept", "cNum", "instructor"],
+                              "Took": ["sid", "oid", "grade"]
+                             }
+        
+    
     while (sql):
         sql = input("Enter query: ")
         if (not sql):
             break
-        visualize_query(sql)
+        visualize_query(sql, conn_string = conn_string, schema = schema, to_search = to_search)
