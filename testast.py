@@ -1083,7 +1083,11 @@ class TestSQL(unittest.TestCase):
         output = ast('(select sid from Student) union all ((select sid from Took) union (select sid from University));')
         print(expected)
         print(output)
-        self.assertEqual(len(expected), len(output.__str__()))        
+        self.assertEqual(len(expected), len(output.__str__())) 
+
+    def test_43_aggregate_star(self):
+        output = ast('select count(*) from Student')
+        print(output)       
 
 if __name__ == "__main__":
     unittest.main()

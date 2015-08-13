@@ -32,4 +32,6 @@
 .navigation {
     display:inline-block;
     cursor:pointer;
+    font-size: 8px;
+    text-align:center;
 }

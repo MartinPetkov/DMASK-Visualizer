@@ -126,10 +126,10 @@ token           =   delimitedList(ident, ".", combine=True)
 
 
 # Aggregate functions
-aggregatefns    =   (Combine(Word(alphas) + ("(") + token + (")")))
+aggregatefns    =   (Combine(Word(alphas) + ("(") + ('*' | token) + (")")))
 
 # Possible column values
-columnRval      =   (realNum | intNum | quotedString | posParam | aggregatefns | token)
+columnRval      =   ( '* ' | realNum | intNum | quotedString | posParam | aggregatefns | token)
 
 tokenObs        =   Group(
                         (Group(columnRval + COLOPS + columnRval) | columnRval)

@@ -56,7 +56,6 @@ def flatten(lst):
             elif (elem[0] in CONDITIONS):
                 result.append(elem[0] + ' ')
                 result.extend(flatten_where(elem[1]))
-                print(result)
             else:
                 result.extend(flatten(elem))
         else:

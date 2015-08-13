@@ -120,9 +120,38 @@ function updateNamespace(step){
         }
     }
 
+    step.namespace = namespace;
+
+    namespace = appendParentNamespace(namespace);
+    namespaceDisplay(namespace);
+}
+
+function namespaceDisplay(namespace){
     var namespacebody = $("#" + current_window.generateElemID("namespacebody"));
     namespacebody.empty();
     namespacebody.append(namespaceToString(namespace));
+}
+
+function appendParentNamespace(namespace){
+    var window = current_window.parent;
+    while (window != undefined){
+        parent_namespace = window.current_step.namespace;
+        var i;
+        for (i = 0; i < parent_namespace.length; i++){
+            var j;
+            var to_append = parent_namespace[i];
+            var append = true;
+            for (j = 0; j < namespace.length; j++){
+                if (to_append[0] == namespace[j][0])
+                    append = false;
+            }
+            if (append)
+                namespace.splice(0, 0, to_append)
+        }
+        window = window.parent;
+    }
+
+    return namespace;
 }
 
 function namespaceToString(namespace){
