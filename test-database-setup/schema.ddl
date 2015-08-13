@@ -1,6 +1,7 @@
-drop schema if exists sophiadmask cascade;
-create schema sophiadmask;
-set search_path to sophiadmask;
+drop table if exists Student cascade;
+drop table if exists Course cascade;
+drop table if exists Offering cascade;
+drop table if exists Took cascade;
 
 create table Student(
         sid integer,
