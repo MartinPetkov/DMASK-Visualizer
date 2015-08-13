@@ -589,4 +589,3 @@ class PreparedQuery:
 
         replace(query_copy, substitutes)
         return query_copy
-
