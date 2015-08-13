@@ -1,0 +1,18 @@
+from http.server import SimpleHTTPServer, SocketServer
+import urllib
+
+class DMASKHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+
+    def do_POST(self):
+        length = int(self.headers['Content-Length'])
+        post_data = urllib.parse.parse_qs(self.rfile.read(length).decode('utf-8'))
+
+        print(post_data)
+
+
+PORT = 9001
+Handler = DMASKHandler
+httpd = SocketServer.TCPServer(("",PORT), Handler)
+
+print("Serving on port: ", PORT)
+httpd.serve_forever()

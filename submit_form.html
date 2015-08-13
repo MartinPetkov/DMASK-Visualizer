@@ -1,19 +1,30 @@
 <!DOCTYPE html>
 <html style="background-color: rgb(202, 217, 244);">
-<!-- Bootstrap -->
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-<!-- Optional theme -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+
+<head>
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+</head>
 
 
 <div style="background-color: rgb(202, 217, 244); height: 100%; width: 100%; text-align: center; font-family: Cambria;">
     <h1>Submit your query here!</h1>
     <br/>
-    <form action="http://0.0.0.0:9001/submit_query/" method="POST" target="_blank">
-        <textarea rows="10" cols="80" name="sql_query"></textarea>
-        <br/>
-        <input class="btn" type="submit" value="Submit"/>
-    </form>
+    <textarea rows="10" cols="60" name="sql-query" id="sql-query" style="font-family: monospace;"></textarea>
+    <br/>
+    <button class="btn" id="submit" onclick="sendQuery()">Submit</button>
 </div>
+
+<script>
+function sendQuery() {
+    var sql_query = document.getElementById("sql-query").value;
+    console.log(sql_query);
+
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("POST", "http://127.0.0.1:9001", true);
+    xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+    xmlhttp.send("sql_query=" + sql_query);
+}
+</script>
 </html>
