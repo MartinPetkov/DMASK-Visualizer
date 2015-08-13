@@ -649,17 +649,17 @@ if __name__ == '__main__':
     
     to_search = input("Enter search path (empty by default): ")
 
-    i = ""
+    i = "temp"
     schema = {}
-    if (input("Setting up schema. Press Enter to use default, any other key to specify your own: ")):
-        while (i.lower() != "q"):
-            i = input("Enter table name or q to quit: ")
-            if (i.lower() != "q"):
-                j = ""
+    if (input("Setting up schema. Press d to use default, any other key to specify your own: ").lower() != "d"):
+        while (i):
+            i = input("Enter table name or empty to quit: ")
+            if (i):
+                j = "temp"
                 columns = []
-                while (j.lower() != "q"):
-                    j = input("Enter column name or q to enter another table: ")
-                    if (j.lower() != "q"):
+                while (j):
+                    j = input("Enter column name or empty to enter another table: ")
+                    if (j):
                         columns.append(j)
                 schema[i] = columns
 
