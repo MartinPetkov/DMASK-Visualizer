@@ -591,6 +591,8 @@ class PreparedQuery:
 # TODO: REMOVE -- this function is for sophia's testing purposes and is here because
 # she doesn't want to rewrite this every single time
 import psycopg2
+import webbrowser
+import os
 
 def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'",
                     schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
@@ -618,11 +620,24 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
             copy[i] = "<script>var pq = " + str(json) +";</script>"
 
     # MODIFY THIS PATH -- Need to get the current directory to append front-end-code/results.html
-    output = open(os.getcwd() +"/front-end-code/results.html", "w")
+    url = "/front-end-code/results.html"
+    output = open(os.getcwd() + url, "w")
     for line in copy:
         output.write(line)
     f.close()
     output.close()
+
+    # Redirect standard error to avoid annoying messages in the console
+    savout = os.dup(1)
+    os.close(1)
+    saverr = os.dup(2)
+    os.close(2)
+    os.open(os.devnull, os.O_RDWR)
+    try:
+        webbrowser.open("file://" + os.getcwd() + url)
+    finally:
+        os.dup2(savout, 1)
+        os.dup2(saverr, 2)
 
 
 def test_all(index = 0):
