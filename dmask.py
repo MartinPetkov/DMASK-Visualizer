@@ -597,10 +597,10 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
                     schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
                               "Course": ["dept", "cNum", "name"],
                               "Offering": ["oid" ,"dept", "cNum", "instructor"],
-                              "Took": ["sid", "ofid", "grade"]
+                              "Took": ["sid", "oid", "grade"]
                              },
                     to_search = "sophiadmask"):
-    
+    schema = schema.copy()
     dmask = DMASK(conn_string, schema)
     dmask.set_connection(to_search)
 
@@ -624,9 +624,6 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
         output.write(line)
     f.close()
     output.close()
-    
-print("File is located in front-end-code/results.html")
-print("To run: visualize_query('QUERY')")
 
 def test_all(index = 0):
     queries = [' SELECT sid, cgpa FROM Student WHERE cgpa > 3',
@@ -651,3 +648,11 @@ def test_all(index = 0):
         visualize_query(queries[index])
         index += 1
         input("Press any key to load the next query: ")
+
+if __name__ == '__main__':
+    sql = "test"
+    while (sql):
+        sql = input("Enter query: ")
+        if (not sql):
+            break
+        visualize_query(sql)
