@@ -27,16 +27,15 @@ class DMASK:
     :param conn_params: The database connection parameters
     """
     def __init__(self, conn_params, base_tables):
-        # TODO: Implement the database connection parameters
+        # Implement the database connection parameters
         self.conn_params = conn_params
         self.base_tables = base_tables
 
     def set_connection(self, schema=""):
-        # TODO: Implement connecting to a database
+        # Implement connecting to a database
         self.connection = psycopg2.connect(self.conn_params)
         self.cursor = self.connection.cursor()
 
-        #TODO: Remove the below (which sets the schema)
         if schema:
             self.cursor.execute("SET search_path TO "+schema)
 
@@ -657,25 +656,24 @@ if __name__ == '__main__':
     host = input("Enter host name (localhost by default): ")
     if not host:
         host = "localhost"
-    
+
     dbname = input("Enter database name (postgres by default): ")
     if not dbname:
         dbname = "postgres"
-    
+
     user = input("Enter username (postgres by default): ")
     if not user:
         user = "postgres"
-    
+
     password = input("Enter password (empty by default): ")
-    
+
     conn_string = "host='{}' dbname='{}' user='{}' password='{}'".format(host, dbname, user, password)
-    print(conn_string)
-    
+
     to_search = input("Enter search path (empty by default): ")
-    
+
     i = ""
     schema = {}
-    if (input("Setting up schema. Press q to use default, any other key to specify your own: ") != "q"):
+    if (input("Setting up schema. Press Enter to use default, any other key to specify your own: ")):
         while (i.lower() != "q"):
             i = input("Enter table name or q to quit: ")
             if (i.lower() != "q"):
@@ -686,15 +684,15 @@ if __name__ == '__main__':
                     if (j.lower() != "q"):
                         columns.append(j)
                 schema[i] = columns
-            
+
     else:
         schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
                               "Course": ["dept", "cNum", "name"],
                               "Offering": ["oid" ,"dept", "cNum", "instructor"],
                               "Took": ["sid", "oid", "grade"]
                              }
-        
-    
+
+
     while (sql):
         sql = input("Enter query (empty to exit): ")
         if (sql):
