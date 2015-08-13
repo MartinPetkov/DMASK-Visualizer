@@ -321,7 +321,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     input_tables = []
 
     # Either going to be a combined intermediate table, or just the one table being selected if there is only one
-    result_table = extract_from_arg_table_name(args[0]) if collapse_step else current_step_number
+    result_table = extract_from_arg_table_name(args[0]).capitalize() if collapse_step else current_step_number
 
     executable_sql = "SELECT * " + sql_chunk
     last_executable_sql = executable_sql
@@ -342,12 +342,12 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     # Create the first substep
     sql_chunk = lst_to_str(args[0])
     combine_sql_chunk = sql_chunk
-    executable_sql = "SELECT * FROM" + sql_chunk
+    executable_sql = "SELECT * FROM " + sql_chunk
     combine_executable_sql = executable_sql
 
     full_table_name = extract_from_arg_table_name(args[0])
-    original_table_name = full_table_name.split(' ')[0]
-    output_table_name = full_table_name.split(' ')[-1]
+    original_table_name = full_table_name.split(' ')[0].capitalize()
+    output_table_name = full_table_name.split(' ')[-1].capitalize()
 
     last_from_table = output_table_name
 
@@ -366,6 +366,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         rename_new_name = args[0][2]
         rename_executable_sql = "SELECT * FROM (" + prev_step.executable_sql[:-1] + ') ' + rename_sql_chunk
         subquery_namespace = steps[-1].namespace
+        
         # Get the namespace after the subquery
         # Go through all the new namespace tables and collect all of their columns into one
         subquery_cols = [ c for t in subquery_namespace for c in t[1] ]
@@ -435,8 +436,8 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             executable_sql = "SELECT * FROM " + sql_chunk
 
             full_table_name = extract_from_arg_table_name(from_arg)
-            original_table_name = full_table_name.split(' ')[0]
-            output_table_name = full_table_name.split(' ')[-1]
+            original_table_name = full_table_name.split(' ')[0].capitalize()
+            output_table_name = full_table_name.split(' ')[-1].capitalize()
 
             this_namespace = [(output_table_name, schema[original_table_name])]
             
@@ -494,7 +495,7 @@ def get_namespace_from_args(from_args):
         from_arg = from_args[i]
         table_names = extract_from_arg_table_name(from_arg)
         new_name = table_names.split(' ')[-1]
-        schema_table = table_names.split(' ')[0]
+        schema_table = table_names.split(' ')[0].capitalize()
 
         if schema_table in schema:
             extracted_namespace.append((new_name, schema[schema_table]))
@@ -615,7 +616,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 final_col_name = start_name
             
             if '.' in start_name:
-                table_name = start_name.split('.')[0]
+                table_name = start_name.split('.')[0].capitalize()
                 final_col_name = start_name.split('.')[1]
 
             # If table name is prefixed add to final_cols
