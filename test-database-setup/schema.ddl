@@ -24,6 +24,6 @@ create table Offering(
 
 create table Took(
         sid integer,
-        ofid integer,
+        oid integer,
         grade integer
 );
