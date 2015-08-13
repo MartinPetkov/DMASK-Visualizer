@@ -180,7 +180,7 @@ def reorder_sql_statements(sql_statements):
                            ]
         final_statements += sql_statements[1:]
         return final_statements
-    
+
     # For inner set operations, do different things
     if len(sql_statements) == 3 and isinstance(sql_statements[1],basestring) and sql_statements[1].upper() in SET_OPERATIONS:
         # Handle set operation reordering
@@ -321,7 +321,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     input_tables = []
 
     # Either going to be a combined intermediate table, or just the one table being selected if there is only one
-    result_table = extract_from_arg_table_name(args[0]) if collapse_step else current_step_number
+    result_table = extract_from_arg_table_name(args[0]).capitalize() if collapse_step else current_step_number
 
     executable_sql = "SELECT * " + sql_chunk
     last_executable_sql = executable_sql
@@ -342,12 +342,12 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     # Create the first substep
     sql_chunk = lst_to_str(args[0])
     combine_sql_chunk = sql_chunk
-    executable_sql = "SELECT * FROM" + sql_chunk
+    executable_sql = "SELECT * FROM " + sql_chunk
     combine_executable_sql = executable_sql
 
     full_table_name = extract_from_arg_table_name(args[0])
-    original_table_name = full_table_name.split(' ')[0]
-    output_table_name = full_table_name.split(' ')[-1]
+    original_table_name = full_table_name.split(' ')[0].capitalize()
+    output_table_name = full_table_name.split(' ')[-1].capitalize()
 
     last_from_table = output_table_name
 
@@ -366,11 +366,12 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         rename_new_name = args[0][2]
         rename_executable_sql = "SELECT * FROM (" + prev_step.executable_sql[:-1] + ') ' + rename_sql_chunk
         subquery_namespace = steps[-1].namespace
+        
         # Get the namespace after the subquery
         # Go through all the new namespace tables and collect all of their columns into one
         subquery_cols = [ c for t in subquery_namespace for c in t[1] ]
         this_namespace = [(rename_new_name, subquery_cols)]
-        
+
         for item in this_namespace:
             if item not in current_namespace:
                 current_namespace.append(item)
@@ -412,7 +413,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             rename_new_name = from_arg[2]
             rename_executable_sql = "SELECT * FROM (" + prev_step.executable_sql[:-1] + ') ' + rename_sql_chunk
             subquery_namespace = steps[-1].namespace
-            
+
             # Get the namespace after the subquery
             subquery_cols = [c for t in subquery_namespace for c in t[1]]
             this_namespace = [(rename_new_name, subquery_cols)]
@@ -435,11 +436,11 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
             executable_sql = "SELECT * FROM " + sql_chunk
 
             full_table_name = extract_from_arg_table_name(from_arg)
-            original_table_name = full_table_name.split(' ')[0]
-            output_table_name = full_table_name.split(' ')[-1]
+            original_table_name = full_table_name.split(' ')[0].capitalize()
+            output_table_name = full_table_name.split(' ')[-1].capitalize()
 
             this_namespace = [(output_table_name, schema[original_table_name])]
-            
+
             for item in this_namespace:
                 if item not in current_namespace:
                     current_namespace.append(item)
@@ -494,7 +495,7 @@ def get_namespace_from_args(from_args):
         from_arg = from_args[i]
         table_names = extract_from_arg_table_name(from_arg)
         new_name = table_names.split(' ')[-1]
-        schema_table = table_names.split(' ')[0]
+        schema_table = table_names.split(' ')[0].capitalize()
 
         if schema_table in schema:
             extracted_namespace.append((new_name, schema[schema_table]))
@@ -571,7 +572,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     current_step_number = parent_number + step_number
     prev_step_number = parent_number + str(int(step_number) - 1)
-    
+
     input_tables = [prev_steps[-1].result_table]
     result_table = current_step_number
 
@@ -580,17 +581,17 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     # Check if selecting DISTINCT
     column_list = ast_node[-1]
     column_string = make_column(column_list)
-    sql_chunk = 'SELECT ' + column_string 
+    sql_chunk = 'SELECT ' + column_string
     executable_sql = sql_chunk + " " + prev_step.executable_sql[9:-1]
     # Go through existing tables and do three things:
-    #   1. Modify names of existing columns if renamed 
+    #   1. Modify names of existing columns if renamed
     #   2. Remove columns that weren't selected
     #       a. If table matches, remove columns not selected
     #       b. If table not matched, remove all columns
     #   3. Add new columns (i.e. static ones, combined ones, col ops)
 
     # Create copy of namespace
-    
+
     from_step_number = parent_number + str(1)
     from_namespace = get_namespace(prev_steps, step_number=from_step_number)
 
@@ -613,9 +614,9 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
                 if isinstance(start_name, basestring):
                     start_name = lst_to_str(start_name)
                 final_col_name = start_name
-            
+
             if '.' in start_name:
-                table_name = start_name.split('.')[0]
+                table_name = start_name.split('.')[0].capitalize()
                 final_col_name = start_name.split('.')[1]
 
             # If table name is prefixed add to final_cols
@@ -712,7 +713,7 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     union_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(union_step)
-    
+
     input_num1 = current_step_number + '.1'
     input_num2 = current_step_number + '.2'
     query1 = parse_sql_query(ast_node[1], input_num1)
@@ -726,7 +727,7 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     cols = query2[-1].namespace[0][1]
     namespace.append(('', cols))
     namespace = [x for x in namespace if x[1] != [] and (x[0] == '')]
-    
+
     prev_step_number = query2[-1].step_number
     current_step_number += '.3'
     input_tables = [input_num1, input_num2]
@@ -797,7 +798,7 @@ def parse_create_view(ast_node, step_number=''):
     result_table = ast_node[1]
     executable_sql = sql_chunk
     namespace = [(result_table, [])]
-    
+
     create_view_step = QueryStep(current_step_number, sql_chunk, input_tables, result_table, executable_sql, namespace)
     steps.append(create_view_step)
 

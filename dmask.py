@@ -17,7 +17,7 @@ import ra_parser
 import copy
 
 
-# TODO: Figure out how to handle the database connection
+# Figure out how to handle the database connection
 """ A class to handle the conversion functions and the database connection """
 class DMASK:
 
@@ -55,7 +55,7 @@ class DMASK:
         json_queries = []
 
         queries = sql_parser.split_sql_queries(sql_queries)
-        
+
         for query in queries:
             ast = sql_parser.sql_to_ast(query)
             base_tables = self.base_tables.copy()
@@ -95,11 +95,11 @@ class DMASK:
         # Create a connection and cursor (PSQL)
         connection = self.connection;
         cursor = self.cursor;
-        
+
         view_made = False
         # ERROR IN SQL_PARSER: steps can included a nested list -- temporary fix: Flatten list
         steps = flatten_list(steps)
-        
+
         for step in steps:
             if str(step.result_table) not in tables:
                 # Get the table name (table name matches FROM statement of the executable)
@@ -115,62 +115,62 @@ class DMASK:
                         input_table = tables[step.input_tables[0]]
                         tables[name] = Table(name, step.step_number, input_table.col_names, input_table.tuples, {})
                         self.base_tables[name] = input_table.col_names
-                        
+
                 else:
                     # Execute the query
                     cursor.execute(step.executable_sql)
-    
+
                     # Get the columns
                     columns = [desc[0] for desc in cursor.description]
-    
+
                     # Get the tuples
                     tuples = []
                     for row in cursor:
                         tuples.append(row)
-    
+
                     # If the sql chunk is a where clause, get the reasons
                     # TODO: Adjust this to work for RA as well
                     if (step.sql_chunk.split()[0].lower() == "where"):
                         # Get all of the conditions (and the ASTs of their corresponding subqueries)
                         (conditions, subqueries) = get_all_conditions(step.executable_sql)
-    
+
                         # Add the reasons for the input table
                         input_step = None
                         for s in steps:
                             if s.step_number == tables[step.input_tables[0]].step:
                                 input_step = s
-                                
+
                         if tables[str(input_step.result_table)].reasons:
                             old_name = str(input_step.result_table)
                             new_name = old_name + "2"
                             old_table = tables[old_name]
                             tables[new_name] =  Table(old_table.t_name, old_table.step, old_table.col_names, old_table.tuples, {})
-                            input_step.result_table = new_name            
+                            input_step.result_table = new_name
                             step.input_tables[step.input_tables.index(old_name)] = new_name
-                            
+
                         tables[str(input_step.result_table)].reasons = get_reasons(conditions, subqueries, input_step, tables, self)
                         set_passed(tables[str(input_step.result_table)].reasons, tables[input_step.result_table].tuples, tuples)
-                        
+
                     # Prefix duplicate columns
                     duplicates = []
                     for i in range(len(columns)):
                         if columns.count(columns[i]) > 1:
                             duplicates.append(i)
-                    
+
                     if duplicates:
                         namespace = get_namespace(sql_parser.sql_to_ast(step.executable_sql).asList(), self)
-                        
+
                         for index in duplicates:
                             for alias_set in namespace:
                                 if alias_set[0].lower() == columns[index].lower() and len(alias_set) > 1:
                                     columns[index] = alias_set[1]
                                     alias_set.pop(1)
-                    
+
                     t = Table(name, step.step_number, columns, tuples, {})
                     tables[str(step.result_table)] = t
-                    
+
         return tables
-    
+
 def set_passed(reasons, input_tuples, results):
     for i in range(1, len(input_tuples) + 1):
         if i in reasons and input_tuples[i - 1] not in results:
@@ -205,7 +205,7 @@ def conditions_helper(ast):
 
                 if sq:
                     subqueries[key] = sq[0]
-                
+
             else:
                 results = conditions_helper(item)
                 conditions.extend(results[0])
@@ -216,26 +216,26 @@ def conditions_helper(ast):
 def flatten_ast_to_string(item):
     # Given part of an AST, search for subqueries and return the flattened
     # expression with appropriate bracketing (as well as the ASTs of the subqueries)
-    
+
     sq = find_subqueries(item)
     for s in sq:
         if (sq.count(s) > 1):
             sq.remove(s)
-    
+
     key = " ".join(flatten_list(item))
     for subquery in sq:
         subquery_string = " ".join(flatten_list(subquery))
-        key = key.replace(subquery_string, "("+subquery_string+")")    
+        key = key.replace(subquery_string, "("+subquery_string+")")
     return (key, sq)
 
 def find_subqueries(ast):
     # Given a list, return all subqueries found in the AST
     subqueries = []
-    
+
     # Given an AST, locates every subquery
     if (isinstance(ast[0], list) and ast[0][0] == "SELECT"):
         subqueries.append(ast)
-    
+
     for item in ast:
         if isinstance(item, list): # Possible the AST [["SELECT", [...]], ...]
             first_child = item[0]   # Possibly the list ["SELECT", [...]]
@@ -253,7 +253,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
     input_table = tables[input_step.result_table]
     input_tuples = input_table.tuples
     reasons = {0:Reason([], {}, [])}
-    
+
     # Get the namespace of the entire query (only really need the FROM clause
     # of the original query)
     ast = sql_parser.sql_to_ast(input_query).asList()
@@ -265,7 +265,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
     # Execute all of the conditions
     for condition in conditions:
         reasons[0].conditions_matched.append(condition)
-    
+
         condition_sql = input_query.strip(';') + " WHERE " + condition
 
         # Execute the query
@@ -347,7 +347,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                     reasons[i+1].conditions_matched.append(condition)
                 else:
                     reasons[i+1] = Reason([condition], {}, [])
-                    
+
                 # If there was a correlated subquery, add the parsed query and, if the condition
                 # passed, add it to the list of passed subqueries
                 if correlated:
@@ -389,7 +389,7 @@ def find_attributes(query):
         if query[i][0].lower() == "from":
             query.pop(i)
             break
-    
+
     attributes = remove_keywords(flatten_list(query))
     return attributes
 
@@ -451,10 +451,10 @@ def get_namespace(subquery, dmask):
             if isinstance(name, list):
                 name = flatten_ast_to_string(name)[0] + " " + alias
             tables.append((name, alias))
-    
+
     main_table = flatten_ast_to_string(from_clause)[0]
     namespace = [[column] for column in get_columns("SELECT * FROM " + main_table, dmask)]
-    
+
     # Traverse the list of tables, adding all of the columns to the namespace
     for table in tables:
         columns = get_columns("SELECT * FROM " + table[0], dmask)
@@ -481,7 +481,7 @@ def matches_alias(namespace, attribute, to_match):
     # Returns true whether the attribute matches to_match
     to_match = to_match.lower()
     attribute = attribute.lower()
-    
+
     if attribute == to_match:
         return True
 
@@ -505,7 +505,7 @@ def get_table_name(exsqltable):
         for item in split:
             name.append(get_table_name(item))
         return " UNION ".join(name)
-    
+
     ast = find_query(sql_parser.sql_to_ast(exsqltable).asList())
 
     # Traverse the AST until the FROM clause is found
@@ -538,7 +538,7 @@ def get_table_name(exsqltable):
 def find_query(ast):
     if (isinstance(ast[0], list) and ast[0][0] == "SELECT"):
         return ast
-    
+
     for item in ast:
         if isinstance(item, list):
             if isinstance(item[0], list):
@@ -593,7 +593,7 @@ class PreparedQuery:
 # she doesn't want to rewrite this every single time
 import psycopg2
 
-def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'", 
+def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'",
                     schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
                               "Course": ["dept", "cNum", "name"],
                               "Offering": ["oid" ,"dept", "cNum", "instructor"],
@@ -607,23 +607,24 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
     # get_namespace works
     json = ""
     json = dmask.sql_to_json(sql)
-    
+
     # nothing gets commited -- closing the connection will prevent hanging
     dmask.connection.close()
-    
+
     import os
     f = open("front-end-code/template.html")
     copy = f.readlines()
     for i in range(len(copy)):
         if copy[i].strip() == "<!-- INSERT TEST BELOW -->":
             copy[i] = "<script>var pq = " + str(json) +";</script>"
-        
+
     # MODIFY THIS PATH -- Need to get the current directory to append front-end-code/results.html
     output = open(os.getcwd() +"/front-end-code/results.html", "w")
     for line in copy:
         output.write(line)
     f.close()
     output.close()
+
 
 def test_all(index = 0):
     queries = [' SELECT sid, cgpa FROM Student WHERE cgpa > 3',
@@ -648,6 +649,7 @@ def test_all(index = 0):
         visualize_query(queries[index])
         index += 1
         input("Press any key to load the next query: ")
+
 
 if __name__ == '__main__':
     sql = "test"
@@ -694,7 +696,6 @@ if __name__ == '__main__':
         
     
     while (sql):
-        sql = input("Enter query: ")
-        if (not sql):
-            break
-        visualize_query(sql, conn_string = conn_string, schema = schema, to_search = to_search)
+        sql = input("Enter query (empty to exit): ")
+        if (sql):
+            visualize_query(sql, conn_string = conn_string, schema = schema, to_search = to_search)

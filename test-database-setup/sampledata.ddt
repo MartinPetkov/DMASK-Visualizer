@@ -14,8 +14,8 @@ INSERT INTO Offering(oid, dept, cNum, instructor) VALUES ('2', 'csc', '343', 'D.
 INSERT INTO Offering(oid, dept, cNum, instructor) VALUES ('3', 'mat', '137', 'J. Kamnitzer');
 INSERT INTO Offering(oid, dept, cNum, instructor) VALUES ('4', 'ger', '100', 'E. Luzi');
 
-INSERT INTO Took(sid, ofid, grade) VALUES ('1', '2', '87');
-INSERT INTO Took(sid, ofid, grade) VALUES ('1', '4', '73');
-INSERT INTO Took(sid, ofid, grade) VALUES ('2', '2', '92');
-INSERT INTO Took(sid, ofid, grade) VALUES ('3', '1', '80');
-INSERT INTO Took(sid, ofid, grade) VALUES ('4', '1', '60');
+INSERT INTO Took(sid, oid, grade) VALUES ('1', '2', '87');
+INSERT INTO Took(sid, oid, grade) VALUES ('1', '4', '73');
+INSERT INTO Took(sid, oid, grade) VALUES ('2', '2', '92');
+INSERT INTO Took(sid, oid, grade) VALUES ('3', '1', '80');
+INSERT INTO Took(sid, oid, grade) VALUES ('4', '1', '60');
