@@ -589,10 +589,7 @@ class PreparedQuery:
         replace(query_copy, substitutes)
         return query_copy
 
-# TODO: REMOVE -- this function is for sophia's testing purposes and is here because
-# she doesn't want to rewrite this every single time
 import psycopg2
-
 def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'",
                     schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
                               "Course": ["dept", "cNum", "name"],
@@ -606,7 +603,13 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
 
     # get_namespace works
     json = ""
-    json = dmask.sql_to_json(sql)
+    try:
+        json = dmask.sql_to_json(sql)
+    except Exception as e:
+        print("Exception encountered: ")
+        print(e)
+        dmask.connection.close()
+        return
 
     # nothing gets commited -- closing the connection will prevent hanging
     dmask.connection.close()
@@ -624,31 +627,6 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
         output.write(line)
     f.close()
     output.close()
-
-
-def test_all(index = 0):
-    queries = [' SELECT sid, cgpa FROM Student WHERE cgpa > 3',
-               ' SELECT Student.sid, Student.email, Took.grade FROM Student, Took',
-               ' SELECT sid, email, cgpa FROM Student  NATURAL JOIN Took NATURAL JOIN Course',
-               ' SELECT sid, grade, instructor FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid',
-               ' SELECT LimitedCols.oid FROM (SELECT oid, dept FROM Offering ) AS LimitedCols',
-               ' SELECT email, cgpa FROM Student WHERE cgpa > 3 AND firstName=\'Martin\'',
-               ' SELECT email, cgpa FROM Student WHERE cgpa > 3 OR firstName=\'Sophia\'',
-               ' SELECT email, cgpa FROM Student WHERE (cgpa > 3) AND (firstName=\'Martin\' OR firstName=\'Kathy\')',
-               ' SELECT t.sid, o.oid FROM Took t, Offering o',
-               ' SELECT sid, firstName FROM Student WHERE cgpa > (SELECT cgpa  FROM Student  WHERE sid=4)',
-               ' SELECT instructor FROM Offering o1 WHERE EXISTS ( SELECT o2.oid FROM Offering o2 WHERE o2.oid <> o1.oid)',
-               ' SELECT email FROM Student; SELECT oid FROM Offering',
-               ' CREATE VIEW pizza AS (SELECT sid, email, cgpa FROM Student WHERE cgpa<3); SELECT email FROM pizza',
-               ' SELECT sid, dept||cnum as course, grade FROM Took, (SELECT * FROM Offering WHERE instructor=\'D. Horton\') H WHERE Took.ofid = H.oid;',
-               ' SELECT sid FROM Student WHERE cgpa > ANY (SELECT cgpa FROM Student NATURAL JOIN Took WHERE grade > 100);',
-               ' SELECT sid, dept||cnum AS course, grade FROM Took NATURAL JOIN Offering WHERE grade >= 80 AND (cnum, dept) IN ( SELECT cnum, dept FROM Took NATURAL JOIN Offering NATURAL JOIN Student WHERE surname = "Lakemeyer");',
-               ' SELECT instructor FROM Offering Off1 WHERE NOT EXISTS ( SELECT * FROM Offering WHERE oid <> Off1.oid AND instructor = Off1.instructor );']
-    while (index < len(queries)):
-        print("Executing query " + str(index) + ": " + queries[index]+"...")
-        visualize_query(queries[index])
-        index += 1
-        input("Press any key to load the next query: ")
 
 
 if __name__ == '__main__':
@@ -669,7 +647,6 @@ if __name__ == '__main__':
     password = input("Enter password (empty by default): ")
     
     conn_string = "host='{}' dbname='{}' user='{}' password='{}'".format(host, dbname, user, password)
-    print(conn_string)
     
     to_search = input("Enter search path (empty by default): ")
     
