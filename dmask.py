@@ -592,14 +592,7 @@ import psycopg2
 import webbrowser
 import os
 
-def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'",
-                    schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
-                              "Course": ["dept", "cNum", "name"],
-                              "Offering": ["oid" ,"dept", "cNum", "instructor"],
-                              "Took": ["sid", "oid", "grade"]
-                             },
-                    to_search = "sophiadmask"):
-    schema = schema.copy()
+def get_json(sql, conn_string, schema, to_search):
     dmask = DMASK(conn_string, schema)
     dmask.set_connection(to_search)
 
@@ -611,10 +604,23 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
         print("Exception encountered: ")
         print(e)
         dmask.connection.close()
-        return
 
     # nothing gets commited -- closing the connection will prevent hanging
     dmask.connection.close()
+    
+    return json
+
+def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'",
+                    schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
+                              "Course": ["dept", "cNum", "name"],
+                              "Offering": ["oid" ,"dept", "cNum", "instructor"],
+                              "Took": ["sid", "oid", "grade"]
+                             },
+                    to_search = "sophiadmask"):
+    schema = schema.copy()
+
+    # get_namespace works
+    json = get_json(sql, conn_string, schema, to_search)
 
     import os
     f = open("front-end-code/template.html")
