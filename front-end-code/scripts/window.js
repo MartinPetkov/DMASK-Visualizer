@@ -47,6 +47,7 @@ function openModalWindow(prefix){
     old.append(shadow);
     old.append(new_window.generateBase());
     current_window = new_window;
+    namespaceDisplay(appendParentNamespace([]));
 }
 
 function closeModalWindow(){

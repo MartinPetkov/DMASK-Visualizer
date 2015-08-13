@@ -106,7 +106,7 @@ class DMASK:
                 name = get_table_name(step.executable_sql)
 
                 # Do not generate tables for a create view step
-                if (step.executable_sql.lower().find("create view") == 0):
+                if (step.executable_sql.lower().strip().find("create view") == 0):
                     if not view_made:
                         cursor.execute(step.executable_sql)
                         view_made = True
@@ -118,7 +118,6 @@ class DMASK:
                         
                 else:
                     # Execute the query
-                    print(step.executable_sql)
                     cursor.execute(step.executable_sql)
     
                     # Get the columns
@@ -430,7 +429,6 @@ def get_namespace(subquery, dmask):
     # [[column, prefix.column, ...], [column, prefix.column, ...]]
 
     from_clause = []
-    print(subquery)
 
     for node in subquery:
         if node[0].lower() == "from":
@@ -595,15 +593,16 @@ class PreparedQuery:
 # she doesn't want to rewrite this every single time
 import psycopg2
 
-def visualize_query(sql):
-    conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'"
-    schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
-              "Course": ["dept", "cNum", "name"],
-              "Offering": ["oid" ,"dept", "cNum", "instructor"],
-              "Took": ["sid", "ofid", "grade"]
-             }
+def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user='postgres' password='password'", 
+                    schema = {"Student" : ["sid", "firstName", "email", "cgpa"],
+                              "Course": ["dept", "cNum", "name"],
+                              "Offering": ["oid" ,"dept", "cNum", "instructor"],
+                              "Took": ["sid", "ofid", "grade"]
+                             },
+                    to_search = "sophiadmask"):
+    
     dmask = DMASK(conn_string, schema)
-    dmask.set_connection("sophiadmask")
+    dmask.set_connection(to_search)
 
     # get_namespace works
     json = ""
@@ -632,7 +631,7 @@ print("To run: visualize_query('QUERY')")
 def test_all(index = 0):
     queries = [' SELECT sid, cgpa FROM Student WHERE cgpa > 3',
                ' SELECT Student.sid, Student.email, Took.grade FROM Student, Took',
-               ' SELECT sid, email, cgpa FROM Student NATURAL JOIN Took NATURAL JOIN Course',
+               ' SELECT sid, email, cgpa FROM Student  NATURAL JOIN Took NATURAL JOIN Course',
                ' SELECT sid, grade, instructor FROM Took LEFT JOIN Offering ON Took.ofid=Offering.oid',
                ' SELECT LimitedCols.oid FROM (SELECT oid, dept FROM Offering ) AS LimitedCols',
                ' SELECT email, cgpa FROM Student WHERE cgpa > 3 AND firstName=\'Martin\'',
