@@ -28,10 +28,10 @@ class DMASK:
 
     :param conn_params: The database connection parameters
     """
-    def __init__(self, conn_params, base_tables):
+    def __init__(self, conn_params="", schema={}):
         # Implement the database connection parameters
         self.conn_params = conn_params
-        self.base_tables = base_tables
+        self.schema = schema
 
     def set_connection(self, schema=""):
         # Implement connecting to a database
@@ -41,9 +41,8 @@ class DMASK:
         if schema:
             self.cursor.execute("SET search_path TO "+schema)
 
-    def set_base_tables(self, base_tables):
-        # TODO: Implement
-        self.base_tables = base_tables
+    def set_schema(self, schema):
+        self.schema = schema
 
 
     """
@@ -59,11 +58,11 @@ class DMASK:
 
         for query in queries:
             ast = sql_parser.sql_to_ast(query)
-            base_tables = self.base_tables.copy()
+            schema = self.schema.copy()
             # ERROR IN SQL_PARSER: steps can included a nested list -- temporary fix: Flatten list
-            steps = flatten_list(sql_parser.sql_ast_to_steps(ast, self.base_tables))
+            steps = flatten_list(sql_parser.sql_ast_to_steps(ast, self.schema))
             tables = self.steps_to_tables(steps)
-            parsed_query = ParsedQuery(steps, tables, query, base_tables)
+            parsed_query = ParsedQuery(steps, tables, query, schema)
             json_queries.append(parsed_query.to_json())
 
         return json_queries
@@ -90,7 +89,7 @@ class DMASK:
 
     def steps_to_tables(self, steps):
         # Turns the QuerySteps given into Table objects by executing their queries on the database given by
-        # self.conn_params and with the base tables given by self.base_tables
+        # self.conn_params and with the base tables given by self.schema
         tables = {}
 
         # Create a connection and cursor (PSQL)
@@ -115,7 +114,7 @@ class DMASK:
                         name = str(step.result_table)
                         input_table = tables[step.input_tables[0]]
                         tables[name] = Table(name, step.step_number, input_table.col_names, input_table.tuples, {})
-                        self.base_tables[name] = input_table.col_names
+                        self.schema[name] = input_table.col_names
 
                 else:
                     # Execute the query
@@ -294,13 +293,13 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 pq = PreparedQuery(subquery, correlated)
             else:
                 # If it's not, execute the subquery and store it in the reasons[0]
-                steps = sql_parser.sql_ast_to_steps(subquery, dmask.base_tables)
+                steps = sql_parser.sql_ast_to_steps(subquery, dmask.schema)
                 tables = dmask.steps_to_tables(steps)
                 name = flatten_ast_to_string(subquery)[0]
                 if name[0] == "(":
                     name = name[1:-1]
                 name += ";"
-                parsed_query = ParsedQuery(steps, tables, name, base_tables = dmask.base_tables)
+                parsed_query = ParsedQuery(steps, tables, name, schema = dmask.schema)
                 reasons[0].subqueries[condition] = parsed_query
 
         # Go through each row and add a reason
@@ -335,9 +334,9 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 parsed_query = None
                 if substituted_subquery:
                     # Create the parsed query
-                    steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.base_tables)
+                    steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.schema)
                     tables = dmask.steps_to_tables(steps)
-                    parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)), base_tables = dmask.base_tables)
+                    parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)), schema = dmask.schema)
 
             # If the input tuple is in the returned list of tuples, it passed the condition
             kept = input_tuples[i] in tuples
