@@ -73,6 +73,7 @@ if __name__ == '__main__':
     password = input("Enter password (empty by default): ")
 
     conn_string = "host='{}' dbname='{}' user='{}' password='{}'".format(host, dbname, user, password)
+    print(conn_string)
 
     to_search = input("Enter search path (empty by default): ")
 

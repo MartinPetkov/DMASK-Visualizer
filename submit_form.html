@@ -1,30 +1,77 @@
 <!DOCTYPE html>
-<html style="background-color: rgb(202, 217, 244);">
+<html>
+
+<title>DMASK SQL Query Visualizer</title>
+<meta charset="utf-8"/>
 
 <head>
     <!-- Bootstrap -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+
+    <!-- CodeMirror -->
+    <!-- Requires CodeMirror library one level above: -->
+    <!-- git clone https://github.com/codemirror/CodeMirror.git -->
+    <link rel="stylesheet" href="../CodeMirror/lib/codemirror.css" />
+    <link rel="stylesheet" href="../CodeMirror/addon/hint/show-hint.css" />
+
+    <script src="../CodeMirror/lib/codemirror.js"></script>
+    <script src="../CodeMirror/mode/sql/sql.js"></script>
+    <script src="../CodeMirror/addon/hint/show-hint.js"></script>
+    <script src="../CodeMirror/addon/hint/sql-hint.js"></script>
 </head>
 
+<body style="background-color:rgb(202, 217, 244);">
+    <div style="width: 100%; text-align: center; font-family: Cambria;">
+        <h1><b>DMASK SQL Query Visualizer Prototype</b></h1>
+        <br/>
+    </div>
+    <div style="width: 500px; display: block; margin-left: auto; margin-right: auto;">
+        <textarea name="sql_query" id="sql_query">
+-- Write SQL Query here
+</textarea>
+    </div>
+    <div style="width: 100%; text-align: center">
+        <br/>
+        <button style="margin-bottom: 5px;" class="btn" id="submit" onclick="sendQuery()">Submit</button>
+        <br/>
+        <span>If new tab with visualized query does not open, please check the server logs for any errors</span>
+    </div>
 
-<div style="background-color: rgb(202, 217, 244); height: 100%; width: 100%; text-align: center; font-family: Cambria;">
-    <h1>Submit your query here!</h1>
-    <br/>
-    <textarea rows="10" cols="60" name="sql-query" id="sql-query" style="font-family: monospace;"></textarea>
-    <br/>
-    <button class="btn" id="submit" onclick="sendQuery()">Submit</button>
-</div>
+    <script>
+    function sendQuery() {
+        var sql_query = window.editor.getValue();
+        console.log(sql_query);
 
-<script>
-function sendQuery() {
-    var sql_query = document.getElementById("sql-query").value;
-    console.log(sql_query);
+        xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("POST", "http://127.0.0.1:9001", true);
+        xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        xmlhttp.send("sql_query=" + sql_query);
+    }
 
-    xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("POST", "http://127.0.0.1:9001", true);
-    xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-    xmlhttp.send("sql_query=" + sql_query);
-}
-</script>
+    // From the CodeMirror official website example
+    // URL: https://codemirror.net/mode/sql/?mime=text/x-sql
+    window.onload = function() {
+        mime = "text/x-sql";
+        window.editor = CodeMirror.fromTextArea(document.getElementById('sql_query'), {
+            mode: mime,
+            indentWithTabs: true,
+            smartIndent: true,
+            lineNumbers: true,
+            matchBrackets : true,
+            autofocus: true,
+            extraKeys: {"Ctrl-Space": "autocomplete"},
+            hintOptions: {tables: {
+              student: {sid: null, firstName: null, email: null, cgpa: null},
+              course: {dept: null, cNum: null, name: null},
+              offering: {oid: null, dept: null, cNum: null, instructor: null},
+              took: {sid: null, oid: null, grade: null}
+            }}
+        });
+
+        // Set cursor to last line
+        window.editor.setCursor(2,0);
+    };
+    </script>
+</body>
 </html>
