@@ -11,6 +11,8 @@ def visualize_query(sql, conn_string = "host='localhost' dbname='postgres' user=
                              },
                     to_search = "sophiadmask"):
     schema = schema.copy()
+    for key in schema:
+        schema[key] = schema[key][:]
     dmask = DMASK(conn_string, schema)
     dmask.set_connection(to_search)
 
@@ -73,7 +75,6 @@ if __name__ == '__main__':
     password = input("Enter password (empty by default): ")
 
     conn_string = "host='{}' dbname='{}' user='{}' password='{}'".format(host, dbname, user, password)
-    print(conn_string)
 
     to_search = input("Enter search path (empty by default): ")
 

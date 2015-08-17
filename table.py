@@ -1,4 +1,5 @@
 import json
+import copy
 
 class Table:
 
@@ -22,11 +23,17 @@ class Table:
         return "[t_name: {0}\nstep: {1}\ncol_names: {2}\ntuples: {3}\nreasons: {4}]\n".format(self.t_name, self.step, self.col_names, self.tuples, self.reasons)
 
     def to_json(self):
+        tuples = list(copy.deepcopy(self.tuples))
+        for row in range (0, len(tuples)):
+            tuples[row] = list(tuples[row])
+            for column in range (0, len(tuples[row])):
+                tuples[row][column] = str(tuples[row][column])
+                
         json_dict = {
             "t_name": self.t_name,
             "step": self.step,
             "col_names": self.col_names,
-            "tuples": self.tuples,
+            "tuples": tuples,
             "reasons": [{"row": row, "conditions_matched": reason.to_json()} for row,reason in self.reasons.items()]
         }
 
@@ -37,7 +44,7 @@ class Table:
         return self.col_names(col_idx)
 
     def get_cell_value(self, row, col):
-        return self.tuples[row][col]
+        return str(self.tuples[row][col])
 
     def get_row(self, row):
         return self.tuples[row]

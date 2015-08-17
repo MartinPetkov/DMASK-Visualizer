@@ -299,7 +299,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                 if name[0] == "(":
                     name = name[1:-1]
                 name += ";"
-                parsed_query = ParsedQuery(steps, tables, name, schema = dmask.schema)
+                parsed_query = ParsedQuery(steps, tables, name, base_tables = dmask.schema)
                 reasons[0].subqueries[condition] = parsed_query
 
         # Go through each row and add a reason
@@ -336,7 +336,7 @@ def get_reasons(conditions, subqueries, input_step, tables, dmask):
                     # Create the parsed query
                     steps = sql_parser.sql_ast_to_steps(substituted_subquery, dmask.schema)
                     tables = dmask.steps_to_tables(steps)
-                    parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)), schema = dmask.schema)
+                    parsed_query = ParsedQuery(steps, tables, " ".join(flatten_list(substituted_subquery)), base_tables = dmask.schema)
 
             # If the input tuple is in the returned list of tuples, it passed the condition
             kept = input_tuples[i] in tuples
