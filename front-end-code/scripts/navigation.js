@@ -116,7 +116,13 @@ function stepIn(){
     var step_id = current_window.current_step_id;
     if (step_id == ""){
         var first_query = current_window.queries[0];
-        first_query.steps_dictionary[first_query.step_keys[0]].loadStep();
+        var step_keys = first_query.step_keys;
+        var index = 0;
+        if (hasNested(step_keys, index)){
+            while (index < first_query.step_keys.length && hasNested(step_keys, index))
+                index += 1;
+        }
+        first_query.steps_dictionary[first_query.step_keys[index]].loadStep();
         return;
     }
     if (isLastStep(step_id)){

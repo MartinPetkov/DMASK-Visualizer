@@ -29,7 +29,7 @@ Table.prototype.toDisplay = function(){
     var num_columns = this.columns.length;
     var num_rows = this.rows.length;
 
-    var tablename = "<div class='tablename' id=\"name-" + toID(this.id) +"\">" + this.t_name + "</div>";
+    var tablename = "<div class='tablename' id=\"name-" + toID(this.id) +"\">Source: " + this.t_name + "</div>";
 
     // Create the div container
     var html = tablename + "<div class='tablecontainer' id=\"table-" + toID(this.id) + "\" onmouseover=\"hoverText('"+this.hovertext+"')\" onmouseout=\"hoverText('')\"><table>";

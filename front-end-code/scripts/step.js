@@ -160,10 +160,13 @@ function namespaceToString(namespace){
     var i;
     namespace_list = [];
     for (i = 0; i < namespace.length; i++){
-        item = namespace[i];
-        table_name = item[0];
-        columns = item[1];
-        string = table_name + ": " + (columns.join(", "));
+        var item = namespace[i];
+        var table_name = item[0];
+        if (!table_name){
+            table_name = "Non-Referenceable";
+        }
+        var columns = item[1];
+        var string = table_name + ": " + (columns.join(", "));
         namespace_list.push("<li>"+string);
     }
     return namespace_list.join("");
