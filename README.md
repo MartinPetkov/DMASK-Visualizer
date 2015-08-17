@@ -56,3 +56,6 @@ dmask.connection.close()
 2. Open a shell and run
 3. python query_server.py
 4. Submit queries in the web page; if successful, the results will open in a new tab in your default browser (or in the default .html file handling program)
+
+# Samples
+The front-end-code folder contains some sample files with queries to visualize, named sample1.html, sample2.html and sample3.html.
