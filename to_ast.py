@@ -1,3 +1,6 @@
+# Code from lines 75 - 92 where retrieved from 
+# http://pyparsing.wikispaces.com/share/view/40959659
+
 from pyparsing import (ParseResults, Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
     Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, commaSeparatedList,
     opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr, Empty, replaceWith)
