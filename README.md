@@ -1,9 +1,14 @@
 # DMASK-Visualizer
 A SQL visualizer, De-MASKing the code to show its internal workings. There are future plans for RA visualizion as well.
 
+# Requirements
+The code only been tested for PostgreSQL 9.2, so make sure you have that installed and working. Installation instructions for 9.2 can be found [here](http://www.postgresql.org/docs/9.2/static/install-procedure.html).
+
+The only other required modules are psycopg2 and pyparsing. The "Setup" section contains instructions on installing them.
+
 # Setup
 1. Install psycopg2 (pip install psycopg2)
-2. Install pyparsing (pip install pyparsing or easy install pyparsing)
+2. Install pyparsing (pip install pyparsing or easy_install pyparsing)
 3. Set up database (the test suite we used can be found in test-database-setup, from which you can call  \i schema.ddl \i sampledata.ddt)
 4. (Optional) Put these into a relation/give them a search path (ex. set search_path to NAME) -- if you do this, you will need to provide a schema name
 5. (Optional) Install CodeMirror (for the test page)  
