@@ -1,5 +1,5 @@
-from sql_parser import *
-from to_ast import ast
+from parser.sql_parser import *
+from parser.to_ast import ast
 
 def printout(l):
 

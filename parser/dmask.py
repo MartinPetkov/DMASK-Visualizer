@@ -8,12 +8,12 @@ json_output = dmask.sql_to_json()
 # Send json_output to the visualizer to visualize
 """
 
-from parsed_query import *
-from query_step import *
-from table import *
+from parser.parsed_query import *
+from parser.query_step import *
+from parser.table import *
 
-import sql_parser
-import ra_parser
+import parser.sql_parser as sql_parser
+import parser.ra_parser as ra_parser
 import copy
 
 import psycopg2
@@ -46,11 +46,10 @@ class DMASK:
 
 
     """
-    Convert a set of sql queries to JSON output suitable for the visualizer frontend
+    Convert set of sql queries to JSON output suitable for visualizer frontend.
     Requires the connection parameters and base tables to be set
     """
     def sql_to_json(self, sql_queries):
-        # TODO: Implement
 
         json_queries = []
 
@@ -59,7 +58,8 @@ class DMASK:
         for query in queries:
             ast = sql_parser.sql_to_ast(query)
             schema = self.schema.copy()
-            # ERROR IN SQL_PARSER: steps can included a nested list -- temporary fix: Flatten list
+            # ERROR IN SQL_PARSER: steps can included a nested list
+            # -- temporary fix: Flatten list
             steps = flatten_list(sql_parser.sql_ast_to_steps(ast, self.schema))
             tables = self.steps_to_tables(steps)
             parsed_query = ParsedQuery(steps, tables, query, schema)
@@ -69,7 +69,8 @@ class DMASK:
 
 
 
-    """ Convert a set of relational algebra queries to JSON output suitable for the visualizer frontend """
+    """ Convert a set of relational algebra queries to JSON output
+    suitable for the visualizer frontend """
     def ra_to_json(self, ra_queries):
         json_queries = []
 
@@ -81,15 +82,16 @@ class DMASK:
 
             parsed_query = ParsedQuery(steps, tables, query)
             json_queries.append(parsed_query.to_json())
-            # TODO: If the query was an assignment (:= or whatever), add that table to the base tables for all
-            # subsequent steps
+            # TODO: If the query was an assignment (:= or whatever),
+            # add that table to the base tables for all subsequent steps
 
         return json_queries
 
 
     def steps_to_tables(self, steps):
-        # Turns the QuerySteps given into Table objects by executing their queries on the database given by
-        # self.conn_params and with the base tables given by self.schema
+        # Turns the QuerySteps given into Table objects by executing their
+        # queries on the database given by self.conn_params and with the
+        # base tables given by self.schema
         tables = {}
 
         # Create a connection and cursor (PSQL)
@@ -97,12 +99,14 @@ class DMASK:
         cursor = self.cursor;
 
         view_made = False
-        # ERROR IN SQL_PARSER: steps can included a nested list -- temporary fix: Flatten list
+        # ERROR IN SQL_PARSER: steps can included a nested list
+        # -- temporary fix: Flatten list
         steps = flatten_list(steps)
 
         for step in steps:
             if str(step.result_table) not in tables:
-                # Get the table name (table name matches FROM statement of the executable)
+                # Get table name
+                # (table name matches FROM statement of executable)
                 name = get_table_name(step.executable_sql)
 
                 # Do not generate tables for a create view step
@@ -113,7 +117,11 @@ class DMASK:
                     if (step.input_tables):
                         name = str(step.result_table)
                         input_table = tables[step.input_tables[0]]
-                        tables[name] = Table(name, step.step_number, input_table.col_names, input_table.tuples, {})
+                        tables[name] = Table(   name,
+                                                step.step_number,
+                                                input_table.col_names,
+                                                input_table.tuples,
+                                                {})
                         self.schema[name] = input_table.col_names
 
                 else:
@@ -131,7 +139,8 @@ class DMASK:
                     # If the sql chunk is a where clause, get the reasons
                     # TODO: Adjust this to work for RA as well
                     if (step.sql_chunk.split()[0].lower() == "where"):
-                        # Get all of the conditions (and the ASTs of their corresponding subqueries)
+                        # Get all of the conditions
+                        # (and the ASTs of their corresponding subqueries)
                         (conditions, subqueries) = get_all_conditions(step.executable_sql)
 
                         # Add the reasons for the input table

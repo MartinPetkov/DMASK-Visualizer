@@ -1,4 +1,4 @@
-from dmask import *
+from parser.dmask import *
 
 import webbrowser
 import os

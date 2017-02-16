@@ -9,7 +9,7 @@ import pdb
 
 
 # Defaults
-conn_string = "host='localhost' dbname='postgres' user='postgres' password=''"
+conn_string = "host='localhost' dbname='bge' user='bge' password=''"
 schema = {
     "Student":  ["sid", "firstName", "email", "cgpa"],
     "Course":   ["dept", "cNum", "name"],

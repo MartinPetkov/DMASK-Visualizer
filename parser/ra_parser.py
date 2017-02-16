@@ -1,8 +1,8 @@
 # All the functiosn for parsing and converting ra reside here
 
-from parsed_query import *
-from query_step import *
-from table import *
+from parser.parsed_query import *
+from parser.query_step import *
+from parser.table import *
 
 
 """ Split a string containing multiple RA queries into a list of single RA queries """

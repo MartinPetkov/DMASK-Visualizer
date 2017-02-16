@@ -3,7 +3,7 @@ import json
 class QueryStep:
 
     """
-    Create a ParsedQuery object.
+    Create a QueryStep object.
 
     :param step_number: a string representing which step this is (i.e. 1.1 or 1.3.4)
     :param sql_chunk: the string of the SQL chunk this steps represents

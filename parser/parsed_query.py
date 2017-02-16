@@ -1,5 +1,5 @@
-from query_step import QueryStep
-from table import Table
+from parser.query_step import QueryStep
+from parser.table import Table
 
 import json
 

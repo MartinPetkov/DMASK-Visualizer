@@ -1,6 +1,6 @@
-from parsed_query import *
-from query_step import *
-from table import *
+from parser.parsed_query import *
+from parser.query_step import *
+from parser.table import *
 
 from pprint import pprint
 

@@ -1,9 +1,11 @@
-# Code from lines 75 - 92 where retrieved from 
+# Code from lines 75 - 92 where retrieved from
 # http://pyparsing.wikispaces.com/share/view/40959659
 
-from pyparsing import (ParseResults, Literal, CaselessLiteral, Word, Upcase, delimitedList, Optional,
-    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, commaSeparatedList,
-    opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD, Suppress, nestedExpr, Empty, replaceWith)
+from pyparsing import (ParseResults, Literal, CaselessLiteral, Word,
+    upcaseTokens, delimitedList, Optional, Combine, Group, alphas, nums,
+    alphanums, ParseException, Forward, oneOf, quotedString, commaSeparatedList,
+    opAssoc, operatorPrecedence, ZeroOrMore, restOfLine, Keyword as KEYWORD,
+    Suppress, nestedExpr, Empty, replaceWith)
 
 # ============== Define SQL KEYWORDS ========================
 SELECT          =   KEYWORD("SELECT", caseless=True)
@@ -50,15 +52,16 @@ NOTNULL_        =   KEYWORD("NOTNULL", caseless=True)
 BETWEEN_        =   KEYWORD("BETWEEN", caseless=True)
 COMMA_          =   KEYWORD(",", caseless=True)
 
-KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER | 
-                    CREATE | VIEW | AS | DISTINCT | ON | ASC_ | DESC_ | USING | 
-                    LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ | 
-                    ANY_ | SOME_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ | DISTINCT_ | 
-                    JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ | LEFT_ | RIGHT_ | FULL_ |
-                    NULL_ | ISNULL_ | NOTNULL_ | BETWEEN_ | ',')
+KEYWORDS        = ( SELECT | FROM | WHERE | GROUP | BY | HAVING | ORDER |
+                    CREATE | VIEW | AS | DISTINCT | ON | ASC_ | DESC_ | USING |
+                    LIMIT | OFFSET | AND_ | OR_ | IS_ | IN_ | EXISTS_ | NOT_ |
+                    ANY_ | SOME_ | ALL_ | UNION_ | INTERSECT_ | EXCEPT_ |
+                    DISTINCT_ | JOIN_ | NATURAL_ | CROSS_ | INNER_ | OUTER_ |
+                    LEFT_ | RIGHT_ | FULL_ | NULL_ | ISNULL_ | NOTNULL_ |
+                    BETWEEN_ | ',')
 
 # ================= Define SQL CLAUSES =======================
-# Grammar for clauses will be defined below. 
+# Grammar for clauses will be defined below.
 # The following statements can be recursively defined.
 
 sqlStmt         =   Forward()
@@ -103,13 +106,13 @@ arithSign       =   Word("-=",exact=1)
 
 E = CaselessLiteral("E")
 
-realNum         =   Combine( Optional(arithSign) 
-                    + ( Word( nums ) + "." + Optional( Word(nums) ) | ( "." + Word(nums) ) ) 
-                    + Optional( E + Optional(arithSign) + Word(nums) ) 
+realNum         =   Combine( Optional(arithSign)
+                    + ( Word( nums ) + "." + Optional( Word(nums) ) | ( "." + Word(nums) ) )
+                    + Optional( E + Optional(arithSign) + Word(nums) )
                     )
 
-intNum          =   Combine( Optional(arithSign) 
-                    + Word( nums ) 
+intNum          =   Combine( Optional(arithSign)
+                    + Word( nums )
                     + Optional( E + Optional("+") + Word(nums) )
                     )
 
@@ -118,7 +121,7 @@ posParam        =   Combine('$' + (realNum | intNum))
 space           =   Empty().addParseAction(replaceWith(''))
 
 # ============= Define Tokens ===============================
-ident           =   (~KEYWORDS 
+ident           =   (~KEYWORDS
                     + (Word(alphas, alphanums + "_$")
                         | realNum
                         | intNum)
@@ -152,58 +155,58 @@ selectColumn    =   ('*' | tokenList | columnRval)
 # SELECT CLAUSE
 selectClause    =   Group(selectColumn)
 
-selectCalculator=   Group(SELECT + 
-                    (Group( 
-                        Group((intNum | realNum) + COLOPS + (intNum | realNum) 
+selectCalculator=   Group(SELECT +
+                    (Group(
+                        Group((intNum | realNum) + COLOPS + (intNum | realNum)
                             + Optional((AS | space) + token)))))
 
-# ========== FROM CLAUSE =========== 
+# ========== FROM CLAUSE ===========
 
 # Grammar for JOINS
 
 joins           =   (Literal(',')
                     | Combine((NATURAL_
-                        | CROSS_) 
+                        | CROSS_)
                         + " " + JOIN_
                         )
                     )
 
 joinons           = (JOIN_
                     | Combine((
-                        INNER_ 
-                        | Combine(LEFT_ + " " + OUTER_) 
+                        INNER_
+                        | Combine(LEFT_ + " " + OUTER_)
                         | Combine(RIGHT_ + " " + OUTER_)
                         | Combine(FULL_ + " " + OUTER_)
-                        | FULL_ 
-                        | RIGHT_ 
-                        | LEFT_ 
+                        | FULL_
+                        | RIGHT_
+                        | LEFT_
                         | OUTER_ ) + " "
                     + JOIN_)
                     )
 
 # tableBlock nested within joinBlock, includes renames
 tableBlock      =   Group(
-                        (token | subquery) 
+                        (token | subquery)
                         + Optional(( AS | space) + token)
                     )
-                    
+
 
 tableOnBlock    =   Group(
                         tableBlock + (Optional(ON + Group(token + BINOP + columnRval))
                         | Optional(USING + Group(token))
                     ))
 
-fromClause      =   (tableBlock 
+fromClause      =   (tableBlock
                     + ZeroOrMore(
-                        (joins + tableBlock) 
+                        (joins + tableBlock)
                         | (joinons + tableOnBlock))
                     )
 
 # ========= WHERE CLAUSE ===========
 
 whereCondition  <<   Group(
-                        (token + BINOP + ( 
-                            columnRval 
+                        (token + BINOP + (
+                            columnRval
                             | (Optional(ANY_ | SOME_ | ALL_) + subquery)))
                         | (token + IN_ + (
                             (Suppress("(") + delimitedList(columnRval) + Suppress(")"))
@@ -217,7 +220,7 @@ whereNested     =   nestedExpr("(", ")", whereCondition)
 
 whereClause     <<  operatorPrecedence(
                         (whereNested | whereCondition),
-                        [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
+                        [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)),
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
                     )
@@ -236,7 +239,7 @@ havingNested    = nestedExpr("(", ")", havingCondition)
 
 havingClause    =   operatorPrecedence(
                         havingNested | havingCondition,
-                        [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)), 
+                        [   ( (AND_ | OR_), 2, opAssoc.LEFT, precedence(2)),
                             ( (NOT_, 1, opAssoc.RIGHT, precedence(1)))
                         ]
                     )
@@ -244,7 +247,7 @@ havingClause    =   operatorPrecedence(
 #=========== SQL STATEMENT =========
 # Define the grammar for SQL query.
 sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
-                    + Group(    FROM + Group(fromClause) ) 
+                    + Group(    FROM + Group(fromClause) )
                     + Optional( Group( WHERE + Group( whereClause )))
                     + Optional( Group( Combine( GROUP + " " + BY) + (tokenList)))
                     + Optional( Group( HAVING + Group(havingClause)))
@@ -255,9 +258,9 @@ sqlStmt         <<  ( Group(    SELECT + Optional(DISTINCT) + selectClause)
 
 subquery        <<  Optional(Suppress('(')) + Group(sqlStmt) + Optional(Suppress(')'))
 
-createView      <<  (Combine( CREATE + " " + VIEW) 
-                    + token 
-                    + Optional(AS) 
+createView      <<  (Combine( CREATE + " " + VIEW)
+                    + token
+                    + Optional(AS)
                     + (subquery | setOp | selectCalculator)
                     )
 

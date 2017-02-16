@@ -1,8 +1,8 @@
 # All the functions for parsing and converting sql reside here
-from parsed_query import *
-from query_step import *
-from table import *
-from to_ast import ast, KEYWORDS
+from parser.parsed_query import *
+from parser.query_step import *
+from parser.table import *
+from parser.to_ast import ast, KEYWORDS
 
 import re
 import collections
@@ -119,6 +119,8 @@ def clean_lst(lst):
 
     return query
 
+
+'''Return the namespace of the given QueryStep. '''
 def get_namespace(steps, step_number='', table_name=''):
     for step in steps:
         if step_number:
@@ -136,7 +138,7 @@ def get_all_cols(namespace):
     return cols
 
 
-""" Split a string containing multiple SQL queries into a list of single SQL queries """
+'''Remove comments from sql string.'''
 def remove_sql_comments(sql_queries):
     # This matches either a single-line -- comment, or a multi-line /**/ comment
     comments_regex = re.compile(r"((/\*.*\*/)|(--[^\n]*\n))+", re.DOTALL | re.MULTILINE)
@@ -145,6 +147,7 @@ def remove_sql_comments(sql_queries):
     return clean_sql
 
 
+""" Split a string containing multiple SQL queries into a list of single SQL queries """
 def split_sql_queries(sql_queries):
     # Assuming semicolons are enforced
     return list(map(
@@ -160,6 +163,7 @@ def sql_to_ast(query):
     return ast(query)
 
 
+''' Reorder the sql clauses according to order defined in query step.'''
 def reorder_sql_statements(sql_statements):
 
     # If there are set operations, all of them will be contained in the first element, followed by things like 'LIMIT'
@@ -204,7 +208,6 @@ def reorder_sql_statements(sql_statements):
     return sorted(sql_statements, key=lambda statement: SQL_EXEC_ORDER[statement[0].upper()])
 
 
-
 """ Convert a single SQL AST into a list of QueryStep objects """
 def sql_ast_to_steps(ast, current_schema={}):
 
@@ -227,12 +230,14 @@ def sql_ast_to_steps(ast, current_schema={}):
     return steps
 
 
+'''Convert sql query into sequence of QueryStep objects.'''
 def parse_sql_query(ast, parent_number=''):
 
     global namespace
 
+    # Used for custom parsing function
     STATEMENT_HANDLERS = {
-        "CREATE VIEW": parse_create_view,
+        # "CREATE VIEW": parse_create_view,
         "FROM": parse_from,
         "WHERE": parse_where,
         "GROUP BY": parse_group_by,
@@ -281,6 +286,7 @@ def parse_sql_query(ast, parent_number=''):
     return steps
 
 
+'''Return QueryStep object representing given clause.'''
 def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     if parent_number:
@@ -300,6 +306,7 @@ def parse_clause(ast_node, step_number='', parent_number='', prev_steps=[]):
     return step
 
 
+'''Return QueryStep object representing FROM clause.'''
 def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -366,7 +373,7 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
         rename_new_name = args[0][2]
         rename_executable_sql = "SELECT * FROM (" + prev_step.executable_sql[:-1] + ') ' + rename_sql_chunk
         subquery_namespace = steps[-1].namespace
-        
+
         # Get the namespace after the subquery
         # Go through all the new namespace tables and collect all of their columns into one
         subquery_cols = [ c for t in subquery_namespace for c in t[1] ]
@@ -468,6 +475,9 @@ def parse_from(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''
+Return list of table names in FROM clause of query.
+'''
 def extract_from_arg_table_name(from_arg):
     if len(from_arg) == 1:
         return from_arg[0]
@@ -488,6 +498,10 @@ def extract_from_arg_table_name(from_arg):
     return ''
 
 
+'''
+Return namespace given a parsed FROM clause.
+Namespace consists of col names corresponding to each table selected from.
+'''
 def get_namespace_from_args(from_args):
     i = 0
     extracted_namespace = []
@@ -511,6 +525,7 @@ def get_namespace_from_args(from_args):
     return extracted_namespace
 
 
+'''Return QueryStep objects from WHERE clause.'''
 def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -527,6 +542,7 @@ def parse_where(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects from GROUP BY clause.'''
 def parse_group_by(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -542,6 +558,7 @@ def parse_group_by(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects from HAVING clause.'''
 def parse_having(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -557,6 +574,7 @@ def parse_having(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects from SELECT clause.'''
 def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     # TODO:
     # - namespace
@@ -664,6 +682,7 @@ def parse_select(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects from SELECT clause if DISTINCT keyword used.'''
 def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     steps = []
@@ -690,6 +709,7 @@ def parse_distinct(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects for query using SET operations.'''
 def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -738,6 +758,7 @@ def parse_set(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects from ORDER BY clause.'''
 def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -753,6 +774,7 @@ def parse_order_by(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects when LIMIT keyword used.'''
 def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -768,6 +790,7 @@ def parse_limit(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects when OFFSET keyword used.'''
 def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[]):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls
@@ -783,6 +806,7 @@ def parse_offset(ast_node, step_number='', parent_number='', prev_steps=[]):
     return steps
 
 
+'''Return QueryStep objects when view is created.'''
 def parse_create_view(ast_node, step_number=''):
 
     # Generate a list of steps just for this statement, they should get merged by previous calls

@@ -1,8 +1,8 @@
-from to_ast import ast, precedence
+from parser.to_ast import ast, precedence
 import unittest
 
 class TestSQL(unittest.TestCase):
-   
+
     def tearDown(self):
         print("============================\n")
 
@@ -112,7 +112,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
-    
+
     def test_03b_rename_column_with_as(self):
         ''' TEST RENAMING A COLUMN WITH AS:
             A query with a renamed column using keyword AS.
@@ -146,7 +146,7 @@ class TestSQL(unittest.TestCase):
         output = ast('select cnum || dept as course, max(sid) maxsid, (select first(name) from Took) A from Took')
         print(expected)
         print(output)
-        self.assertEqual(len(expected), len(output.__str__()))    
+        self.assertEqual(len(expected), len(output.__str__()))
 
 
     def test_05_rename_table_without_as(self):
@@ -192,7 +192,7 @@ class TestSQL(unittest.TestCase):
                     [ 'SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']] ],
                     [ 'FROM',   [ ['Student'], ',', ['Took' ] ]]
                 ]
-        ''' 
+        '''
         print('TEST CROSS PRODUCT ","')
         print('A query with a cross product, comma formatted')
         expected = "[['SELECT', [['Student.sid'], ['Student.email'], ['Took.grade']]], ['FROM', [['Student'], ',', ['Took']]]]"
@@ -245,7 +245,7 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [['sid'], ['email'], ['cgpa' ]] ],
-                    [ 'FROM',   [ ['Student'], 'NATURAL JOIN', ['Took'], 
+                    [ 'FROM',   [ ['Student'], 'NATURAL JOIN', ['Took'],
                                                 'NATURAL JOIN', ['Offering'] ]]
                 ]
         '''
@@ -258,8 +258,8 @@ class TestSQL(unittest.TestCase):
         self.assertEqual(len(expected), len(output.__str__()))
 
     def test_11_left_join(self):
-    
-        ''' TEST LEFT JOIN ON <condition>: 
+
+        ''' TEST LEFT JOIN ON <condition>:
             A query with a LEFT JOIN on a condition.
             Expected output:
                 [
@@ -297,11 +297,11 @@ class TestSQL(unittest.TestCase):
 
     def test_13_create_view(self):
 
-        
+
         ''' TEST CREATE VIEW AS:
             A query with CREATE VIEW.
             Expected output:
-                ['CREATE VIEW', 'students', 
+                ['CREATE VIEW', 'students',
                         [[ 'SELECT', [['email']]],
                         [ 'FROM',   [['Student']] ]
                         ]
@@ -382,7 +382,7 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']] ],
                     [ 'FROM',   [['Student']] ],
-                    [ 'WHERE',  [ [['cgpa', '>', '3'], 'AND', 
+                    [ 'WHERE',  [ [['cgpa', '>', '3'], 'AND',
                                     [ ['firstName', '=', 'Martin'], 'OR', ['firstName', 'LIKE', '%Kat%']]
                                 ]]
                     ]
@@ -404,7 +404,7 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['email'], ['cgpa']] ],
                     [ 'FROM',   [['Student']] ],
-                    [ 'WHERE',  [ [['cgpa', '>', '3'], 'AND', 
+                    [ 'WHERE',  [ [['cgpa', '>', '3'], 'AND',
                                     [ ['firstName', '=', 'Martin'], 'OR', ['firstName', 'LIKE', '%Kat%']]
                                 ]]
                     ]
@@ -439,13 +439,13 @@ class TestSQL(unittest.TestCase):
     def test_18_compound_condition_2and_1or(self):
 
         #*****************************************
-        ''' TEST COMPOUND CONDITION: 2 AND + 1 OR 
+        ''' TEST COMPOUND CONDITION: 2 AND + 1 OR
             A query with two ANDS and one OR in its WHERE statement. (Multiple compounded conditions).
             Expected output:
                 [
                     [ 'SELECT', [['email'], ['cgpa']]],
                     [ 'FROM',   [['Student']]],
-                    [ 'WHERE',  [ [[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']], 
+                    [ 'WHERE',  [ [[['cgpa', '<', '1.5'], 'AND', ['cgpa', '>', '3']],
                                     'OR', ['firstName', 'LIKE', '%Kat%']],
                                     'AND', ['sid', '!=', '0']]
                     ]
@@ -465,10 +465,10 @@ class TestSQL(unittest.TestCase):
             A query with one subquery in the FROM clause
             Expected output:
                 [
-                    [ 'SELECT', [['sid']]], 
+                    [ 'SELECT', [['sid']]],
                     [ 'FROM',   [[
                         [
-                            [ 'SELECT', 'DISTINCT', [['instructor']]], 
+                            [ 'SELECT', 'DISTINCT', [['instructor']]],
                             [ 'FROM',   [['Course']]]
                         ], '', 'H']]
                                 ]
@@ -484,10 +484,10 @@ class TestSQL(unittest.TestCase):
 
 
     def test_19b_subquery_from(self):
-                
-        ''' TEST SUBQUERY IN FROM CLAUSE (COMPLEX): 
+
+        ''' TEST SUBQUERY IN FROM CLAUSE (COMPLEX):
             A query with one subquery in the FROM clause
-            Expected output: 
+            Expected output:
                 [
                     [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], '', 'course'], ['grade']]],
                     [ 'FROM',   [['Took'], ',', [
@@ -495,7 +495,7 @@ class TestSQL(unittest.TestCase):
                                     ['FROM',    [['Offering']] ],
                                     ['WHERE',   [[['instructor', '=', '\'Horton\'']]]]
                                     ]
-                                , '', 'H']], 
+                                , '', 'H']],
                     ['WHERE', [['Took.oid', '=', 'H.oid']]]
                 ]
 
@@ -553,7 +553,7 @@ class TestSQL(unittest.TestCase):
 
 
     def test_21_subquery_select(self):
-            
+
         ''' TEST SUBQUERY IN SELECT CLAUSE:
             A query with one subquery in the SELECT clause
             Expected output:
@@ -580,7 +580,7 @@ class TestSQL(unittest.TestCase):
                 [
                     [   [ 'SELECT', [['sid']]],
                         [ 'FROM,    [['Student']] ]
-                    ], 
+                    ],
                     'UNION',
                     [   [ 'SELECT', [['sid']] ],
                         [ 'FROM',   [['Took'] ]]
@@ -604,7 +604,7 @@ class TestSQL(unittest.TestCase):
                 [
                     [   [ 'SELECT', [['sid']]],
                         [ 'FROM,    [['Student']] ]
-                    ], 
+                    ],
                     'UNION',
                     [   [ 'SELECT', [['sid']] ],
                         [ 'FROM',   [['Took'] ]]
@@ -622,7 +622,7 @@ class TestSQL(unittest.TestCase):
         self.assertEqual(len(expected), len(output.__str__()))
 
     def test_22c_two_unions(self):
-        ''' TEST TWO UNIONS 
+        ''' TEST TWO UNIONS
             query1 UNION query2 UNION query3
             Expected output:
                 [
@@ -635,7 +635,7 @@ class TestSQL(unittest.TestCase):
                             [ 'FROM',   [['Took']]]
                         ]
                     ], UNION,
-                    [   
+                    [
                         [ 'SELECT', [['sid']]],
                         [ 'FROM',   [['University']]]
                     ]
@@ -657,8 +657,8 @@ class TestSQL(unittest.TestCase):
                     [ 'SELECT', [['sid']]],
                     [ 'FROM'    [['Student']]],
                     [ 'WHERE',  [['gpa', '>', 'ANY', [
-                                                ['SELECT', [['gpa']]], 
-                                                ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]], 
+                                                ['SELECT', [['gpa']]],
+                                                ['FROM', [['Student'], 'NATURAL JOIN', ['Took']]],
                                                 ['WHERE', [['grade', '>', '100']]]
                                             ]]]
                     ]
@@ -680,8 +680,8 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['sid'], [['dept', '||', 'cnum'], 'AS', 'course'], ['grade']]],
                     [ 'FROM',   [['Took'], 'NATURAL JOIN', ['Offering']]],
-                    [ 'WHERE',  [[['grade', '>=', '80'], 'AND', ['dept', 'IN', 
-                                [   ['SELECT',  [['dept']]], 
+                    [ 'WHERE',  [[['grade', '>=', '80'], 'AND', ['dept', 'IN',
+                                [   ['SELECT',  [['dept']]],
                                     ['FROM',    [['Took'], 'NATURAL JOIN', ['Offering'], 'NATURAL JOIN', ['Student']]],
                                     ['WHERE',   [['surname', '=', "'Lakemeyer'"]]]
                                 ]]]]
@@ -703,7 +703,7 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']],
-                    [ 'WHERE',  [['NOT', ['EXISTS', 
+                    [ 'WHERE',  [['NOT', ['EXISTS',
                                     [['SELECT', ['*']],
                                     ['FROM',    [['Offering']]],
                                     ['WHERE',   [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]
@@ -731,7 +731,7 @@ class TestSQL(unittest.TestCase):
                 [
                     [ 'SELECT', [['instructor']]],
                     [ 'FROM',   [['Offering', 'AS', 'Offl']]],
-                    [ 'WHERE',  [['EXISTS', 
+                    [ 'WHERE',  [['EXISTS',
                                     [['SELECT', ['*']],
                                     ['FROM',    [['Offering']]],
                                     ['WHERE',   [[['oid', '<>', 'Offl.oid'], 'AND', ['instructor', '=', 'Offl.instructor']]]]]]]]
@@ -752,7 +752,7 @@ class TestSQL(unittest.TestCase):
         print(expected2)
         print(output2)
 
-  
+
 
     def test_26_distinct(self):
         ''' TEST DISTINCT
@@ -810,7 +810,7 @@ class TestSQL(unittest.TestCase):
 
     def test_29_aggregate_function_only(self):
         ''' TEST AGGREGATE FUNCTION ONLY
-            A query selecting over one aggregated column. 
+            A query selecting over one aggregated column.
             Expected output:
                 [
                     [ 'SELECT', [['max(sid)']]],
@@ -824,7 +824,7 @@ class TestSQL(unittest.TestCase):
         print(expected)
         print(output)
         self.assertEqual(len(expected), len(output.__str__()))
- 
+
     def test_30_group_by(self):
         ''' TEST GROUP BY
             A query selecting over one aggregated column and one unaggregated column
@@ -867,7 +867,7 @@ class TestSQL(unittest.TestCase):
             A query containing a HAVING condition over aggregate function not in select clause.
             Expected output:
                 [
-                    [ 'SELECT', [['sum(salary)']]], 
+                    [ 'SELECT', [['sum(salary)']]],
                     [ 'FROM',   [['Department'], 'JOIN', [['Employee'], 'ON', ['dept', '=', 'did']]]],
                     [ 'GROUP BY', ['dept']],
                     [ 'HAVING', [['min(salary)', '>=', '100']]]
@@ -903,7 +903,7 @@ class TestSQL(unittest.TestCase):
         ''' TEST ISNULL
             A query which checks if a column ISNULL or IS NULL.
             Expected output:
-                [   
+                [
                     [ 'SELECT', [['country'], ['population']]],
                     [ 'FROM',   [['Countries']]],
                     [ 'WHERE',  [['gpa', 'ISNULL']]]
@@ -978,7 +978,7 @@ class TestSQL(unittest.TestCase):
             Expected output:
                 [
                     [ 'SELECT', [
-                        ['name'], 
+                        ['name'],
                         [[
                             ['SELECT',  [['max(pop)']]],
                             ['FROM',    [['Cities']]],
@@ -996,7 +996,7 @@ class TestSQL(unittest.TestCase):
         self.assertEqual(len(expected), len(output.__str__()))
 
     def test_39_column_operations(self):
-        ''' TEST COLUMN OPERATIONS 
+        ''' TEST COLUMN OPERATIONS
             A query selecting over a column operation.
             Expected output:
                 [
@@ -1030,7 +1030,7 @@ class TestSQL(unittest.TestCase):
 
 
     def test_41_two_unions(self):
-        ''' TEST TWO UNIONS 
+        ''' TEST TWO UNIONS
             query1 UNION query2 UNION query3
             Expected output:
                 [
@@ -1043,7 +1043,7 @@ class TestSQL(unittest.TestCase):
                             [ 'FROM',   [['Took']]]
                         ]
                     ], UNION,
-                    [   
+                    [
                         [ 'SELECT', [['sid']]],
                         [ 'FROM',   [['University']]]
                     ]
@@ -1058,7 +1058,7 @@ class TestSQL(unittest.TestCase):
         self.assertEqual(len(expected), len(output.__str__()))
 
     def test_42_two_unions_rightbrackets(self):
-        ''' TEST TWO UNIONS 
+        ''' TEST TWO UNIONS
             query1 UNION query2 UNION query3
             Expected output:
                 [
@@ -1071,7 +1071,7 @@ class TestSQL(unittest.TestCase):
                             [ 'FROM',   [['Took']]]
                         ]
                     ], UNION,
-                    [   
+                    [
                         [ 'SELECT', [['sid']]],
                         [ 'FROM',   [['University']]]
                     ]
@@ -1083,11 +1083,11 @@ class TestSQL(unittest.TestCase):
         output = ast('(select sid from Student) union all ((select sid from Took) union (select sid from University));')
         print(expected)
         print(output)
-        self.assertEqual(len(expected), len(output.__str__())) 
+        self.assertEqual(len(expected), len(output.__str__()))
 
     def test_43_aggregate_star(self):
         output = ast('select count(*) from Student')
-        print(output)       
+        print(output)
 
 if __name__ == "__main__":
     unittest.main()

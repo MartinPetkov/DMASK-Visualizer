@@ -1,5 +1,5 @@
-from sql_parser import *
-import sql_parser
+from parser.sql_parser import *
+import parser.sql_parser
 import pdb
 from pprint import pprint
 from traces import DESIRED_ASTS
